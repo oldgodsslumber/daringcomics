@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Daring Comics RPG</title>
+<link href="https://fonts.googleapis.com/css2?family=Bangers&family=Oswald:wght@400;600;700&family=Comic+Neue:wght@400;700&family=Roboto+Condensed:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0e1a;--surface:#121828;--surface2:#1a2236;--surface3:#243050;
+  --accent:#e63946;--accent2:#ff6b6b;--text:#f0f0f0;--muted:#7a8a9e;
+  --border:#2a3a5a;--green:#2ecc71;--yellow:#f39c12;--blue:#3b82f6;
+  --red:#e74c3c;--gold:#f1c40f;--purple:#9b59b6;--cyan:#00d2ff;
+  --font-title:'Bangers',cursive;--font-label:'Oswald',sans-serif;
+  --font-body:'Comic Neue','Segoe UI',sans-serif;
+  --radius-card:12px;--radius-btn:10px;--radius-input:9px;
+}
+html[data-theme="dark"]{
+  --bg:#0c0c0c;--surface:#1a1a1a;--surface2:#252525;--surface3:#333;
+  --accent:#d4a020;--accent2:#e8b838;--text:#d8d0c0;--muted:#706858;
+  --border:#3a3428;--green:#8faa30;--yellow:#d4a020;--blue:#5588aa;
+  --red:#aa3333;--gold:#d4a020;--purple:#886644;--cyan:#5588aa;
+  --font-title:'Oswald',sans-serif;--font-label:'Oswald',sans-serif;
+  --font-body:'Roboto Condensed',sans-serif;
+  --radius-card:4px;--radius-btn:3px;--radius-input:3px;
+}
+html[data-theme="cosmic"]{
+  --bg:#0a0020;--surface:#140038;--surface2:#1e0050;--surface3:#2a0068;
+  --accent:#ff2d78;--accent2:#00f0ff;--text:#fff;--muted:#9966cc;
+  --border:#4400aa;--green:#00ff99;--yellow:#ffee00;--blue:#00f0ff;
+  --red:#ff2d78;--gold:#ffee00;--purple:#aa44ff;--cyan:#00f0ff;
+  --font-title:'Bangers',cursive;--font-label:'Oswald',sans-serif;
+  --font-body:'Comic Neue',sans-serif;
+  --radius-card:16px;--radius-btn:12px;--radius-input:8px;
+}
+html[data-theme="street"]{
+  --bg:#111510;--surface:#1a1f18;--surface2:#242a20;--surface3:#303828;
+  --accent:#e8a020;--accent2:#ffcc44;--text:#d0d0c0;--muted:#708068;
+  --border:#384030;--green:#66aa44;--yellow:#e8a020;--blue:#5588aa;
+  --red:#cc4433;--gold:#e8a020;--purple:#886688;--cyan:#44aaaa;
+  --font-title:'Oswald',sans-serif;--font-label:'Oswald',sans-serif;
+  --font-body:'Roboto Condensed',sans-serif;
+  --radius-card:6px;--radius-btn:5px;--radius-input:5px;
+}
+html[data-theme="golden"]{
+  --bg:#1a140e;--surface:#261e14;--surface2:#33281c;--surface3:#443424;
+  --accent:#cc3333;--accent2:#ee5544;--text:#f0e8d8;--muted:#9a8a6a;
+  --border:#4a3c28;--green:#44aa66;--yellow:#ddaa22;--blue:#4488cc;
+  --red:#cc3333;--gold:#ddaa22;--purple:#884488;--cyan:#44aaaa;
+  --font-title:'Bangers',cursive;--font-label:'Oswald',sans-serif;
+  --font-body:'Comic Neue',sans-serif;
+  --radius-card:8px;--radius-btn:6px;--radius-input:6px;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-size:15px;line-height:1.5;
+  max-width:520px;margin:0 auto;padding-bottom:72px;-webkit-font-smoothing:antialiased}
+#nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:520px;
+  background:var(--surface);border-top:1px solid var(--border);display:flex;z-index:100;
+  padding-bottom:env(safe-area-inset-bottom)}
+.nb{flex:1;padding:7px 2px 5px;background:none;border:none;color:var(--muted);
+  font-size:9px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;
+  transition:color .15s;letter-spacing:.5px;text-transform:uppercase;font-family:var(--font-label)}
+.nb.active{color:var(--accent)}
+.nb svg{width:20px;height:20px}
+.page{display:none;padding:16px;animation:fadeIn .15s ease}
+.page.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.pg-title{font-family:var(--font-title);font-size:28px;letter-spacing:1px;margin-bottom:4px;color:var(--accent)}
+.pg-sub{font-size:12px;color:var(--muted);margin-bottom:14px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);padding:14px;margin-bottom:10px}
+.card-sm{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-card);padding:10px;margin-bottom:8px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:11px 18px;
+  border-radius:var(--radius-btn);border:none;font-size:14px;font-weight:600;cursor:pointer;
+  transition:opacity .15s;white-space:nowrap;font-family:var(--font-label)}
+.btn:active{opacity:.7}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
+.btn-danger{background:rgba(231,76,60,.15);color:var(--red);border:1px solid rgba(231,76,60,.3)}
+.btn-success{background:rgba(46,204,113,.15);color:var(--green);border:1px solid rgba(46,204,113,.3)}
+.btn-gold{background:rgba(241,196,15,.15);color:var(--gold);border:1px solid rgba(241,196,15,.3)}
+.btn-full{width:100%}
+.btn-sm{padding:7px 12px;font-size:12px}
+.btn-xs{padding:5px 10px;font-size:11px}
+input:not([type=radio]):not([type=checkbox]),select,textarea{background:var(--surface2);border:1px solid var(--border);
+  border-radius:var(--radius-input);color:var(--text);font-size:15px;padding:10px 12px;width:100%;outline:none;font-family:inherit}
+input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+textarea{resize:vertical;min-height:60px}
+.form-group{margin-bottom:10px}
+.form-group label{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:4px;font-family:var(--font-label)}
+select{cursor:pointer;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%237a8a9e' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:30px}
+.label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:4px;font-family:var(--font-label)}
+.step-dot{width:8px;height:8px;border-radius:50%;background:var(--surface3);transition:all .2s;display:inline-block}
+.step-dot.active{background:var(--accent);width:22px;border-radius:4px}
+.step-dot.done{background:var(--green)}
+.game-opt{background:var(--surface2);border:2px solid var(--border);border-radius:var(--radius-card);padding:12px;cursor:pointer;transition:all .15s}
+.game-opt:hover{border-color:var(--muted)}
+.game-opt.selected{border-color:var(--accent);background:rgba(230,57,70,.08)}
+.game-opt .opt-title{font-family:var(--font-label);font-size:15px;font-weight:700;margin-bottom:2px}
+.game-opt .opt-desc{font-size:12px;color:var(--muted)}
+.game-opt .opt-stats{font-size:11px;color:var(--accent);margin-top:4px;font-weight:600}
+.skill-row{display:flex;align-items:center;gap:6px;padding:6px 8px;border-radius:8px;background:var(--surface2);margin-bottom:4px}
+.skill-row .sk-name{flex:1;font-size:13px;font-weight:600;font-family:var(--font-label)}
+.skill-row .sk-val{font-size:14px;font-weight:700;min-width:28px;text-align:center;color:var(--accent)}
+.skill-row .sk-label{font-size:10px;color:var(--muted);min-width:60px}
+.sk-btn{width:26px;height:26px;border-radius:50%;border:1px solid var(--border);background:var(--surface3);color:var(--text);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center}
+.sk-btn:active{opacity:.6}
+.sk-btn:disabled{opacity:.3;cursor:default}
+.power-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-card);padding:10px;margin-bottom:6px;cursor:pointer;transition:border-color .15s}
+.power-card:hover{border-color:var(--accent)}
+.power-card .pw-name{font-family:var(--font-label);font-weight:700;font-size:14px}
+.power-card .pw-cost{font-size:12px;color:var(--accent);font-weight:600}
+.power-card .pw-desc{font-size:12px;color:var(--muted);margin-top:2px}
+.power-card .pw-skill{font-size:10px;color:var(--blue);margin-top:2px}
+.stress-box{width:28px;height:28px;border:2px solid var(--border);border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:all .15s;font-size:12px;font-weight:700;background:var(--surface2)}
+.stress-box.filled{background:var(--accent);border-color:var(--accent);color:#fff}
+.stress-box:hover{border-color:var(--accent)}
+.conseq-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.conseq-label{font-size:11px;font-weight:700;text-transform:uppercase;color:var(--muted);min-width:70px;font-family:var(--font-label)}
+.conseq-input{flex:1}
+.fate-die{width:48px;height:48px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;
+  font-size:28px;font-weight:900;border:2px solid var(--border);background:var(--surface2);transition:all .3s;font-family:var(--font-title)}
+.fate-die.plus{color:var(--green);border-color:var(--green)}
+.fate-die.minus{color:var(--red);border-color:var(--red)}
+.fate-die.blank{color:var(--muted);border-color:var(--border)}
+.roll-btn{width:76px;height:76px;border-radius:50%;background:var(--accent);border:none;color:#fff;
+  font-family:var(--font-title);font-size:22px;cursor:pointer;transition:transform .1s;letter-spacing:1px}
+.roll-btn:active{transform:scale(.92)}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:200;overflow-y:auto;padding:20px}
+.modal-overlay.open{display:block}
+.modal-inner{max-width:460px;margin:0 auto}
+.npc-tabs{display:flex;gap:2px;margin-bottom:12px;overflow-x:auto}
+.npc-tab{padding:8px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-btn);
+  color:var(--muted);font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:var(--font-label);text-transform:uppercase;letter-spacing:.5px}
+.npc-tab.active{color:var(--accent);border-color:var(--accent);background:rgba(230,57,70,.08)}
+.zone-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);padding:10px;margin-bottom:8px}
+.zone-card .zone-name{font-family:var(--font-label);font-weight:700;font-size:14px;color:var(--accent);margin-bottom:6px}
+.combatant{display:flex;align-items:center;gap:8px;padding:6px 8px;background:var(--surface2);border-radius:8px;margin-bottom:4px}
+.combatant.current{border:1px solid var(--accent);background:rgba(230,57,70,.1)}
+.theme-swatch{width:24px;height:24px;border-radius:50%;border:2px solid var(--border);cursor:pointer;transition:transform .15s}
+.theme-swatch:hover{transform:scale(1.2)}
+.theme-swatch.active{border-color:var(--accent);box-shadow:0 0 8px var(--accent)}
+.budget-bar{height:14px;border-radius:7px;background:var(--surface3);overflow:hidden;margin:6px 0}
+.budget-fill{height:100%;border-radius:7px;transition:width .3s;background:var(--accent)}
+.budget-fill.warn{background:var(--yellow)}
+.budget-fill.over{background:var(--red)}
+.pyramid-row{display:flex;align-items:center;gap:4px;margin-bottom:2px}
+.pyramid-block{width:18px;height:14px;border-radius:3px;background:var(--accent);opacity:.8}
+.pyramid-label{font-size:10px;color:var(--muted);min-width:60px;text-align:right;font-family:var(--font-label)}
+.powerset-card{background:var(--surface);border:2px solid var(--purple);border-radius:var(--radius-card);padding:12px;margin-bottom:10px}
+.powerset-name{font-family:var(--font-title);font-size:18px;color:var(--purple);margin-bottom:4px}
+.powerset-aspect{font-size:12px;color:var(--muted);font-style:italic;margin-bottom:8px}
+.tag{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;font-family:var(--font-label)}
+.tag-se{background:rgba(46,204,113,.15);color:var(--green);border:1px solid rgba(46,204,113,.3)}
+.tag-lim{background:rgba(231,76,60,.15);color:var(--red);border:1px solid rgba(231,76,60,.3)}
+.tag-cost{background:rgba(241,196,15,.15);color:var(--gold);border:1px solid rgba(241,196,15,.3)}
+.divider{height:1px;background:var(--border);margin:12px 0}
+.text-accent{color:var(--accent)}.text-green{color:var(--green)}.text-muted{color:var(--muted)}
+.text-gold{color:var(--gold)}.text-red{color:var(--red)}.text-purple{color:var(--purple)}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.mt-1{margin-top:4px}.mt-2{margin-top:8px}.mt-3{margin-top:12px}.mt-4{margin-top:16px}
+.mb-1{margin-bottom:4px}.mb-2{margin-bottom:8px}.mb-3{margin-bottom:12px}
+.fw-700{font-weight:700}.tac{text-align:center}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:3px}
+@media(min-width:700px){
+  #nav{bottom:auto;top:0;left:0;transform:none;width:80px;max-width:80px;height:100vh;flex-direction:column;border-top:none;border-right:1px solid var(--border);padding-bottom:0}
+  .nb{padding:12px 4px;flex:initial}
+  body{margin-left:80px;max-width:600px;padding-bottom:16px}
+  #theme-wrap{margin-top:auto}
+}
+</style>
+</head>
+<body>
+<nav id="nav">
+  <button class="nb active" onclick="showTab('hero')" id="nb-hero">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>Hero
+  </button>
+  <button class="nb" onclick="showTab('team')" id="nb-team">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Team
+  </button>
+  <button class="nb" onclick="showTab('npcs')" id="nb-npcs">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><circle cx="16" cy="8" r="3"/><path d="M2 20c0-3 2.7-5 6-5m4 0c3.3 0 6 2 6 5"/></svg>NPCs
+  </button>
+  <button class="nb" onclick="showTab('dice')" id="nb-dice">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="4"/><circle cx="8" cy="8" r="1.5" fill="currentColor"/><circle cx="16" cy="16" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></svg>Dice
+  </button>
+  <button class="nb" onclick="showTab('conflict')" id="nb-conflict">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>Conflict
+  </button>
+  <button class="nb" onclick="showTab('notes')" id="nb-notes">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Notes
+  </button>
+  <button class="nb" onclick="openHUD()" id="nb-hud" style="border-top:1px solid var(--border)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>HUD
+  </button>
+  <div id="theme-wrap" style="padding:8px 10px;border-top:1px solid var(--border)">
+    <div style="font-size:8px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;font-family:var(--font-label)">Theme</div>
+    <div style="display:flex;flex-wrap:wrap;gap:5px;justify-content:center">
+      <button class="theme-swatch active" data-theme="" title="Classic Comics" style="background:linear-gradient(135deg,#0a0e1a,#e63946)"></button>
+      <button class="theme-swatch" data-theme="dark" title="Dark &amp; Gritty" style="background:linear-gradient(135deg,#0c0c0c,#d4a020)"></button>
+      <button class="theme-swatch" data-theme="cosmic" title="Cosmic" style="background:linear-gradient(135deg,#0a0020,#ff2d78)"></button>
+      <button class="theme-swatch" data-theme="street" title="Street Level" style="background:linear-gradient(135deg,#111510,#e8a020)"></button>
+      <button class="theme-swatch" data-theme="golden" title="Golden Age" style="background:linear-gradient(135deg,#1a140e,#cc3333)"></button>
+    </div>
+  </div>
+</nav>
+<div class="page active" id="page-hero"><div id="hero-creation"></div><div id="hero-sheet" style="display:none"></div></div>
+<div class="page" id="page-team"><div id="team-content"></div></div>
+<div class="page" id="page-npcs"><div id="npcs-content"></div></div>
+<div class="page" id="page-dice"><div id="dice-content"></div></div>
+<div class="page" id="page-conflict"><div id="conflict-content"></div></div>
+<div class="page" id="page-notes">
+  <div class="pg-title">Journal</div><div class="pg-sub">Campaign Notes &amp; Story Beats</div>
+  <div id="notes-timeline"></div>
+  <div id="notes-fab" style="position:fixed;bottom:80px;right:20px;z-index:50"></div>
+</div>
+<div class="modal-overlay" id="slot-modal"><div class="modal-inner"><div class="card" id="slot-modal-body"></div></div></div>
+<div class="modal-overlay" id="power-modal"><div class="modal-inner"><div id="power-modal-body"></div></div></div>
+<div class="modal-overlay" id="npc-modal"><div class="modal-inner"><div class="card" id="npc-modal-body"></div></div></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// GAME DATA
+// ═══════════════════════════════════════════════════════════
+const SERIES_TONES=[
+  {id:'realistic',name:'Near Realistic',refresh:3,stressBonus:0,desc:'Gritty, low-powered. Heroes are tough but mortal.'},
+  {id:'dark',name:'Dark & Grim',refresh:4,stressBonus:1,desc:'Street-level noir. Powers are restrained.'},
+  {id:'fourcolor',name:'Four Color',refresh:5,stressBonus:2,desc:'Classic superhero action. Bold & bright.'}
+];
+const SERIES_LEVELS=[
+  {id:'gritty',name:'Gritty Realism',baseHP:5,desc:'Minimal powers'},
+  {id:'urban',name:'Urban Protectors',baseHP:10,desc:'Street-level heroes'},
+  {id:'superheroic',name:'Super-Heroic',baseHP:15,desc:'Standard super-powered'},
+  {id:'mightiest',name:"Earth's Mightiest",baseHP:20,desc:'Major league heroes'},
+  {id:'offcharts',name:'Off The Charts',baseHP:25,desc:'Cosmic-level power'}
+];
+const EXP_LEVELS=[
+  {id:'normal',name:'Normal Guy in a Super World',skillPts:25,bonusHP:0},
+  {id:'new',name:'New/Young Heroes',skillPts:30,bonusHP:2},
+  {id:'ropes',name:'Know the Ropes',skillPts:35,bonusHP:5},
+  {id:'around',name:'Been Around the Block',skillPts:40,bonusHP:10},
+  {id:'highly',name:'Highly Experienced',skillPts:45,bonusHP:15}
+];
+const SKILLS=['Accuracy','Arcanum','Artificing','Athletics','Contacts','Controlling','Deceive','Empathy','Fight','Investigate','Knowledge','Leadership','Notice','Physique','Provoke','Rapport','Resources','Stealth','Technology','Thief','Treatment','Vehicles','Weapons','Will'];
+const LADDER=[{val:-2,name:'Terrible'},{val:-1,name:'Poor'},{val:0,name:'Mediocre'},{val:1,name:'Average'},{val:2,name:'Fair'},{val:3,name:'Good'},{val:4,name:'Great'},{val:5,name:'Superb'},{val:6,name:'Fantastic'},{val:7,name:'Epic'},{val:8,name:'Legendary'}];
+function ladderName(v){return(LADDER.find(l=>l.val===v)||{name:'???'}).name;}
+const ASPECT_CATEGORIES=['Life Changing Event','Life Secret','Core Value','Inner Demons','Inner Strength','Flaw','Dark Secret','Relationships','Personal Belief'];
+
+const TEAM_STUNTS=[
+  {id:'heroes_assemble',name:'Heroes Assemble',desc:'Once per scene, +1 bonus when invoking a situation aspect created by a teammate.',requires:null},
+  {id:'united_we_stand',name:'United We Stand',desc:'Use Heroes Assemble twice per scene.',requires:'heroes_assemble'},
+  {id:'brotherhood',name:'Brotherhood',desc:'Team fate point pool = half PC count (round up), resets each session.',requires:'united_we_stand'},
+  {id:'iconic',name:'Iconic',desc:'+2 to Rapport for Create an Advantage at social functions.',requires:null},
+  {id:'media_liaison',name:'Media Liaison',desc:'+2 to remove Collateral Damage Consequences involving public perception.',requires:null},
+  {id:'pr_specialist',name:'Public Relations Specialist',desc:'Mild Collateral Damage Consequences auto-removed at scene end.',requires:'media_liaison'},
+  {id:'reserve_member',name:'Reserve Member',desc:'Call reserve members to scene once per issue via fate point.',requires:null},
+  {id:'signature_fastball',name:'Signature Fast Ball',desc:'+2 to Accuracy on throwing character\'s roll for Fast Ball maneuver.',requires:null},
+  {id:'team_base',name:'Team Base',desc:'Team gains 10 Headquarters Points. Can be taken multiple times.',requires:null},
+  {id:'vengeance',name:'Vengeance',desc:'When member Taken Out or Concedes, others clear 2-Stress or one Mild Consequence.',requires:null},
+  {id:'ultimate_vengeance',name:'Ultimate Vengeance',desc:'Use Vengeance twice per scene.',requires:'vengeance'}
+];
+const TEAM_COMPLICATIONS=[
+  {id:'corporate_investor',name:'Corporate Investor',desc:'Corporation can demand missions; failure has consequences.'},
+  {id:'dark_secret',name:'Dark Secret',desc:'Team committed an act that could end careers if revealed.'},
+  {id:'media_animosity',name:'Media Animosity',desc:'Enemy in media increases opposition to clear Collateral Damage by +1.'},
+  {id:'unwanted_attention',name:'Unwanted Attention',desc:'A follower/reporter causes constant complications.'}
+];
+
+const GENERAL_SE=[
+  {id:'advantageous',name:'Advantageous',cost:1,desc:'Gain advantage under specific conditions'},
+  {id:'area_effect',name:'Area Effect',cost:1,desc:'Attack hits entire zone'},
+  {id:'charge_object',name:'Charge Object',cost:1,desc:'Power stored in objects'},
+  {id:'concussive_g',name:'Concussive',cost:1,desc:'Knockback effect'},
+  {id:'dangerous',name:'Dangerous',cost:2,desc:'Extra damage'},
+  {id:'deadly',name:'Deadly',cost:1,desc:'Lethal capability'},
+  {id:'demolishing',name:'Demolishing',cost:1,desc:'Destroy structures'},
+  {id:'durable',name:'Durable',cost:1,desc:'Power resists damage'},
+  {id:'encasing',name:'Encasing',cost:1,desc:'Entangle in substance'},
+  {id:'entangling',name:'Entangling',cost:1,desc:'Trap opponents'},
+  {id:'extended_range',name:'Extended Range',cost:1,desc:'Longer reach'},
+  {id:'follow_up',name:'Follow-Up',cost:1,desc:'Chain attacks'},
+  {id:'gaseous',name:'Gaseous',cost:1,desc:'Become gaseous form'},
+  {id:'ghostly',name:'Ghostly',cost:1,desc:'Phasing ability'},
+  {id:'hard_hitting',name:'Hard Hitting',cost:1,desc:'More damage'},
+  {id:'homing',name:'Homing',cost:2,desc:'Self-tracking attacks'},
+  {id:'indirect',name:'Indirect',cost:1,desc:'Attack from unexpected angles'},
+  {id:'lethal',name:'Lethal',cost:3,desc:'Lethal damage'},
+  {id:'mega_attack',name:'Mega-Attack',cost:2,desc:'Double damage once per issue'},
+  {id:'multi_targeting',name:'Multi-Targeting',cost:2,desc:'Hit multiple targets'},
+  {id:'penetrating',name:'Penetrating',cost:2,desc:'Ignore defenses'},
+  {id:'persistent',name:'Persistent',cost:3,desc:'Effects linger'},
+  {id:'potent',name:'Potent',cost:1,desc:'Enhanced effectiveness'},
+  {id:'power_stress',name:'Power Stress',cost:1,desc:'Power has its own stress track'},
+  {id:'set_up',name:'Set-Up',cost:1,desc:'Prepare for future attacks'},
+  {id:'tough',name:'Tough',cost:2,desc:'Resist damage'},
+  {id:'trans_dimensional',name:'Trans-Dimensional',cost:1,desc:'Work across dimensions'},
+  {id:'unnoticeable',name:'Unnoticeable',cost:1,desc:'Hidden activation'},
+  {id:'useable_on_others',name:'Useable on Others',cost:1,desc:'Can affect allies'},
+  {id:'volley',name:'Volley',cost:1,desc:'Multiple simultaneous attacks'}
+];
+const GENERAL_LIMITS=[
+  {id:'always_on',name:'Always On',cost:-1,desc:'Power constantly active'},
+  {id:'no_stunts',name:'Cannot Use Power Stunts',cost:-1,desc:'Limited customization'},
+  {id:'damaging_l',name:'Damaging',cost:-1,desc:'Takes damage each use'},
+  {id:'distracting',name:'Distracting',cost:-1,desc:'Requires focus'},
+  {id:'fatiguing',name:'Fatiguing',cost:-1,desc:'Causes fatigue'},
+  {id:'grappling',name:'Grappling Attack',cost:-1,desc:'Only works in grapple'},
+  {id:'longer_activation',name:'Longer Activation',cost:-1,desc:'Takes longer to use'},
+  {id:'reduced_range',name:'Reduced Range',cost:-1,desc:'Shorter reach'},
+  {id:'restricted',name:'Restricted',cost:-1,desc:'Limited to certain situations'},
+  {id:'sense_reliant',name:'Sense Reliant',cost:-1,desc:'Requires specific sense'},
+  {id:'unstable',name:'Unstable',cost:-3,desc:'Unreliable power'},
+  {id:'wild_power',name:'Wild Power',cost:-3,desc:'Uncontrolled effect'}
+];
+
+const POWERS=[
+{id:'absorption',name:'Absorption',cost:'2,4,6',flat:false,levels:[2,4,6],skill:'None',desc:'Absorb energy or kinetic damage, gain bonus to Attack/Overcome.',se:[{name:'Absorption Healing',cost:2,desc:'Use absorbed hits to heal stress'},{name:'Accumulate Energy',cost:2,desc:'Store energy for extra turns'},{name:'Energy Sponge',cost:1,desc:'Absorb ambient energy'},{name:'Power Boost',cost:3,desc:'Channel into other powers'}],lim:[{name:'Living Bomb',cost:-1,desc:'Exploding energy damages self and zone'},{name:'Requires Block',cost:-1,desc:'Must Defend to absorb'},{name:'Self-Damaging',cost:-1,desc:'Takes stress when absorbing'},{name:'Specific Energy',cost:-1,desc:'Only one energy type'}]},
+{id:'adoptive_muscle',name:'Adoptive Muscle Memory',cost:'2',flat:true,levels:[1],skill:'Magic/Mental/Power',desc:'Mimic fighting ability of observed targets.',se:[{name:'Advanced Memory',cost:1,desc:'Copy complex abilities'},{name:'Rapid Power',cost:1,desc:'Activate as free action'}],lim:[]},
+{id:'adrenaline_surge',name:'Adrenaline Surge',cost:'1',flat:true,levels:[1],skill:'Will',desc:'Gain cumulative +1 to a chosen skill per exchange (max +4).',se:[{name:'Additional Skill',cost:1,desc:'Apply to one more skill'},{name:'Rapid Power',cost:1,desc:'Activate as free action'}],lim:[]},
+{id:'affliction',name:'Affliction',cost:'7',flat:true,levels:[1],skill:'Magic/Mental/Power',desc:'Infect targets with disease/poison; opposed vs Physique/Will.',se:[],lim:[]},
+{id:'air_control',name:'Air Control',cost:'2',flat:true,levels:[1],skill:'Magic/Mental/Power',desc:'Control air and winds; +2 creating wind aspects.',se:[{name:'Ultimate Control',cost:1,desc:'Greater mastery'},{name:'Rapid Power',cost:1,desc:'Activate as free action'}],lim:[]},
+{id:'animal_control',name:'Animal Control',cost:'4',flat:true,levels:[1],skill:'Magic/Mental/Power',desc:'Control nearby animals; summon ranks based on Shifts.',se:[{name:'Ready to Rumble',cost:1,desc:'Animals act immediately'},{name:'Swarm',cost:2,desc:'Control a swarm'}],lim:[]},
+{id:'animal_mimicry',name:'Animal Mimicry',cost:'2',flat:true,levels:[1],skill:'Magic/Mental/Power',desc:'Mimic one animal\'s abilities; gain temporary aspects.',se:[{name:'Menagerie',cost:1,desc:'Mimic multiple animals'},{name:'Rapid Power',cost:1,desc:'Free action'}],lim:[]},
+{id:'animate',name:'Animate',cost:'5',flat:true,levels:[1],skill:'Magic/Mental/Power',desc:'Bring inanimate objects to life.',se:[{name:'Ready to Rumble',cost:1,desc:'Animations act immediately'}],lim:[]},
+{id:'armory_summoning',name:'Armory Summoning',cost:'4',flat:true,levels:[1],skill:'Magic/Mental/Power',desc:'Summon weapons/armor; Shifts determine Rating.',se:[{name:'Dual Weapons',cost:1,desc:'Two weapons at once'},{name:'Rapid Power',cost:1,desc:'Free action'}],lim:[]},
+{id:'astral_projection',name:'Astral Projection',cost:'1',flat:true,levels:[1],skill:'None',desc:'Separate astral form; pass through barriers; immune to physical.',se:[],lim:[]},
+{id:'aura',name:'Aura',cost:'3',flat:true,levels:[1],skill:'None',desc:'Damaging field; attackers take 2-Hits on your Defend success.',se:[{name:'Intense Aura',cost:1,desc:'More damage'}],lim:[]},
+{id:'blast',name:'Blast',cost:'1-6',flat:false,levels:[1,2,3,4,5,6],skill:'Accuracy',desc:'Ranged attack; Weapon Rating equal to power level.',se:[{name:'Concussive Blast',cost:2,desc:'Knockback on hit'},{name:'Corrosive',cost:2,desc:'Eats through defenses'},{name:'Electrical',cost:2,desc:'Can stun'},{name:'Energy',cost:1,desc:'Generic energy'},{name:'Fire',cost:3,desc:'Sets targets on fire'},{name:'Ice',cost:1,desc:'Can slow'},{name:'Radiation',cost:2,desc:'Radiation damage'},{name:'Sonic',cost:2,desc:'Sound-based'}],lim:[{name:'Short Range',cost:-1,desc:'Reduced range'},{name:'Obvious',cost:-1,desc:'Highly visible'}]},
+{id:'boost',name:'Boost',cost:'2',flat:true,levels:[1],skill:'Magic/Mental/Power',desc:'Temporarily increase another\'s skill +2 or +4.',se:[],lim:[{name:'Overload',cost:-1,desc:'Target takes stress after'},{name:'Single Skill',cost:-1,desc:'Only one skill'}]},
+{id:'burrowing',name:'Burrowing',cost:'2',flat:true,levels:[1],skill:'None',desc:'Move underground; +2 when erupting.',se:[],lim:[]},
+{id:'chameleon',name:'Chameleon',cost:'2',flat:true,levels:[1],skill:'None',desc:'Alter appearance/voice to resemble any living being.',se:[{name:'Near Perfect Form',cost:1,desc:'Almost undetectable'}],lim:[]},
+{id:'cold_control',name:'Cold Control',cost:'2',flat:true,levels:[1],skill:'Magic/Mental/Power',desc:'Control cold; create ice constructs; +2 cold aspects.',se:[{name:'Intense Cold',cost:1,desc:'Extreme freezing'},{name:'Sub-arctic',cost:1,desc:'Sub-zero conditions'}],lim:[]},
+{id:'darkness_control',name:'Darkness Control',cost:'2',flat:true,levels:[1],skill:'Magic/Mental/Power',desc:'Control darkness; extinguish light; immune to darkness.',se:[{name:'Hungering Darkness',cost:1,desc:'Drains energy'}],lim:[]},
+{id:'death_speak',name:'Death Speak',cost:'1',flat:true,levels:[1],skill:'Magic/Mental/Power',desc:'Communicate with spirits by touching a corpse.',se:[],lim:[]},
+{id:'deflection',name:'Deflection',cost:'2',flat:true,levels:[1],skill:'Fight/Weapons',desc:'Deflect ranged attacks; reflect half damage on success with style.',se:[{name:'Full Deflection',cost:1,desc:'Reflect full damage'}],lim:[]},
+{id:'density',name:'Density',cost:'2,4,6',flat:false,levels:[2,4,6],skill:'None',desc:'Increase mass; each level +2 Physique, -2 Athletics.',se:[],lim:[]},
+{id:'dimensional_pocket',name:'Dimensional Pocket',cost:'1',flat:true,levels:[1],skill:'None',desc:'Private dimensional storage space.',se:[{name:'Lord of the Domain',cost:1,desc:'Full control over pocket'}],lim:[]},
+{id:'dimensional_travel',name:'Dimensional Travel',cost:'1',flat:true,levels:[1],skill:'None',desc:'Travel between known dimensions freely.',se:[],lim:[]},
+{id:'drain',name:'Drain',cost:'2',flat:true,levels:[1],skill:'Magic/Mental/Power',desc:'Lower target\'s skill -2 or -4 steps.',se:[{name:'Transference',cost:2,desc:'Gain what you drain'}],lim:[{name:'Single Skill',cost:-1,desc:'Only drain one skill'}]},
+{id:'dream_control',name:'Dream Control',cost:'1',flat:true,levels:[1],skill:'Magic/Mental/Power',desc:'Enter others\' dreams; opposed vs Will.',se:[],lim:[]},
+{id:'duplication',name:'Duplication',cost:'5',flat:true,levels:[1],skill:'Magic/Mental/Power',desc:'Create exact copies of self with all powers except Duplication.',se:[{name:'Damage Soaking',cost:3,desc:'Duplicates absorb damage'},{name:'Ready to Rumble',cost:1,desc:'Act immediately'},{name:'Sacrificial Lamb',cost:2,desc:'Destroy duplicate to avoid consequence'},{name:'Horde',cost:2,desc:'Create many more'}],lim:[{name:'Shared Damage',cost:-1,desc:'Damage affects you'},{name:'Psychic Feedback',cost:-1,desc:'Losing duplicates causes mental stress'}]},
+{id:'earth_control',name:'Earth Control',cost:'2',flat:true,levels:[1],skill:'Magic/Mental/Power',desc:'Control earth; create barriers; encase targets.',se:[],lim:[]},
+{id:'electrical_control',name:'Electrical Control',cost:'2',flat:true,levels:[1],skill:'Magic/Mental/Power',desc:'Control electricity; power/disable devices.',se:[],lim:[]},
+{id:'emotion_control',name:'Emotion Control',cost:'2',flat:true,levels:[1],skill:'Magic/Mental/Power',desc:'Alter emotional state via situation aspects; +2 placing.',se:[],lim:[]},
+{id:'empower',name:'Empower',cost:'4',flat:true,levels:[1],skill:'Magic/Mental/Power',desc:'Imbue others with powers up to controlling skill rank.',se:[],lim:[]},
+{id:'esp',name:'ESP',cost:'1',flat:true,levels:[1],skill:'Magic/Mental/Power',desc:'Remotely sense other locations.',se:[],lim:[]},
+{id:'extraordinary_intellect',name:'Extraordinary Intellect',cost:'1',flat:true,levels:[1],skill:'None',desc:'Declare story details once per scene from vast knowledge.',se:[],lim:[]},
+{id:'extra_limbs',name:'Extra Limbs',cost:'1',flat:true,levels:[1],skill:'None',desc:'Additional limbs for grappling and multi-tasking.',se:[],lim:[]},
+{id:'fire_control',name:'Fire Control',cost:'2',flat:true,levels:[1],skill:'Magic/Mental/Power',desc:'Control fire/heat; +2 creating fire aspects.',se:[{name:'Living Flame',cost:3,desc:'Become living fire'}],lim:[]},
+{id:'flight',name:'Flight',cost:'1-4',flat:false,levels:[1,2,3,4],skill:'None',desc:'Fly through the air. Higher levels = faster.',se:[],lim:[]},
+{id:'force_control',name:'Force Control',cost:'3',flat:true,levels:[1],skill:'Magic/Mental/Power',desc:'Generate energy constructs; use as Super-Strength for grappling.',se:[{name:'Battering Ram',cost:1,desc:'Focused force attack'},{name:'Expanded Field',cost:1,desc:'Affect larger area'}],lim:[]},
+{id:'forcefield',name:'Forcefield',cost:'1-6',flat:false,levels:[1,2,3,4,5,6],skill:'Magic/Mental/Power',desc:'Defensive field; controlling skill + level as attack opposition.',se:[],lim:[]},
+{id:'friction_control',name:'Friction Control',cost:'2',flat:true,levels:[1],skill:'Magic/Mental/Power',desc:'Create slippery or sticky situation aspects.',se:[],lim:[]},
+{id:'gravity_control',name:'Gravity Control',cost:'2',flat:true,levels:[1],skill:'Magic/Mental/Power',desc:'Reduce or increase gravitational pull.',se:[{name:'Intense Gravity',cost:1,desc:'Extreme force'}],lim:[]},
+{id:'growth',name:'Growth',cost:'2-12',flat:false,levels:[2,4,6,8,10,12],skill:'None',desc:'Grow immense; gain Super-Strength equal to level.',se:[{name:'Regrowth',cost:1,desc:'Regenerate while giant'}],lim:[]},
+{id:'hardiness',name:'Hardiness',cost:'1-6',flat:false,levels:[1,2,3,4,5,6],skill:'None',desc:'Each level adds a Stress box or Consequence slot.',se:[],lim:[]},
+{id:'healing',name:'Healing',cost:'2',flat:true,levels:[1],skill:'Magic/Mental/Power',desc:'Heal Stress and Consequences of others.',se:[{name:'Regrowth',cost:1,desc:'Regrow limbs'},{name:'Restoration',cost:1,desc:'Cure diseases'},{name:'Resurrection',cost:1,desc:'Raise the dead'}],lim:[]},
+{id:'hyper_action',name:'Hyper-Action',cost:'1',flat:true,levels:[1],skill:'None',desc:'Complete tasks in less time; -4 steps on Time chart.',se:[],lim:[]},
+{id:'hyper_movement',name:'Hyper-Movement',cost:'1',flat:true,levels:[1],skill:'None',desc:'Unique movement: air walking, wall-crawling, water walking, etc.',se:[],lim:[]},
+{id:'hyper_sense',name:'Hyper-Sense',cost:'1',flat:true,levels:[1],skill:'None',desc:'Enhanced senses: danger sense, x-ray vision, telescopic, etc.',se:[],lim:[]},
+{id:'illusion',name:'Illusion',cost:'3',flat:true,levels:[1],skill:'Magic/Mental/Power',desc:'Create visual illusions; targets roll Will to disbelieve.',se:[],lim:[]},
+{id:'immoveable',name:'Immoveable',cost:'2',flat:true,levels:[1],skill:'None',desc:'Cannot be moved; +2 Defend against knockback.',se:[],lim:[]},
+{id:'immunity',name:'Immunity',cost:'1,3,5',flat:false,levels:[1,3,5],skill:'None',desc:'Immune to specific damage types or conditions.',se:[],lim:[]},
+{id:'intangible',name:'Intangible',cost:'3',flat:true,levels:[1],skill:'None',desc:'Pass through solid objects; immune to physical attacks.',se:[],lim:[]},
+{id:'interface',name:'Interface',cost:'1',flat:true,levels:[1],skill:'None',desc:'Mentally interface with technology.',se:[],lim:[]},
+{id:'invisibility',name:'Invisibility',cost:'2-6',flat:false,levels:[2,3,4,5,6],skill:'None',desc:'Become invisible; higher levels = harder to detect.',se:[],lim:[]},
+{id:'invulnerability',name:'Invulnerability',cost:'1-6',flat:false,levels:[1,2,3,4,5,6],skill:'None',desc:'Reduce damage by 1 per level before Stress.',se:[{name:'Impervious',cost:2,desc:'Ignore attacks below threshold'}],lim:[]},
+{id:'leaping',name:'Leaping',cost:'1-4',flat:false,levels:[1,2,3,4],skill:'None',desc:'Superhuman jumping; each level increases distance.',se:[],lim:[]},
+{id:'life_support',name:'Life Support',cost:'2',flat:true,levels:[1],skill:'None',desc:'Survive hostile environments without life support.',se:[],lim:[]},
+{id:'light_control',name:'Light Control',cost:'1',flat:true,levels:[1],skill:'Magic/Mental/Power',desc:'Control light; create illumination or blindness.',se:[],lim:[]},
+{id:'living_seance',name:'Living S\u00e9ance',cost:'1',flat:true,levels:[1],skill:'Magic/Mental/Power',desc:'Communicate with spirits at a distance.',se:[],lim:[]},
+{id:'luck',name:'Luck',cost:'2',flat:true,levels:[1],skill:'None',desc:'Reroll or force reroll once per scene.',se:[],lim:[]},
+{id:'magnetic_control',name:'Magnetic Control',cost:'2',flat:true,levels:[1],skill:'Magic/Mental/Power',desc:'Control magnetic fields; attract/repel metal.',se:[],lim:[]},
+{id:'matter_control',name:'Matter Control',cost:'3',flat:true,levels:[1],skill:'Magic/Mental/Power',desc:'Control and shape matter; transmute substances.',se:[],lim:[]},
+{id:'melee_attack',name:'Melee Attack',cost:'1-6',flat:false,levels:[1,2,3,4,5,6],skill:'Fight/Weapons',desc:'Physical melee; Weapon Rating equal to level.',se:[{name:'Energy Melee',cost:2,desc:'Energy-based melee'}],lim:[]},
+{id:'memory_augmentation',name:'Memory Augmentation',cost:'2',flat:true,levels:[1],skill:'Magic/Mental/Power',desc:'Perfect recall; share memories.',se:[],lim:[]},
+{id:'mental_blast',name:'Mental Blast',cost:'1-6',flat:false,levels:[1,2,3,4,5,6],skill:'Magic/Mental/Power',desc:'Psychic ranged attack; targets Mental Stress.',se:[],lim:[]},
+{id:'mental_invulnerability',name:'Mental Invulnerability',cost:'1-6',flat:false,levels:[1,2,3,4,5,6],skill:'None',desc:'Reduce mental damage by 1 per level.',se:[],lim:[]},
+{id:'mind_control',name:'Mind Control',cost:'5',flat:true,levels:[1],skill:'Magic/Mental/Power',desc:'Control another\'s actions; opposed by Will.',se:[],lim:[]},
+{id:'mind_probe',name:'Mind Probe',cost:'1',flat:true,levels:[1],skill:'Magic/Mental/Power',desc:'Read surface thoughts; deeper with Overcome.',se:[],lim:[]},
+{id:'mind_switch',name:'Mind Switch',cost:'5',flat:true,levels:[1],skill:'Magic/Mental/Power',desc:'Switch bodies with target; opposed by Will.',se:[],lim:[]},
+{id:'molecular_chameleon',name:'Molecular Chameleon',cost:'3',flat:true,levels:[1],skill:'None',desc:'Take on properties of materials touched.',se:[],lim:[]},
+{id:'paralyze',name:'Paralyze',cost:'3',flat:true,levels:[1],skill:'Magic/Mental/Power',desc:'Paralyze targets; opposed by Will.',se:[],lim:[]},
+{id:'plant_control',name:'Plant Control',cost:'2',flat:true,levels:[1],skill:'Magic/Mental/Power',desc:'Control plants; create barriers; entangle.',se:[],lim:[]},
+{id:'postcognition',name:'Postcognition',cost:'1',flat:true,levels:[1],skill:'Magic/Mental/Power',desc:'See past events; opposition based on age.',se:[],lim:[]},
+{id:'power_mimicry',name:'Power Mimicry',cost:'5',flat:true,levels:[1],skill:'Magic/Mental/Power',desc:'Copy another character\'s powers temporarily.',se:[],lim:[]},
+{id:'power_nullify',name:'Power Nullify',cost:'1,3,5',flat:false,levels:[1,3,5],skill:'Magic/Mental/Power',desc:'Nullify powers; opposed vs controlling skill.',se:[],lim:[]},
+{id:'precognition',name:'Precognition',cost:'1',flat:true,levels:[1],skill:'Magic/Mental/Power',desc:'See future events; vague unless success with style.',se:[],lim:[]},
+{id:'psychic_blades',name:'Psychic Blades',cost:'1-6',flat:false,levels:[1,2,3,4,5,6],skill:'Mental',desc:'Mental weapons; targets Mental Stress.',se:[],lim:[]},
+{id:'psychic_forcefield',name:'Psychic Forcefield',cost:'1-6',flat:false,levels:[1,2,3,4,5,6],skill:'Magic/Mental/Power',desc:'Mental defense field against psychic attacks.',se:[],lim:[]},
+{id:'radiation_control',name:'Radiation Control',cost:'2',flat:true,levels:[1],skill:'Magic/Mental/Power',desc:'Control radiation effects.',se:[],lim:[]},
+{id:'regeneration',name:'Regeneration',cost:'4',flat:true,levels:[1],skill:'None',desc:'Auto-heal Stress/Consequences; regrow limbs.',se:[{name:'Self-Destruct',cost:2,desc:'Explode and reform'}],lim:[]},
+{id:'sensory_shield',name:'Sensory Shield',cost:'1',flat:true,levels:[1],skill:'None',desc:'Shield senses from overload and sensory attacks.',se:[],lim:[]},
+{id:'serial_reincarnation',name:'Serial Reincarnation',cost:'2',flat:true,levels:[1],skill:'None',desc:'Return in a new body with memories when killed.',se:[],lim:[]},
+{id:'shapeshift',name:'Shapeshift',cost:'5',flat:true,levels:[1],skill:'Magic/Mental/Power',desc:'Change into other forms.',se:[],lim:[]},
+{id:'shrinking',name:'Shrinking',cost:'1-6',flat:false,levels:[1,2,3,4,5,6],skill:'None',desc:'Reduce size each level.',se:[],lim:[]},
+{id:'sicken',name:'Sicken',cost:'2',flat:true,levels:[1],skill:'Magic/Mental/Power',desc:'Make targets ill; opposed by Physique.',se:[],lim:[]},
+{id:'sleep',name:'Sleep',cost:'1',flat:true,levels:[1],skill:'Magic/Mental/Power',desc:'Put targets to sleep; opposed by Will.',se:[],lim:[]},
+{id:'sorcery',name:'Sorcery',cost:'3',flat:true,levels:[1],skill:'Arcanum',desc:'Channel raw arcane magic; flexible casting.',se:[],lim:[]},
+{id:'sound_wave_control',name:'Sound Wave Control',cost:'1',flat:true,levels:[1],skill:'Magic/Mental/Power',desc:'Control sound waves; sonic attacks.',se:[],lim:[]},
+{id:'spatial_control',name:'Spatial Control',cost:'1',flat:true,levels:[1],skill:'Magic/Mental/Power',desc:'Manipulate space; create barriers.',se:[],lim:[]},
+{id:'spinning',name:'Spinning',cost:'1',flat:true,levels:[1],skill:'None',desc:'Spin rapidly; create whirlwind effects.',se:[],lim:[]},
+{id:'stretching',name:'Stretching',cost:'3',flat:true,levels:[1],skill:'None',desc:'Stretch body; ignore zone limits for melee.',se:[],lim:[]},
+{id:'summon',name:'Summon',cost:'5',flat:true,levels:[1],skill:'Magic/Mental/Power',desc:'Summon creatures; Shifts determine ranks.',se:[{name:'Ready to Rumble',cost:1,desc:'Creatures act immediately'}],lim:[]},
+{id:'summon_swarm',name:'Summon Swarm',cost:'4',flat:true,levels:[1],skill:'Magic/Mental/Power',desc:'Summon a swarm of small creatures.',se:[],lim:[]},
+{id:'super_speed',name:'Super-Speed',cost:'1-4',flat:false,levels:[1,2,3,4],skill:'Athletics',desc:'Superhuman speed; higher levels = faster.',se:[],lim:[]},
+{id:'super_strength',name:'Super-Strength',cost:'1-6',flat:false,levels:[1,2,3,4,5,6],skill:'Physique',desc:'Enhanced might; Weapon Rating equal to level.',se:[],lim:[]},
+{id:'swinging',name:'Swinging',cost:'2',flat:true,levels:[1],skill:'None',desc:'Swing via environment; ignore movement restrictions.',se:[],lim:[]},
+{id:'telekinesis',name:'Telekinesis',cost:'1',flat:true,levels:[1],skill:'Magic/Mental/Power',desc:'Move objects mentally.',se:[],lim:[]},
+{id:'telepathy',name:'Telepathy',cost:'1',flat:true,levels:[1],skill:'Magic/Mental/Power',desc:'Communicate mentally; opposed by Will for unwilling.',se:[],lim:[]},
+{id:'teleportation',name:'Teleportation',cost:'1-6',flat:false,levels:[1,2,3,4,5,6],skill:'Magic/Mental/Power',desc:'Teleport; range based on power level.',se:[],lim:[{name:'Must See Destination',cost:-1,desc:'Must see target location'}]},
+{id:'time_control',name:'Time Control',cost:'2',flat:true,levels:[1],skill:'Magic/Mental/Power',desc:'Slow or speed time in an area.',se:[],lim:[]},
+{id:'time_travel',name:'Time Travel',cost:'1-6',flat:false,levels:[1,2,3,4,5,6],skill:'Magic/Mental/Power',desc:'Travel through time; range extends per level.',se:[],lim:[]},
+{id:'two_dimensional',name:'Two-Dimensional',cost:'2',flat:true,levels:[1],skill:'None',desc:'Become flat/2D; slip through cracks.',se:[],lim:[]},
+{id:'vampirism',name:'Vampirism',cost:'2',flat:true,levels:[1],skill:'Magic/Mental/Power',desc:'Drain life force; heal with drained energy.',se:[],lim:[]},
+{id:'water_control',name:'Water Control',cost:'2',flat:true,levels:[1],skill:'Magic/Mental/Power',desc:'Control water; create waves and constructs.',se:[],lim:[]},
+{id:'weather_control',name:'Weather Control',cost:'5',flat:true,levels:[1],skill:'Magic/Mental/Power',desc:'Control weather patterns; create storms.',se:[],lim:[]}
+];
+
+const NOTE_TYPES=[
+  {id:'issue',emoji:'\ud83d\udcd6',label:'Issue Log',size:'xl'},
+  {id:'battle',emoji:'\ud83d\udca5',label:'Battle Event',size:'lg'},
+  {id:'story',emoji:'\ud83d\udcdd',label:'Story Beat',size:'sm'},
+  {id:'character',emoji:'\ud83e\uddb8',label:'Character Moment',size:'sm'},
+  {id:'gm',emoji:'\ud83c\udfac',label:'GM Note',size:'sm'}
+];
+
+// ═══════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════
+function defaultState(){
+  return{series:{tone:null,level:null,experience:null},char:null,
+    creation:{step:0,costumedName:'',civilianName:'',aspects:{concept:'',motivation:'',contingent:[{cat:'',text:''},{cat:'',text:''},{cat:'',text:''}]},supportingCast:[],roguesGallery:[],skills:{},powerSets:[],stunts:[]},
+    team:null,npcs:[],conflict:{active:false,zones:[],turnOrder:[],currentTurn:0,round:1,log:[]},dice:null,notes:[]};
+}
+let S=defaultState(),currentSlot=null;
+function slotKey(n){return'dc_slot_'+n;}
+function getSlotData(n){try{const d=localStorage.getItem(slotKey(n));return d?JSON.parse(d):null;}catch(e){return null;}}
+function save(){if(currentSlot===null)return;try{localStorage.setItem(slotKey(currentSlot),JSON.stringify(S));}catch(e){}hudBroadcast();}
+function loadSlot(n){currentSlot=n;try{localStorage.setItem('dc_active_slot',String(n));}catch(e){}const d=getSlotData(n);S=d||defaultState();}
+
+// ═══════════════════════════════════════════════════════════
+// SLOTS
+// ═══════════════════════════════════════════════════════════
+function openSlotModal(){document.getElementById('slot-modal').classList.add('open');renderSlotModal();}
+function closeSlotModal(){document.getElementById('slot-modal').classList.remove('open');}
+function renderSlotModal(){
+  let h='<div class="pg-title" style="font-size:22px">Save Slots</div><div style="margin-top:12px">';
+  for(let i=0;i<10;i++){const d=getSlotData(i),a=i===currentSlot,nm=d?.char?.costumedName||d?.creation?.costumedName||null,lb=nm||(d?'In Progress':'Empty'),tn=d?.series?.tone?SERIES_TONES.find(t=>t.id===d.series.tone)?.name:'';
+    h+=`<div class="card-sm" style="display:flex;align-items:center;gap:10px;cursor:pointer;${a?'border-color:var(--accent)':''}" onclick="selectSlot(${i})"><div style="width:28px;height:28px;border-radius:50%;background:${a?'var(--accent)':'var(--surface3)'};display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:${a?'#fff':'var(--muted)'}">${i+1}</div><div style="flex:1"><div style="font-weight:700;font-size:14px">${lb}</div>${tn?`<div style="font-size:11px;color:var(--muted)">${tn}</div>`:''}</div>${d?`<button class="btn btn-danger btn-xs" onclick="event.stopPropagation();deleteSlot(${i})">Del</button>`:''}</div>`;}
+  h+='</div>';document.getElementById('slot-modal-body').innerHTML=h;
+}
+function selectSlot(n){loadSlot(n);closeSlotModal();renderAll();}
+function deleteSlot(n){if(!confirm('Delete this save?'))return;try{localStorage.removeItem(slotKey(n));}catch(e){}if(n===currentSlot)S=defaultState();renderSlotModal();renderAll();}
+
+// ═══════════════════════════════════════════════════════════
+// NAV
+// ═══════════════════════════════════════════════════════════
+function showTab(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  const nb=document.getElementById('nb-'+id);if(nb)nb.classList.add('active');
+  if(id==='hero')renderHero();if(id==='team')renderTeam();if(id==='npcs')renderNPCs();
+  if(id==='dice')renderDice();if(id==='conflict')renderConflict();if(id==='notes')renderNotes();
+}
+function renderAll(){renderHero();}
+
+// ═══════════════════════════════════════════════════════════
+// THEME
+// ═══════════════════════════════════════════════════════════
+document.querySelectorAll('.theme-swatch').forEach(b=>{b.addEventListener('click',()=>{const t=b.dataset.theme;document.documentElement.setAttribute('data-theme',t);try{localStorage.setItem('dc_theme',t);}catch(e){}document.querySelectorAll('.theme-swatch').forEach(s=>s.classList.toggle('active',s.dataset.theme===t));});});
+(function(){try{const t=localStorage.getItem('dc_theme');if(t){document.documentElement.setAttribute('data-theme',t);document.querySelectorAll('.theme-swatch').forEach(b=>{b.classList.toggle('active',b.dataset.theme===t);});}}catch(e){}})();
+
+// ═══════════════════════════════════════════════════════════
+// HERO TAB
+// ═══════════════════════════════════════════════════════════
+function renderHero(){
+  if(S.char){document.getElementById('hero-creation').style.display='none';document.getElementById('hero-sheet').style.display='block';renderSheet();}
+  else{document.getElementById('hero-creation').style.display='block';document.getElementById('hero-sheet').style.display='none';renderCreationStep();}
+}
+
+// ═══════════════════════════════════════════════════════════
+// CHARACTER CREATION
+// ═══════════════════════════════════════════════════════════
+function getSeriesConfig(){return{tone:SERIES_TONES.find(t=>t.id===S.series.tone),level:SERIES_LEVELS.find(l=>l.id===S.series.level),exp:EXP_LEVELS.find(e=>e.id===S.series.experience)};}
+function getTotalHP(){const{level,exp}=getSeriesConfig();return(level?.baseHP||0)+(exp?.bonusHP||0)+(S.creation.roguesGallery?.length||0);}
+function getSkillBudget(){const{exp}=getSeriesConfig();return(exp?.skillPts||0)+(S.creation.supportingCast?.length||0);}
+function getSkillUsed(){let t=0;for(const v of Object.values(S.creation.skills))t+=v;return t;}
+function getHPSpent(){let t=0;(S.creation.stunts||[]).forEach(s=>t+=s.cost);(S.creation.powerSets||[]).forEach(ps=>{(ps.powers||[]).forEach(p=>t+=p.totalCost);});return t;}
+
+function renderCreationStep(){
+  const c=S.creation,labels=['Series','Names','Aspects','Cast','Skills','Powers','Review'];
+  let dots='';for(let i=0;i<7;i++){dots+=`<span class="${i<c.step?'step-dot done':i===c.step?'step-dot active':'step-dot'}" title="${labels[i]}"></span>`;}
+  let h=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px"><div class="pg-title">Create Your Hero</div><button class="btn btn-secondary btn-xs" onclick="openSlotModal()">Slots</button></div>`;
+  h+=c.step>0?`<button class="btn btn-secondary btn-xs" onclick="creationBack()" style="margin-bottom:8px">\u2190 Back</button>`:'';
+  h+=`<div style="display:flex;gap:6px;margin-bottom:16px;justify-content:center;align-items:center">${dots}</div>`;
+  if(c.step===0)h+=renderStepSeries();else if(c.step===1)h+=renderStepNames();else if(c.step===2)h+=renderStepAspects();
+  else if(c.step===3)h+=renderStepCast();else if(c.step===4)h+=renderStepSkills();else if(c.step===5)h+=renderStepPowers();else if(c.step===6)h+=renderStepReview();
+  document.getElementById('hero-creation').innerHTML=h;
+}
+function creationNext(){S.creation.step++;save();renderCreationStep();}
+function creationBack(){if(S.creation.step>0){S.creation.step--;save();renderCreationStep();}}
+
+// Step 0: Series
+function renderStepSeries(){
+  let h='<div class="label">Series Tone</div><div class="grid-3 mb-3">';
+  SERIES_TONES.forEach(t=>{h+=`<div class="game-opt ${S.series.tone===t.id?'selected':''}" onclick="S.series.tone='${t.id}';save();renderCreationStep()"><div class="opt-title">${t.name}</div><div class="opt-desc">${t.desc}</div><div class="opt-stats">Refresh ${t.refresh} | +${t.stressBonus} Stress</div></div>`;});
+  h+='</div><div class="label">Series Level (Base Hero Points)</div><div class="grid-2 mb-3">';
+  SERIES_LEVELS.forEach(l=>{h+=`<div class="game-opt ${S.series.level===l.id?'selected':''}" onclick="S.series.level='${l.id}';save();renderCreationStep()"><div class="opt-title">${l.name}</div><div class="opt-desc">${l.desc}</div><div class="opt-stats">${l.baseHP} HP</div></div>`;});
+  h+='</div><div class="label">Experience Level</div><div style="display:grid;gap:6px" class="mb-3">';
+  EXP_LEVELS.forEach(e=>{h+=`<div class="game-opt ${S.series.experience===e.id?'selected':''}" onclick="S.series.experience='${e.id}';save();renderCreationStep()"><div style="display:flex;justify-content:space-between;align-items:center"><div class="opt-title">${e.name}</div><div class="opt-stats">${e.skillPts} Skills | +${e.bonusHP} HP</div></div></div>`;});
+  h+='</div>';const ok=S.series.tone&&S.series.level&&S.series.experience;
+  h+=`<button class="btn btn-primary btn-full" ${ok?'':`disabled style="opacity:.4"`} onclick="creationNext()">Continue \u2192</button>`;return h;
+}
+// Step 1: Names
+function renderStepNames(){const c=S.creation;return`<div class="card"><div class="form-group"><label>Costumed Identity *</label><input value="${esc(c.costumedName)}" oninput="S.creation.costumedName=this.value;save()" placeholder="e.g. Captain Valor"></div><div class="form-group"><label>Civilian Identity</label><input value="${esc(c.civilianName)}" oninput="S.creation.civilianName=this.value;save()" placeholder="e.g. James Reed"></div></div><button class="btn btn-primary btn-full" ${c.costumedName.trim()?'':`disabled style="opacity:.4"`} onclick="creationNext()">Continue \u2192</button>`;}
+// Step 2: Aspects
+function renderStepAspects(){
+  const a=S.creation.aspects;
+  let h=`<div class="card"><div class="form-group"><label>Concept * <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:10px">(What are you?)</span></label><input value="${esc(a.concept)}" oninput="S.creation.aspects.concept=this.value;save()" placeholder="e.g. Vigilante Detective"></div><div class="form-group"><label>Motivation * <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:10px">(Why do you fight?)</span></label><input value="${esc(a.motivation)}" oninput="S.creation.aspects.motivation=this.value;save()" placeholder="e.g. Defend Those Who Cannot Defend Themselves"></div><div class="divider"></div><div class="label mb-2">Contingent Aspects (pick 3)</div>`;
+  for(let i=0;i<3;i++){const ct=a.contingent[i];h+=`<div style="margin-bottom:10px"><select style="margin-bottom:4px;font-size:13px" onchange="S.creation.aspects.contingent[${i}].cat=this.value;save()"><option value="">— Category —</option>${ASPECT_CATEGORIES.map(c=>`<option ${ct.cat===c?'selected':''}>${c}</option>`).join('')}</select><input value="${esc(ct.text)}" oninput="S.creation.aspects.contingent[${i}].text=this.value;save()" placeholder="Describe this aspect..."></div>`;}
+  h+='</div>';const ok=a.concept.trim()&&a.motivation.trim();
+  h+=`<button class="btn btn-primary btn-full" ${ok?'':`disabled style="opacity:.4"`} onclick="creationNext()">Continue \u2192</button>`;return h;
+}
+// Step 3: Cast & Rogues
+function renderStepCast(){
+  const c=S.creation;let h=`<div class="card"><div class="label">Supporting Cast <span class="text-green">(+1 skill pt each)</span></div><div class="opt-desc mb-2">2-3 allies, mentors, or contacts</div>`;
+  c.supportingCast.forEach((sc,i)=>{h+=`<div class="card-sm" style="display:flex;gap:6px;align-items:start"><div style="flex:1"><input value="${esc(sc.name)}" oninput="S.creation.supportingCast[${i}].name=this.value;save()" placeholder="Name" style="margin-bottom:4px;font-size:13px"><input value="${esc(sc.desc)}" oninput="S.creation.supportingCast[${i}].desc=this.value;save()" placeholder="Description" style="font-size:12px"></div><button class="btn btn-danger btn-xs" onclick="S.creation.supportingCast.splice(${i},1);save();renderCreationStep()">X</button></div>`;});
+  if(c.supportingCast.length<3)h+=`<button class="btn btn-secondary btn-sm" onclick="S.creation.supportingCast.push({name:'',desc:''});save();renderCreationStep()">+ Add</button>`;
+  h+=`</div><div class="card"><div class="label">Rogues Gallery <span class="text-accent">(+1 Hero Point each)</span></div><div class="opt-desc mb-2">2-3 nemeses or recurring villains</div>`;
+  c.roguesGallery.forEach((rg,i)=>{h+=`<div class="card-sm" style="display:flex;gap:6px;align-items:start"><div style="flex:1"><input value="${esc(rg.name)}" oninput="S.creation.roguesGallery[${i}].name=this.value;save()" placeholder="Name" style="margin-bottom:4px;font-size:13px"><input value="${esc(rg.desc)}" oninput="S.creation.roguesGallery[${i}].desc=this.value;save()" placeholder="Description" style="font-size:12px"></div><button class="btn btn-danger btn-xs" onclick="S.creation.roguesGallery.splice(${i},1);save();renderCreationStep()">X</button></div>`;});
+  if(c.roguesGallery.length<3)h+=`<button class="btn btn-secondary btn-sm" onclick="S.creation.roguesGallery.push({name:'',desc:''});save();renderCreationStep()">+ Add</button>`;
+  h+=`</div><div class="card-sm tac"><span class="text-green fw-700">${c.supportingCast.length} Cast</span> \u2192 +${c.supportingCast.length} Skill Pts &nbsp;|&nbsp; <span class="text-accent fw-700">${c.roguesGallery.length} Rogues</span> \u2192 +${c.roguesGallery.length} HP</div><button class="btn btn-primary btn-full mt-2" onclick="creationNext()">Continue \u2192</button>`;return h;
+}
+// Step 4: Skills
+function renderStepSkills(){
+  const c=S.creation,budget=getSkillBudget(),used=getSkillUsed(),rem=budget-used,valid=validateColumn();
+  let h=`<div class="card-sm" style="display:flex;justify-content:space-between;align-items:center"><div><span class="label">Skill Points</span><br><span class="fw-700 ${rem<0?'text-red':rem===0?'text-green':'text-gold'}">${used}/${budget}</span> <span class="text-muted">(${rem} left)</span></div><div>${valid.ok?'<span class="text-green fw-700">\u2713 Valid</span>':'<span class="text-red fw-700">\u2717 '+valid.msg+'</span>'}</div></div>`;
+  h+='<div class="card-sm">';for(let lv=6;lv>=1;lv--){const cnt=SKILLS.filter(s=>(c.skills[s]||0)>=lv).length;if(cnt>0||lv<=3){h+=`<div class="pyramid-row"><div class="pyramid-label">${ladderName(lv)} +${lv}</div>`;for(let b=0;b<cnt;b++)h+='<div class="pyramid-block"></div>';if(!cnt)h+='<span style="font-size:10px;color:var(--muted)">\u2014</span>';h+='</div>';}}h+='</div><div style="margin-top:8px">';
+  SKILLS.forEach(sk=>{const v=c.skills[sk]||0;h+=`<div class="skill-row"><div class="sk-name">${sk}</div><div class="sk-label">${ladderName(v)}</div><button class="sk-btn" onclick="adjSkill('${sk}',-1)" ${v<=0?'disabled':''}>−</button><div class="sk-val">+${v}</div><button class="sk-btn" onclick="adjSkill('${sk}',1)" ${v>=6||rem<=0?'disabled':''}>+</button></div>`;});
+  h+='</div>';const canNext=rem===0&&valid.ok;
+  h+=`<button class="btn btn-primary btn-full mt-3" ${canNext?'':`disabled style="opacity:.4"`} onclick="creationNext()">Continue \u2192</button>`;
+  if(!canNext&&rem===0&&!valid.ok)h+=`<div class="text-red mt-1" style="font-size:12px;text-align:center">${valid.msg}</div>`;
+  if(!canNext&&rem>0)h+=`<div class="text-muted mt-1" style="font-size:12px;text-align:center">Spend all skill points to continue</div>`;return h;
+}
+function adjSkill(sk,d){const c=S.creation,cur=c.skills[sk]||0,nv=cur+d;if(nv<0||nv>6)return;if(d>0&&getSkillUsed()>=getSkillBudget())return;c.skills[sk]=nv;if(!nv)delete c.skills[sk];save();renderCreationStep();}
+function validateColumn(){const counts={};SKILLS.forEach(sk=>{const v=S.creation.skills[sk]||0;if(v>0)counts[v]=(counts[v]||0)+1;});for(let lv=6;lv>=2;lv--){const above=counts[lv]||0,below=counts[lv-1]||0;if(above>0&&above>below)return{ok:false,msg:`Need more +${lv-1} skills (${below} < ${above})`};}return{ok:true,msg:''};}
+
+// Step 5: Powers & Stunts
+function renderStepPowers(){
+  const c=S.creation,totalHP=getTotalHP(),spent=getHPSpent(),rem=totalHP-spent,{tone}=getSeriesConfig();
+  const maxRefSpend=(tone?.refresh||5)-1,refUsed=rem<0?Math.min(Math.abs(rem),maxRefSpend):0,finalRef=Math.max(1,(tone?.refresh||5)-refUsed);
+  let h=`<div class="card-sm"><div class="label">Hero Points Budget</div><div style="display:flex;justify-content:space-between;align-items:center"><span class="fw-700">${spent}/${totalHP} HP</span><span class="${rem<0?'text-red':'text-green'} fw-700">${rem>=0?rem+' left':'Using '+refUsed+' Refresh'}</span></div><div class="budget-bar"><div class="budget-fill ${rem<0?'over':rem<3?'warn':''}" style="width:${Math.min(100,(spent/Math.max(1,totalHP))*100)}%"></div></div>${finalRef<=0?'<div class="text-red" style="font-size:11px">Refresh cannot go below 1!</div>':''}<div style="font-size:11px;color:var(--muted)">Final Refresh: <span class="fw-700 ${finalRef<=1?'text-gold':'text-green'}">${finalRef}</span></div></div>`;
+  // Stunts
+  h+=`<div class="card"><div class="label mb-2">Stunts</div>`;
+  (c.stunts||[]).forEach((st,i)=>{h+=`<div class="card-sm" style="display:flex;gap:6px;align-items:start"><div style="flex:1"><div class="fw-700" style="font-size:13px">${esc(st.name)} <span class="tag tag-cost">${st.cost} HP</span></div><div style="font-size:12px;color:var(--muted)">${esc(st.desc)}</div></div><button class="btn btn-danger btn-xs" onclick="S.creation.stunts.splice(${i},1);save();renderCreationStep()">X</button></div>`;});
+  h+=`<button class="btn btn-secondary btn-sm" onclick="addStunt()">+ Add Stunt</button></div>`;
+  // Power Sets
+  h+=`<div class="card"><div class="label mb-2">Power Sets</div>`;
+  (c.powerSets||[]).forEach((ps,psi)=>{
+    h+=`<div class="powerset-card"><div style="display:flex;justify-content:space-between;align-items:start"><div><input value="${esc(ps.name)}" oninput="S.creation.powerSets[${psi}].name=this.value;save()" placeholder="Power Set Name" style="font-family:var(--font-title);font-size:18px;color:var(--purple);background:transparent;border:none;padding:0;width:200px"><input value="${esc(ps.aspect)}" oninput="S.creation.powerSets[${psi}].aspect=this.value;save()" placeholder="Power Set Aspect" style="font-size:12px;font-style:italic;color:var(--muted);background:transparent;border:none;padding:0;width:100%;margin-top:2px"></div><button class="btn btn-danger btn-xs" onclick="S.creation.powerSets.splice(${psi},1);save();renderCreationStep()">X</button></div>`;
+    (ps.powers||[]).forEach((pw,pwi)=>{const pd=POWERS.find(p=>p.id===pw.powerId);h+=`<div class="card-sm mt-2" style="border-color:var(--purple)"><div style="display:flex;justify-content:space-between;align-items:center"><div><span class="fw-700">${pd?.name||pw.powerId}</span>${pw.level>1?` <span class="text-accent">Lv${pw.level}</span>`:''} <span class="tag tag-cost">${pw.totalCost} HP</span></div><button class="btn btn-danger btn-xs" onclick="S.creation.powerSets[${psi}].powers.splice(${pwi},1);save();renderCreationStep()">X</button></div>${pw.selectedSE.length?'<div style="margin-top:4px">'+pw.selectedSE.map(se=>`<span class="tag tag-se">${se}</span>`).join(' ')+'</div>':''}${pw.selectedLim.length?'<div style="margin-top:2px">'+pw.selectedLim.map(l=>`<span class="tag tag-lim">${l}</span>`).join(' ')+'</div>':''}</div>`;});
+    h+=`<button class="btn btn-secondary btn-xs mt-1" onclick="openPowerBrowser(${psi})">+ Add Power</button></div>`;
+  });
+  h+=`<button class="btn btn-gold btn-sm" onclick="S.creation.powerSets.push({name:'',aspect:'',powers:[]});save();renderCreationStep()">+ New Power Set</button></div>`;
+  h+=`<button class="btn btn-primary btn-full mt-3" ${finalRef>=1?'':`disabled style="opacity:.4"`} onclick="creationNext()">Continue \u2192</button>`;return h;
+}
+function addStunt(){const n=prompt('Stunt Name:');if(!n)return;const d=prompt('Description:')||'',cs=prompt('HP Cost (1-3):','1'),c=Math.max(1,Math.min(3,parseInt(cs)||1));if(!S.creation.stunts)S.creation.stunts=[];S.creation.stunts.push({name:n,desc:d,cost:c});save();renderCreationStep();}
+
+// Power Browser
+let _pbPSI=0,_pbSearch='',_pbSkill='';
+function openPowerBrowser(psi){_pbPSI=psi;_pbSearch='';_pbSkill='';document.getElementById('power-modal').classList.add('open');renderPB();}
+function closePB(){document.getElementById('power-modal').classList.remove('open');}
+function renderPB(){
+  const q=_pbSearch.toLowerCase(),sf=_pbSkill;
+  let filtered=POWERS.filter(p=>{if(q&&!p.name.toLowerCase().includes(q)&&!p.desc.toLowerCase().includes(q))return false;if(sf&&!p.skill.toLowerCase().includes(sf.toLowerCase()))return false;return true;});
+  const filters=['All','Accuracy','Fight','Weapons','Athletics','Physique','Will','Arcanum','Magic/Mental/Power','None'];
+  let h=`<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div class="pg-title" style="font-size:20px">Powers</div><button class="btn btn-secondary btn-xs" onclick="closePB()">Close</button></div><input placeholder="Search..." value="${esc(_pbSearch)}" oninput="_pbSearch=this.value;renderPB()" style="margin-bottom:8px"><div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px">${filters.map(f=>`<button class="btn btn-xs ${(f==='All'&&!sf)||sf===f?'btn-primary':'btn-secondary'}" onclick="_pbSkill='${f==='All'?'':f}';renderPB()">${f}</button>`).join('')}</div><div style="max-height:50vh;overflow-y:auto">`;
+  filtered.forEach(p=>{h+=`<div class="power-card" onclick="showPD('${p.id}')"><div style="display:flex;justify-content:space-between"><div class="pw-name">${p.name}</div><div class="pw-cost">${p.cost}</div></div><div class="pw-desc">${p.desc}</div><div class="pw-skill">${p.skill}</div></div>`;});
+  if(!filtered.length)h+='<div class="tac text-muted" style="padding:20px">No matches</div>';
+  h+='</div></div>';document.getElementById('power-modal-body').innerHTML=h;
+}
+function showPD(id){
+  const p=POWERS.find(pw=>pw.id===id);if(!p)return;
+  const isVar=!p.flat,allSE=[...p.se,...GENERAL_SE],allLim=[...p.lim,...GENERAL_LIMITS];
+  let h=`<div class="card"><button class="btn btn-secondary btn-xs" onclick="renderPB()" style="margin-bottom:8px">\u2190 Back</button><div class="pg-title" style="font-size:20px">${p.name}</div><div style="font-size:12px;color:var(--muted);margin-bottom:6px">Skill: ${p.skill} | Cost: ${p.cost}</div><div style="font-size:13px;margin-bottom:10px">${p.desc}</div>`;
+  if(isVar){h+=`<div class="label mb-1">Power Level</div><div style="display:flex;gap:4px;margin-bottom:10px">`;p.levels.forEach(lv=>{h+=`<button class="btn btn-xs ${lv===1?'btn-primary':'btn-secondary'}" id="pw-lv-${lv}" onclick="setPDLv(${lv})">${lv}</button>`;});h+='</div>';}
+  h+=`<div class="label mb-1">Special Effects</div><div id="pw-se-list" style="margin-bottom:10px;max-height:200px;overflow-y:auto">`;
+  allSE.forEach(se=>{h+=`<label style="display:flex;gap:6px;align-items:start;margin-bottom:4px;cursor:pointer;font-size:12px"><input type="checkbox" data-se="${esc(se.name)}" data-cost="${se.cost}"><div><span>${se.name} <span class="text-green">(+${se.cost})</span></span> <span class="text-muted">\u2014 ${se.desc}</span></div></label>`;});
+  h+=`</div><div class="label mb-1">Limits</div><div id="pw-lim-list" style="margin-bottom:10px;max-height:150px;overflow-y:auto">`;
+  allLim.forEach(lm=>{h+=`<label style="display:flex;gap:6px;align-items:start;margin-bottom:4px;cursor:pointer;font-size:12px"><input type="checkbox" data-lim="${esc(lm.name)}" data-cost="${lm.cost}"><div><span>${lm.name} <span class="text-red">(${lm.cost})</span></span> <span class="text-muted">\u2014 ${lm.desc}</span></div></label>`;});
+  h+=`</div><div id="pw-cost-disp" class="card-sm tac fw-700" style="font-size:16px"></div><button class="btn btn-primary btn-full mt-2" onclick="addPD('${p.id}')">Add Power</button></div>`;
+  document.getElementById('power-modal-body').innerHTML=h;
+  window._pdId=p.id;window._pdLv=isVar?1:1;updatePDCost();
+  document.querySelectorAll('#pw-se-list input,#pw-lim-list input').forEach(inp=>inp.addEventListener('change',updatePDCost));
+}
+function setPDLv(lv){window._pdLv=lv;const p=POWERS.find(pw=>pw.id===window._pdId);if(p)p.levels.forEach(l=>{const b=document.getElementById('pw-lv-'+l);if(b)b.className='btn btn-xs'+(l===lv?' btn-primary':' btn-secondary');});updatePDCost();}
+function updatePDCost(){const p=POWERS.find(pw=>pw.id===window._pdId);if(!p)return;let c=p.flat?parseInt(p.cost)||0:window._pdLv;document.querySelectorAll('#pw-se-list input:checked').forEach(i=>c+=parseInt(i.dataset.cost)||0);document.querySelectorAll('#pw-lim-list input:checked').forEach(i=>c+=parseInt(i.dataset.cost)||0);c=Math.max(1,c);const el=document.getElementById('pw-cost-disp');if(el)el.textContent='Total: '+c+' HP';}
+function addPD(id){const p=POWERS.find(pw=>pw.id===id);if(!p)return;const lv=window._pdLv||1;let c=p.flat?parseInt(p.cost)||0:lv;const se=[],lm=[];document.querySelectorAll('#pw-se-list input:checked').forEach(i=>{c+=parseInt(i.dataset.cost)||0;se.push(i.dataset.se);});document.querySelectorAll('#pw-lim-list input:checked').forEach(i=>{c+=parseInt(i.dataset.cost)||0;lm.push(i.dataset.lim);});c=Math.max(1,c);if(!S.creation.powerSets[_pbPSI])return;S.creation.powerSets[_pbPSI].powers.push({powerId:id,level:lv,selectedSE:se,selectedLim:lm,totalCost:c});save();closePB();renderCreationStep();}
+
+// Step 6: Review
+function renderStepReview(){
+  const c=S.creation,{tone,level,exp}=getSeriesConfig();
+  const phys=c.skills['Physique']||0,will=c.skills['Will']||0,tb=tone?.stressBonus||0;
+  const pb=phys>=5?2:phys>=3?1:0,wb=will>=5?2:will>=3?1:0;
+  const ps=2+tb+pb,ms=2+tb+wb,hpS=getHPSpent(),tHP=getTotalHP();
+  const ru=hpS>tHP?Math.min(hpS-tHP,(tone?.refresh||5)-1):0,fr=Math.max(1,(tone?.refresh||5)-ru);
+  let h=`<div class="card"><div style="font-family:var(--font-title);font-size:24px;color:var(--accent)">${esc(c.costumedName)}</div><div style="font-size:13px;color:var(--muted)">${esc(c.civilianName)}</div><div class="divider"></div><div class="label">Series</div><div style="font-size:12px">${tone?.name||''} | ${level?.name||''} | ${exp?.name||''}</div><div class="divider"></div><div class="label">Aspects</div><div style="font-size:13px"><strong>Concept:</strong> ${esc(c.aspects.concept)}</div><div style="font-size:13px"><strong>Motivation:</strong> ${esc(c.aspects.motivation)}</div>`;
+  c.aspects.contingent.forEach(ct=>{if(ct.text)h+=`<div style="font-size:12px"><span class="text-muted">${ct.cat||'Aspect'}:</span> ${esc(ct.text)}</div>`;});
+  h+=`<div class="divider"></div><div class="label">Skills</div><div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">`;
+  SKILLS.filter(sk=>(c.skills[sk]||0)>0).sort((a,b)=>(c.skills[b]||0)-(c.skills[a]||0)).forEach(sk=>{h+=`<span class="tag" style="background:var(--surface2);color:var(--text);border:1px solid var(--border)">${sk} +${c.skills[sk]}</span>`;});
+  h+=`</div><div class="divider"></div><div class="label">Powers & Stunts</div>`;
+  (c.stunts||[]).forEach(st=>{h+=`<div style="font-size:12px">\u2605 <strong>${esc(st.name)}</strong> (${st.cost} HP)</div>`;});
+  (c.powerSets||[]).forEach(ps=>{h+=`<div style="margin-top:4px"><span class="text-purple fw-700">${esc(ps.name||'Power Set')}</span> <span class="text-muted" style="font-size:11px;font-style:italic">${esc(ps.aspect)}</span></div>`;(ps.powers||[]).forEach(pw=>{const pd=POWERS.find(p=>p.id===pw.powerId);h+=`<div style="font-size:12px;margin-left:12px">\u26A1 ${pd?.name||pw.powerId}${pw.level>1?' Lv'+pw.level:''} (${pw.totalCost} HP)</div>`;});});
+  h+=`<div class="divider"></div><div class="grid-2"><div class="card-sm tac"><div class="label">Physical Stress</div><div class="fw-700 text-accent" style="font-size:18px">${ps} boxes</div></div><div class="card-sm tac"><div class="label">Mental Stress</div><div class="fw-700 text-accent" style="font-size:18px">${ms} boxes</div></div><div class="card-sm tac"><div class="label">Refresh</div><div class="fw-700 text-green" style="font-size:18px">${fr}</div></div><div class="card-sm tac"><div class="label">HP Spent</div><div class="fw-700 text-gold" style="font-size:18px">${hpS}/${tHP}</div></div></div><div class="label mt-2">Consequences</div><div style="font-size:12px">Mild | Moderate | Severe</div></div><button class="btn btn-primary btn-full mt-2" style="font-size:18px;padding:14px" onclick="finishCreation()">Create Hero!</button>`;return h;
+}
+function finishCreation(){
+  const c=S.creation,{tone}=getSeriesConfig();
+  const phys=c.skills['Physique']||0,will=c.skills['Will']||0,tb=tone?.stressBonus||0;
+  const pb=phys>=5?2:phys>=3?1:0,wb=will>=5?2:will>=3?1:0;
+  const ps=2+tb+pb,ms=2+tb+wb,hpS=getHPSpent(),tHP=getTotalHP();
+  const ru=hpS>tHP?Math.min(hpS-tHP,(tone?.refresh||5)-1):0,fr=Math.max(1,(tone?.refresh||5)-ru);
+  S.char={costumedName:c.costumedName,civilianName:c.civilianName,aspects:JSON.parse(JSON.stringify(c.aspects)),supportingCast:JSON.parse(JSON.stringify(c.supportingCast)),roguesGallery:JSON.parse(JSON.stringify(c.roguesGallery)),skills:JSON.parse(JSON.stringify(c.skills)),refresh:fr,fatePoints:fr,stress:{physical:Array(ps).fill(false),mental:Array(ms).fill(false)},consequences:{mild:'',moderate:'',severe:''},stunts:JSON.parse(JSON.stringify(c.stunts||[])),powerSets:JSON.parse(JSON.stringify(c.powerSets||[])),gear:''};
+  c.supportingCast.forEach(sc=>{if(sc.name)S.npcs.push({type:'supporting',name:sc.name,desc:sc.desc,skills:{},aspects:[]});});
+  c.roguesGallery.forEach(rg=>{if(rg.name)S.npcs.push({type:'rogue',name:rg.name,desc:rg.desc,aspects:[],skills:{},powers:'',stress:Array(4).fill(false),consequences:{mild:'',moderate:'',severe:''}});});
+  save();renderHero();
+}
+
+// ═══════════════════════════════════════════════════════════
+// CHARACTER SHEET
+// ═══════════════════════════════════════════════════════════
+function renderSheet(){
+  const ch=S.char;if(!ch)return;
+  let h=`<div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:4px"><div><div class="pg-title" style="font-size:28px">${esc(ch.costumedName)}</div><div style="font-size:13px;color:var(--muted)">${esc(ch.civilianName)}</div></div><div style="display:flex;gap:4px"><button class="btn btn-secondary btn-xs" onclick="openSlotModal()">Slots</button><button class="btn btn-danger btn-xs" onclick="resetChar()">New</button></div></div>`;
+  // Fate Points
+  h+=`<div class="card" style="display:flex;align-items:center;justify-content:space-between"><div><div class="label">Fate Points</div><div style="font-size:11px;color:var(--muted)">Refresh: ${ch.refresh}</div></div><div style="display:flex;align-items:center;gap:10px"><button class="sk-btn" onclick="adjFP(-1)">−</button><span style="font-size:28px;font-weight:900;font-family:var(--font-title);color:var(--gold)">${ch.fatePoints}</span><button class="sk-btn" onclick="adjFP(1)">+</button></div></div>`;
+  // Aspects
+  h+=`<div class="card"><div class="label mb-1">Aspects</div><div style="font-size:13px"><strong>Concept:</strong> ${esc(ch.aspects.concept)}</div><div style="font-size:13px"><strong>Motivation:</strong> ${esc(ch.aspects.motivation)}</div>`;
+  ch.aspects.contingent.forEach(ct=>{if(ct.text)h+=`<div style="font-size:12px"><span class="text-muted">${ct.cat||'Aspect'}:</span> ${esc(ct.text)}</div>`;});h+='</div>';
+  // Stress
+  h+=`<div class="card"><div class="label mb-1">Stress</div><div style="margin-bottom:8px"><span style="font-size:12px;font-weight:700;color:var(--muted)">Physical</span><div style="display:flex;gap:6px;margin-top:4px">`;
+  ch.stress.physical.forEach((v,i)=>{h+=`<div class="stress-box ${v?'filled':''}" onclick="toggleStress('physical',${i})">${i+1}</div>`;});
+  h+=`</div></div><div><span style="font-size:12px;font-weight:700;color:var(--muted)">Mental</span><div style="display:flex;gap:6px;margin-top:4px">`;
+  ch.stress.mental.forEach((v,i)=>{h+=`<div class="stress-box ${v?'filled':''}" onclick="toggleStress('mental',${i})">${i+1}</div>`;});h+='</div></div></div>';
+  // Consequences
+  h+=`<div class="card"><div class="label mb-1">Consequences</div><div class="conseq-row"><div class="conseq-label">Mild (2)</div><div class="conseq-input"><input value="${esc(ch.consequences.mild)}" oninput="S.char.consequences.mild=this.value;save()" placeholder="\u2014"></div></div><div class="conseq-row"><div class="conseq-label">Moderate (4)</div><div class="conseq-input"><input value="${esc(ch.consequences.moderate)}" oninput="S.char.consequences.moderate=this.value;save()" placeholder="\u2014"></div></div><div class="conseq-row"><div class="conseq-label">Severe (6)</div><div class="conseq-input"><input value="${esc(ch.consequences.severe)}" oninput="S.char.consequences.severe=this.value;save()" placeholder="\u2014"></div></div></div>`;
+  // Skills
+  h+=`<div class="card"><div class="label mb-1">Skills</div>`;
+  SKILLS.filter(sk=>(ch.skills[sk]||0)>0).sort((a,b)=>(ch.skills[b]||0)-(ch.skills[a]||0)).forEach(sk=>{h+=`<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:13px;border-bottom:1px solid var(--border)"><span>${sk}</span><span class="fw-700 text-accent">${ladderName(ch.skills[sk])} (+${ch.skills[sk]})</span></div>`;});h+='</div>';
+  // Power Sets
+  (ch.powerSets||[]).forEach(ps=>{h+=`<div class="powerset-card"><div class="powerset-name">${esc(ps.name||'Power Set')}</div><div class="powerset-aspect">${esc(ps.aspect)}</div>`;(ps.powers||[]).forEach(pw=>{const pd=POWERS.find(p=>p.id===pw.powerId);h+=`<div style="padding:4px 0;font-size:13px"><span class="fw-700">${pd?.name||pw.powerId}</span>${pw.level>1?' <span class="text-accent">Lv'+pw.level+'</span>':''} <span class="text-muted">(${pw.totalCost} HP)</span>${pw.selectedSE.length?'<br>'+pw.selectedSE.map(se=>`<span class="tag tag-se">${se}</span>`).join(' '):''}${pw.selectedLim.length?'<br>'+pw.selectedLim.map(l=>`<span class="tag tag-lim">${l}</span>`).join(' '):''}</div>`;});h+='</div>';});
+  // Stunts
+  if(ch.stunts?.length){h+=`<div class="card"><div class="label mb-1">Stunts</div>`;ch.stunts.forEach(st=>{h+=`<div style="padding:3px 0;font-size:13px">\u2605 <strong>${esc(st.name)}</strong> <span class="text-muted">(${st.cost} HP)</span><br><span style="font-size:12px;color:var(--muted)">${esc(st.desc)}</span></div>`;});h+='</div>';}
+  // Gear
+  h+=`<div class="card"><div class="label mb-1">Gear & Notes</div><textarea oninput="S.char.gear=this.value;save()" placeholder="Equipment, devices, notes...">${esc(ch.gear||'')}</textarea></div>`;
+  document.getElementById('hero-sheet').innerHTML=h;
+}
+function toggleStress(t,i){S.char.stress[t][i]=!S.char.stress[t][i];save();renderSheet();}
+function adjFP(d){S.char.fatePoints=Math.max(0,S.char.fatePoints+d);save();renderSheet();}
+function resetChar(){if(!confirm('Delete character and start over?'))return;S.char=null;S.creation={step:0,costumedName:'',civilianName:'',aspects:{concept:'',motivation:'',contingent:[{cat:'',text:''},{cat:'',text:''},{cat:'',text:''}]},supportingCast:[],roguesGallery:[],skills:{},powerSets:[],stunts:[]};save();renderHero();}
+
+// ═══════════════════════════════════════════════════════════
+// TEAM
+// ═══════════════════════════════════════════════════════════
+function renderTeam(){
+  const el=document.getElementById('team-content');
+  if(S.team)renderTeamSheet(el);else renderTeamCreate(el);
+}
+function renderTeamCreate(el){el.innerHTML=`<div class="pg-title">Super Team</div><div class="pg-sub">Create your team identity</div><div class="card"><div class="form-group"><label>Team Name</label><input id="tm-name" placeholder="e.g. Sentinels of Society"></div><div class="form-group"><label>Charter Aspect (Mission)</label><input id="tm-charter" placeholder="e.g. United Nations Global Response Team"></div><div class="form-group"><label>Friction Aspect (Conflict)</label><input id="tm-friction" placeholder="e.g. Clashing Egos and Hidden Agendas"></div></div><button class="btn btn-primary btn-full" onclick="createTeam()">Create Team</button>`;}
+function createTeam(){const n=document.getElementById('tm-name').value.trim(),c=document.getElementById('tm-charter').value.trim(),f=document.getElementById('tm-friction').value.trim();if(!n)return alert('Name required');S.team={name:n,charter:c,friction:f,rogues:[],stunts:[],complications:[]};save();renderTeam();}
+function renderTeamSheet(el){
+  const t=S.team,mx=(S.char?1:0)+t.rogues.length;
+  let h=`<div class="pg-title">${esc(t.name)}</div><div class="pg-sub">Super Team</div><div class="card"><div class="label">Charter</div><div style="font-size:14px;margin-bottom:6px">${esc(t.charter)}</div><div class="label">Friction</div><div style="font-size:14px">${esc(t.friction)}</div></div>`;
+  h+=`<div class="card"><div class="label mb-1">Team Rogues <span class="text-muted" style="font-weight:400">(max 3, +1 stunt each)</span></div>`;
+  t.rogues.forEach((r,i)=>{h+=`<div class="card-sm" style="display:flex;gap:6px"><div style="flex:1"><strong>${esc(r.name)}</strong><br><span class="text-muted" style="font-size:12px">${esc(r.desc)}</span></div><button class="btn btn-danger btn-xs" onclick="S.team.rogues.splice(${i},1);save();renderTeam()">X</button></div>`;});
+  if(t.rogues.length<3)h+=`<button class="btn btn-secondary btn-sm" onclick="addTR()">+ Add Rogue</button>`;
+  h+=`</div><div class="card"><div class="label mb-1">Team Stunts <span class="text-muted" style="font-weight:400">(${t.stunts.length}/${mx})</span></div>`;
+  TEAM_STUNTS.forEach(ts=>{const sel=t.stunts.includes(ts.id),req=!ts.requires||t.stunts.includes(ts.requires),can=t.stunts.length<mx||sel;h+=`<label style="display:flex;gap:8px;align-items:start;padding:6px 0;border-bottom:1px solid var(--border);cursor:${req&&can?'pointer':'default'};opacity:${req?1:.4}"><input type="checkbox" ${sel?'checked':''} ${req&&can?'':'disabled'} onchange="toggleTS('${ts.id}')"><div><div class="fw-700" style="font-size:13px">${ts.name}</div><div style="font-size:11px;color:var(--muted)">${ts.desc}</div>${ts.requires?`<div style="font-size:10px;color:var(--yellow)">Requires: ${TEAM_STUNTS.find(s=>s.id===ts.requires)?.name}</div>`:''}</div></label>`;});
+  h+=`</div><div class="card"><div class="label mb-1">Complications <span class="text-muted" style="font-weight:400">(optional)</span></div>`;
+  TEAM_COMPLICATIONS.forEach(tc=>{const sel=t.complications.includes(tc.id);h+=`<label style="display:flex;gap:8px;align-items:start;padding:6px 0;cursor:pointer"><input type="checkbox" ${sel?'checked':''} onchange="toggleTC('${tc.id}')"><div><div class="fw-700" style="font-size:13px">${tc.name}</div><div style="font-size:11px;color:var(--muted)">${tc.desc}</div></div></label>`;});
+  h+=`</div><button class="btn btn-danger btn-full mt-2" onclick="if(confirm('Disband?')){S.team=null;save();renderTeam();}">Disband Team</button>`;el.innerHTML=h;
+}
+function addTR(){const n=prompt('Rogue Name:');if(!n)return;S.team.rogues.push({name:n,desc:prompt('Description:')||''});save();renderTeam();}
+function toggleTS(id){const t=S.team,i=t.stunts.indexOf(id);if(i>=0){t.stunts.splice(i,1);TEAM_STUNTS.filter(ts=>ts.requires===id).forEach(ts=>{const di=t.stunts.indexOf(ts.id);if(di>=0)t.stunts.splice(di,1);});}else t.stunts.push(id);save();renderTeam();}
+function toggleTC(id){const t=S.team,i=t.complications.indexOf(id);if(i>=0)t.complications.splice(i,1);else t.complications.push(id);save();renderTeam();}
+
+// ═══════════════════════════════════════════════════════════
+// NPCs
+// ═══════════════════════════════════════════════════════════
+let _npcTab='supporting',_npcEdit=null;
+function renderNPCs(){
+  const el=document.getElementById('npcs-content');
+  let h=`<div class="pg-title">NPCs</div><div class="pg-sub">Characters & Villains</div><div class="npc-tabs">${['supporting','rogue','nameless','main'].map(t=>`<div class="npc-tab ${_npcTab===t?'active':''}" onclick="_npcTab='${t}';renderNPCs()">${t==='supporting'?'Cast':t==='rogue'?'Rogues':t==='nameless'?'Nameless':'Main'}</div>`).join('')}</div>`;
+  S.npcs.filter(n=>n.type===_npcTab).forEach(npc=>{const ri=S.npcs.indexOf(npc);
+    h+=`<div class="card-sm"><div style="display:flex;justify-content:space-between;align-items:start"><div><div class="fw-700">${esc(npc.name)}</div>${npc.desc?`<div style="font-size:12px;color:var(--muted)">${esc(npc.desc)}</div>`:''}`;
+    if(npc.type==='main'||npc.type==='rogue'){if(npc.aspects?.length)h+=`<div style="font-size:11px;margin-top:2px">${npc.aspects.map(a=>`<span class="tag" style="background:var(--surface3);color:var(--text);border:1px solid var(--border)">${esc(a)}</span>`).join(' ')}</div>`;if(npc.powers)h+=`<div style="font-size:11px;color:var(--purple);margin-top:2px">${esc(npc.powers)}</div>`;}
+    if(npc.type==='nameless')h+=`<div style="font-size:11px;color:var(--accent);margin-top:2px">Obstacle: ${npc.obstacle||'+0'}</div>`;
+    if(npc.stress?.length){h+=`<div style="display:flex;gap:4px;margin-top:4px">`;npc.stress.forEach((v,si)=>{h+=`<div class="stress-box ${v?'filled':''}" style="width:22px;height:22px;font-size:10px" onclick="S.npcs[${ri}].stress[${si}]=!S.npcs[${ri}].stress[${si}];save();renderNPCs()">${si+1}</div>`;});h+='</div>';}
+    h+=`</div><div style="display:flex;gap:4px"><button class="btn btn-secondary btn-xs" onclick="editNPC(${ri})">Edit</button><button class="btn btn-danger btn-xs" onclick="if(confirm('Delete?')){S.npcs.splice(${ri},1);save();renderNPCs();}">X</button></div></div></div>`;
+  });
+  h+=`<button class="btn btn-primary btn-full mt-2" onclick="openAddNPC()">+ Add</button>`;el.innerHTML=h;
+}
+function openAddNPC(){_npcEdit=null;renderNM();document.getElementById('npc-modal').classList.add('open');}
+function editNPC(i){_npcEdit=i;renderNM();document.getElementById('npc-modal').classList.add('open');}
+function closeNM(){document.getElementById('npc-modal').classList.remove('open');}
+function renderNM(){
+  const npc=_npcEdit!==null?S.npcs[_npcEdit]:null,type=npc?.type||_npcTab;
+  let h=`<h2 style="font-family:var(--font-title);font-size:20px;margin-bottom:12px">${npc?'Edit':'Add'} NPC</h2><div class="form-group"><label>Name</label><input id="nm-name" value="${esc(npc?.name||'')}"></div><div class="form-group"><label>Description</label><textarea id="nm-desc">${esc(npc?.desc||'')}</textarea></div>`;
+  if(type==='main'||type==='rogue')h+=`<div class="form-group"><label>Aspects (comma-sep)</label><input id="nm-asp" value="${esc((npc?.aspects||[]).join(', '))}"></div><div class="form-group"><label>Key Skills</label><input id="nm-sk" value="${esc(npc?.skillText||'')}"></div><div class="form-group"><label>Powers</label><input id="nm-pw" value="${esc(npc?.powers||'')}"></div><div class="form-group"><label>Stress Boxes</label><input type="number" id="nm-st" min="0" max="10" value="${npc?.stress?.length||4}"></div>`;
+  if(type==='nameless')h+=`<div class="form-group"><label>Obstacle Rating</label><input id="nm-ob" value="${esc(npc?.obstacle||'+2')}"></div><div class="form-group"><label>Stress Boxes</label><input type="number" id="nm-st" min="0" max="6" value="${npc?.stress?.length||2}"></div>`;
+  h+=`<div style="display:flex;gap:8px;margin-top:12px"><button class="btn btn-secondary" style="flex:1" onclick="closeNM()">Cancel</button><button class="btn btn-primary" style="flex:1" onclick="saveNPC()">Save</button></div>`;
+  document.getElementById('npc-modal-body').innerHTML=h;
+}
+function saveNPC(){
+  const type=_npcEdit!==null?S.npcs[_npcEdit].type:_npcTab,name=document.getElementById('nm-name').value.trim();if(!name)return alert('Name required');
+  const npc={type,name,desc:document.getElementById('nm-desc').value};
+  if(type==='main'||type==='rogue'){npc.aspects=(document.getElementById('nm-asp')?.value||'').split(',').map(s=>s.trim()).filter(Boolean);npc.skillText=document.getElementById('nm-sk')?.value||'';npc.powers=document.getElementById('nm-pw')?.value||'';npc.stress=Array(parseInt(document.getElementById('nm-st')?.value)||4).fill(false);npc.consequences={mild:'',moderate:'',severe:''};}
+  if(type==='nameless'){npc.obstacle=document.getElementById('nm-ob')?.value||'+2';npc.stress=Array(parseInt(document.getElementById('nm-st')?.value)||2).fill(false);}
+  if(type==='supporting'){npc.skills={};npc.aspects=[];}
+  if(_npcEdit!==null)S.npcs[_npcEdit]=npc;else S.npcs.push(npc);save();closeNM();renderNPCs();
+}
+
+// ═══════════════════════════════════════════════════════════
+// DICE
+// ═══════════════════════════════════════════════════════════
+function renderDice(){
+  const el=document.getElementById('dice-content'),ch=S.char;
+  let h=`<div class="pg-title">Fate Dice</div><div class="pg-sub">4dF + Skill + Modifier</div><div class="card"><div class="grid-2 mb-2"><div class="form-group"><label>Skill</label><select id="d-sk" onchange="updateDP()"><option value="">— None —</option>${SKILLS.map(sk=>`<option value="${sk}">${sk} (+${ch?.skills?.[sk]||0})</option>`).join('')}</select></div><div class="form-group"><label>Modifier</label><input type="number" id="d-mod" value="0" onchange="updateDP()"></div></div><div id="d-preview" class="tac text-muted mb-2" style="font-size:12px"></div><div class="tac"><button class="roll-btn" onclick="doRoll()">ROLL</button></div></div><div id="d-result"></div>`;
+  if(ch)h+=`<div class="card" style="display:flex;align-items:center;justify-content:space-between"><div class="label">Fate Points</div><div style="display:flex;align-items:center;gap:8px"><button class="sk-btn" onclick="adjFP(-1);renderDice()">−</button><span style="font-size:22px;font-weight:900;color:var(--gold)">${ch.fatePoints}</span><button class="sk-btn" onclick="adjFP(1);renderDice()">+</button></div></div>`;
+  h+=`<div id="d-actions" style="display:none" class="card tac"><button class="btn btn-gold btn-sm" onclick="invokeAsp()">Invoke (+2)</button> <button class="btn btn-secondary btn-sm" onclick="rerollDice()">Reroll</button> <button class="btn btn-success btn-sm" onclick="compelAsp()">Compel (+1 FP)</button></div><div id="d-hist"></div>`;
+  el.innerHTML=h;renderDR();
+}
+function updateDP(){const sk=document.getElementById('d-sk')?.value,mod=parseInt(document.getElementById('d-mod')?.value)||0,sv=S.char?.skills?.[sk]||0;const el=document.getElementById('d-preview');if(el)el.textContent=sk?`4dF + ${sk}(+${sv})${mod?' + '+(mod>0?'+':'')+mod:''}`:'4dF';}
+function rollFD(){return[-1,0,1][Math.floor(Math.random()*3)];}
+function doRoll(){const sk=document.getElementById('d-sk')?.value||'',mod=parseInt(document.getElementById('d-mod')?.value)||0,sv=S.char?.skills?.[sk]||0,dice=[rollFD(),rollFD(),rollFD(),rollFD()],ds=dice.reduce((a,b)=>a+b,0),tot=ds+sv+mod;S.dice={skill:sk,skillVal:sv,mod,dice,diceSum:ds,total:tot};save();renderDR();}
+function renderDR(){
+  const area=document.getElementById('d-result'),act=document.getElementById('d-actions');if(!area)return;const d=S.dice;
+  if(!d||!d.dice){area.innerHTML='';if(act)act.style.display='none';return;}
+  const dh=d.dice.map(v=>`<div class="fate-die ${v>0?'plus':v<0?'minus':'blank'}">${v>0?'+':v<0?'\u2212':'0'}</div>`).join('');
+  area.innerHTML=`<div class="card tac"><div style="display:flex;gap:10px;justify-content:center;margin-bottom:10px">${dh}</div><div style="font-size:12px;color:var(--muted)">Dice: ${d.diceSum>=0?'+':''}${d.diceSum}${d.skill?' | '+d.skill+': +'+d.skillVal:''}${d.mod?' | Mod: '+(d.mod>=0?'+':'')+d.mod:''}</div><div style="font-size:32px;font-weight:900;font-family:var(--font-title);color:var(--accent);margin:4px 0">${d.total>=0?'+':''}${d.total}</div><div style="font-size:16px;font-weight:700">${ladderName(d.total)}</div></div>`;
+  if(act)act.style.display=S.char?'block':'none';
+}
+function invokeAsp(){if(!S.char||S.char.fatePoints<=0)return alert('No Fate Points!');S.char.fatePoints--;S.dice.total+=2;save();renderDR();renderDice();}
+function rerollDice(){if(!S.char||S.char.fatePoints<=0)return alert('No Fate Points!');S.char.fatePoints--;S.dice.dice=[rollFD(),rollFD(),rollFD(),rollFD()];S.dice.diceSum=S.dice.dice.reduce((a,b)=>a+b,0);S.dice.total=S.dice.diceSum+S.dice.skillVal+S.dice.mod;save();renderDR();}
+function compelAsp(){if(!S.char)return;S.char.fatePoints++;save();renderDice();}
+
+// ═══════════════════════════════════════════════════════════
+// CONFLICT
+// ═══════════════════════════════════════════════════════════
+function renderConflict(){
+  const el=document.getElementById('conflict-content'),c=S.conflict;
+  let h=`<div class="pg-title">Conflict</div><div class="pg-sub">Zone-based combat tracker</div>`;
+  if(!c.active){h+=`<div class="tac" style="padding:30px"><div style="font-size:36px;margin-bottom:8px">\u2694</div><div class="text-muted mb-3">No active conflict</div><button class="btn btn-primary" onclick="startConflict()">Start Conflict</button></div>`;}
+  else{
+    h+=`<div class="card-sm" style="display:flex;justify-content:space-between;align-items:center"><div><span class="label">Round</span> <span class="fw-700 text-accent" style="font-size:20px">${c.round}</span></div><div style="display:flex;gap:4px"><button class="btn btn-secondary btn-xs" onclick="nextRound()">Next Round</button><button class="btn btn-danger btn-xs" onclick="endConflict()">End</button></div></div>`;
+    h+=`<div class="card"><div class="label mb-1">Turn Order</div>`;
+    c.turnOrder.forEach((t,i)=>{h+=`<div class="combatant ${i===c.currentTurn?'current':''}"><div style="width:20px;font-size:12px;font-weight:700;color:${i===c.currentTurn?'var(--accent)':'var(--muted)'}">${i+1}</div><div style="flex:1;font-weight:600;font-size:13px">${esc(t.name)}</div><span style="font-size:11px;color:var(--muted)">${t.type}</span><button class="btn btn-danger btn-xs" onclick="S.conflict.turnOrder.splice(${i},1);if(S.conflict.currentTurn>=${i}&&S.conflict.currentTurn>0)S.conflict.currentTurn--;save();renderConflict()" style="padding:2px 6px">X</button></div>`;});
+    h+=`<div style="display:flex;gap:4px;margin-top:6px"><input id="ct-name" placeholder="Name" style="flex:1;font-size:12px;padding:6px"><select id="ct-type" style="width:80px;font-size:12px;padding:6px"><option>Hero</option><option>NPC</option><option>Villain</option></select><button class="btn btn-secondary btn-xs" onclick="addCombat()">Add</button></div><button class="btn btn-primary btn-sm btn-full mt-2" onclick="nextTurn()">Next Turn \u2192</button></div>`;
+    h+=`<div class="card"><div class="label mb-1">Zones</div>`;
+    c.zones.forEach((z,i)=>{h+=`<div class="zone-card"><div style="display:flex;justify-content:space-between;align-items:center"><div class="zone-name">${esc(z.name)}</div><button class="btn btn-danger btn-xs" onclick="S.conflict.zones.splice(${i},1);save();renderConflict()">X</button></div>${z.aspects?`<div style="font-size:11px;color:var(--muted);font-style:italic">${esc(z.aspects)}</div>`:''}<div style="font-size:11px;margin-top:4px">${(z.occupants||[]).map(o=>`<span class="tag" style="background:var(--surface3);color:var(--text);border:1px solid var(--border)">${esc(o)}</span>`).join(' ')}</div><div style="display:flex;gap:4px;margin-top:4px"><input id="za-${i}" placeholder="Add occupant" style="flex:1;font-size:11px;padding:4px"><button class="btn btn-secondary btn-xs" onclick="addToZone(${i})">+</button></div></div>`;});
+    h+=`<div style="display:flex;gap:4px"><input id="zn-name" placeholder="New zone" style="flex:1;font-size:12px;padding:6px"><button class="btn btn-secondary btn-xs" onclick="addZone()">+ Zone</button></div></div>`;
+    if(c.log.length){h+=`<div class="card"><div class="label mb-1">Log</div>`;c.log.slice(-8).reverse().forEach(e=>{h+=`<div style="font-size:11px;color:var(--muted);padding:2px 0">${esc(e)}</div>`;});h+='</div>';}
+  }
+  el.innerHTML=h;
+}
+function startConflict(){S.conflict={active:true,zones:[{name:'Zone 1',aspects:'',occupants:[]}],turnOrder:[],currentTurn:0,round:1,log:['Conflict started']};if(S.char)S.conflict.turnOrder.push({name:S.char.costumedName,type:'Hero'});save();renderConflict();}
+function endConflict(){if(confirm('End conflict?')){S.conflict={active:false,zones:[],turnOrder:[],currentTurn:0,round:1,log:[]};save();renderConflict();}}
+function nextTurn(){const c=S.conflict;c.currentTurn=(c.currentTurn+1)%Math.max(1,c.turnOrder.length);c.log.push('Turn: '+(c.turnOrder[c.currentTurn]?.name||'?'));save();renderConflict();}
+function nextRound(){S.conflict.round++;S.conflict.currentTurn=0;S.conflict.log.push('--- Round '+S.conflict.round+' ---');save();renderConflict();}
+function addCombat(){const n=document.getElementById('ct-name').value.trim(),t=document.getElementById('ct-type').value;if(!n)return;S.conflict.turnOrder.push({name:n,type:t});S.conflict.log.push(n+' joined');save();renderConflict();}
+function addZone(){const n=document.getElementById('zn-name').value.trim()||('Zone '+(S.conflict.zones.length+1));S.conflict.zones.push({name:n,aspects:'',occupants:[]});save();renderConflict();}
+function addToZone(i){const inp=document.getElementById('za-'+i),n=inp?.value?.trim();if(!n)return;S.conflict.zones[i].occupants.push(n);save();renderConflict();}
+
+// ═══════════════════════════════════════════════════════════
+// NOTES
+// ═══════════════════════════════════════════════════════════
+let noteEditing=null;
+function renderNotes(){
+  const el=document.getElementById('notes-timeline');if(!el)return;const notes=S.notes||[];
+  document.getElementById('notes-fab').innerHTML=`<div id="nfab-menu" style="display:none;margin-bottom:8px">${NOTE_TYPES.map(nt=>`<button class="btn btn-secondary btn-sm btn-full mb-1" onclick="addNote('${nt.id}')">${nt.emoji} ${nt.label}</button>`).join('')}</div><button class="roll-btn" style="width:52px;height:52px;font-size:28px" onclick="document.getElementById('nfab-menu').style.display=document.getElementById('nfab-menu').style.display==='none'?'block':'none'">+</button>`;
+  if(!notes.length){el.innerHTML='<div class="tac" style="padding:40px"><div style="font-size:36px;margin-bottom:8px">\ud83d\udcd6</div><div class="text-muted">No notes yet. Tap + to add.</div></div>';return;}
+  let h='<div>';
+  notes.forEach((note,idx)=>{const nt=NOTE_TYPES.find(t=>t.id===note.type)||{emoji:'\ud83d\udcdd',label:'Note',size:'sm'};const isXL=nt.size==='xl',isLG=nt.size==='lg',isEd=noteEditing===note.id;
+    const dc=isXL?'var(--accent)':isLG?'var(--yellow)':'var(--muted)',ds=isXL?14:isLG?11:8;
+    h+=`<div style="display:flex;gap:0;align-items:stretch;margin-bottom:6px"><div style="display:flex;flex-direction:column;align-items:center;width:22px;flex-shrink:0"><div style="width:2px;height:8px;background:${idx===0?'transparent':'var(--border)'}"></div><div style="width:${ds}px;height:${ds}px;border-radius:50%;background:${dc};flex-shrink:0"></div><div style="width:2px;flex:1;background:${idx===notes.length-1?'transparent':'var(--border)'}"></div></div><div style="flex:1;min-width:0;margin-left:6px"><div class="card-sm" style="${isXL?'border-color:var(--accent)':isLG?'border-color:var(--yellow)':''}"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px"><div><span style="font-size:${isXL?16:13}px">${nt.emoji}</span> <span style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase">${nt.label}</span></div><div style="display:flex;gap:4px"><button class="btn btn-xs btn-secondary" onclick="noteEditing=${note.id};renderNotes()" style="padding:2px 6px;font-size:10px">Edit</button><button class="btn btn-xs btn-danger" onclick="S.notes=S.notes.filter(n=>n.id!==${note.id});save();renderNotes()" style="padding:2px 6px;font-size:10px">X</button></div></div>`;
+    if(isEd)h+=`<textarea id="ne-${note.id}" style="width:100%;font-size:13px;min-height:50px">${esc(note.text)}</textarea><div style="display:flex;gap:4px;margin-top:4px"><button class="btn btn-primary btn-xs" style="flex:1" onclick="const ta=document.getElementById('ne-${note.id}');const n=S.notes.find(x=>x.id===${note.id});if(n&&ta){n.text=ta.value;noteEditing=null;save();renderNotes();}">Save</button><button class="btn btn-secondary btn-xs" onclick="noteEditing=null;renderNotes()">Cancel</button></div>`;
+    else h+=`<div style="font-size:13px;${note.text?'':'color:var(--muted);font-style:italic'}">${note.text||'Tap edit to add text...'}</div>`;
+    h+='</div></div></div>';
+  });
+  h+='</div>';el.innerHTML=h;
+}
+function addNote(type){S.notes.push({id:Date.now(),type,text:'',ts:new Date().toISOString()});noteEditing=S.notes[S.notes.length-1].id;save();renderNotes();const m=document.getElementById('nfab-menu');if(m)m.style.display='none';}
+
+// ═══════════════════════════════════════════════════════════
+// LIVE HUD
+// ═══════════════════════════════════════════════════════════
+let _hudCh=null;
+function hudBroadcast(){try{if(!_hudCh)_hudCh=new BroadcastChannel('daring-comics-hud');_hudCh.postMessage({type:'state',char:S.char,team:S.team,dice:S.dice,conflict:S.conflict,notes:(S.notes||[]).slice(-8)});}catch(e){}}
+function openHUD(){const w=window.open('','_blank','width=1280,height=720');if(!w)return;w.document.write(buildHUD());w.document.close();setTimeout(()=>hudBroadcast(),600);}
+function buildHUD(){return`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Daring Comics HUD</title><link href="https://fonts.googleapis.com/css2?family=Bangers&family=Oswald:wght@400;700&family=Comic+Neue:wght@400;700&display=swap" rel="stylesheet"><style>*{box-sizing:border-box;margin:0;padding:0}body{background:#0a0e1a;color:#f0f0f0;font-family:'Comic Neue',sans-serif;padding:24px;display:grid;grid-template-columns:1fr 1fr;gap:20px}.hc{background:#121828;border:1px solid #2a3a5a;border-radius:12px;padding:16px}.ht{font-family:'Bangers',cursive;font-size:28px;color:#e63946}.hl{font-family:'Oswald',sans-serif;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#7a8a9e;margin-bottom:4px}.sb{display:inline-flex;width:32px;height:32px;border:2px solid #2a3a5a;border-radius:6px;align-items:center;justify-content:center;margin:2px;font-size:14px;font-weight:700}.sb.f{background:#e63946;border-color:#e63946;color:#fff}.fd{display:inline-flex;width:56px;height:56px;border-radius:12px;align-items:center;justify-content:center;font-size:36px;font-weight:900;border:2px solid #2a3a5a;background:#1a2236;margin:4px}.fd.p{color:#2ecc71;border-color:#2ecc71}.fd.m{color:#e74c3c;border-color:#e74c3c}</style></head><body><div class="hc" id="hh" style="grid-column:span 2"><div class="ht" id="hn">Waiting...</div></div><div class="hc"><div class="hl">Stress & FP</div><div id="hs"></div></div><div class="hc"><div class="hl">Last Roll</div><div id="hd" style="text-align:center"></div></div><div class="hc"><div class="hl">Conflict</div><div id="hcf"></div></div><div class="hc"><div class="hl">Journal</div><div id="hn2"></div></div><script>const ch=new BroadcastChannel('daring-comics-hud');ch.postMessage({type:'ping'});ch.onmessage=function(e){const d=e.data;if(d.type!=='state')return;if(d.char){document.getElementById('hn').innerHTML=d.char.costumedName;let s='<div style="margin-top:8px"><div class="hl">Physical</div>';d.char.stress.physical.forEach(function(v,i){s+='<div class="sb'+(v?' f':'')+'\">'+(i+1)+'</div>';});s+='</div><div style="margin-top:8px"><div class="hl">Mental</div>';d.char.stress.mental.forEach(function(v,i){s+='<div class="sb'+(v?' f':'')+'\">'+(i+1)+'</div>';});s+='</div><div style="margin-top:12px;font-size:28px;font-weight:900;color:#f1c40f">FP: '+d.char.fatePoints+'</div>';document.getElementById('hs').innerHTML=s;}if(d.dice&&d.dice.dice){var dh=d.dice.dice.map(function(v){return'<div class="fd'+(v>0?' p':v<0?' m':'')+'\">'+(v>0?'+':v<0?'\\u2212':'0')+'</div>';}).join('');dh+='<div style="font-size:48px;font-weight:900;font-family:Bangers;color:#e63946;margin-top:8px">'+(d.dice.total>=0?'+':'')+d.dice.total+'</div>';document.getElementById('hd').innerHTML=dh;}if(d.conflict&&d.conflict.active){var c='<div style="font-size:16px;font-weight:700">Round '+d.conflict.round+'</div>';d.conflict.turnOrder.forEach(function(t,i){c+='<div style="padding:4px 0;'+(i===d.conflict.currentTurn?'color:#e63946;font-weight:700':'color:#7a8a9e')+'">'+t.name+'</div>';});document.getElementById('hcf').innerHTML=c;}else document.getElementById('hcf').innerHTML='<div style="color:#7a8a9e">No conflict</div>';if(d.notes&&d.notes.length){var n='';d.notes.slice(-5).forEach(function(x){n+='<div style="font-size:13px;padding:2px 0;color:#ccc">'+(x.text||'')+'</div>';});document.getElementById('hn2').innerHTML=n;}};<\/script></body></html>`;}
+(function(){try{var hc=new BroadcastChannel('daring-comics-hud');hc.onmessage=function(e){if(e.data&&e.data.type==='ping')hudBroadcast();};}catch(e){}})();
+
+// ═══════════════════════════════════════════════════════════
+// UTILITY & INIT
+// ═══════════════════════════════════════════════════════════
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+(function(){let a=null;try{a=localStorage.getItem('dc_active_slot');}catch(e){}if(a!==null&&a!=='')loadSlot(parseInt(a));renderHero();if(currentSlot===null)openSlotModal();})();
+</script>
+</body>
+</html>

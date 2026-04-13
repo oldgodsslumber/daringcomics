@@ -675,11 +675,113 @@ function renderSheet(){
   if(ch.stunts?.length){h+=`<div class="card"><div class="label mb-1">Stunts</div>`;ch.stunts.forEach(st=>{h+=`<div style="padding:3px 0;font-size:13px">\u2605 <strong>${esc(st.name)}</strong> <span class="text-muted">(${st.cost} HP)</span><br><span style="font-size:12px;color:var(--muted)">${esc(st.desc)}</span></div>`;});h+='</div>';}
   // Gear
   h+=`<div class="card"><div class="label mb-1">Gear & Notes</div><textarea oninput="S.char.gear=this.value;save()" placeholder="Equipment, devices, notes...">${esc(ch.gear||'')}</textarea></div>`;
+  h+=`<button onclick="printCharSheet()" style="width:100%;padding:11px;border-radius:var(--radius-btn);border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:13px;font-weight:600;cursor:pointer;margin-top:6px;display:flex;align-items:center;justify-content:center;gap:8px;font-family:var(--font-label)">Print Character Sheet</button>`;
   document.getElementById('hero-sheet').innerHTML=h;
 }
 function toggleStress(t,i){S.char.stress[t][i]=!S.char.stress[t][i];save();renderSheet();}
 function adjFP(d){S.char.fatePoints=Math.max(0,S.char.fatePoints+d);save();renderSheet();}
 function resetChar(){if(!confirm('Delete character and start over?'))return;S.char=null;S.creation={step:0,costumedName:'',civilianName:'',aspects:{concept:'',motivation:'',contingent:[{cat:'',text:''},{cat:'',text:''},{cat:'',text:''}]},supportingCast:[],roguesGallery:[],skills:{},powerSets:[],stunts:[]};save();renderHero();}
+
+function printCharSheet(){
+  const ch=S.char;if(!ch)return;
+  const{tone,level,exp}=getSeriesConfig();
+  function e(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+  // Stress boxes
+  function stressBoxes(arr){return arr.map((_,i)=>`<span class="sb">${i+1}</span>`).join('');}
+  // Skills sorted
+  const sortedSk=SKILLS.filter(sk=>(ch.skills[sk]||0)>0).sort((a,b)=>(ch.skills[b]||0)-(ch.skills[a]||0));
+  let skillsHtml='';
+  let prevLv=99;
+  sortedSk.forEach(sk=>{const v=ch.skills[sk];if(v<prevLv){skillsHtml+=`<div class="sk-tier">${ladderName(v)} (+${v})</div>`;prevLv=v;}skillsHtml+=`<div class="sk-item">${e(sk)}</div>`;});
+  // Aspects
+  let aspHtml=`<div class="asp"><span class="al">Concept:</span> ${e(ch.aspects.concept)}</div><div class="asp"><span class="al">Motivation:</span> ${e(ch.aspects.motivation)}</div>`;
+  ch.aspects.contingent.forEach(ct=>{if(ct.text)aspHtml+=`<div class="asp"><span class="al">${e(ct.cat||'Aspect')}:</span> ${e(ct.text)}</div>`;});
+  // Power Sets
+  let powHtml='';
+  (ch.powerSets||[]).forEach(ps=>{
+    powHtml+=`<div class="ps-card"><div class="ps-name">${e(ps.name||'Power Set')}</div><div class="ps-asp">${e(ps.aspect)}</div>`;
+    (ps.powers||[]).forEach(pw=>{const pd=POWERS.find(p=>p.id===pw.powerId);powHtml+=`<div class="pw-item"><span class="pw-n">${e(pd?.name||pw.powerId)}</span>${pw.level>1?' <span class="pw-lv">Lv'+pw.level+'</span>':''} <span class="pw-c">(${pw.totalCost} HP)</span>${pw.selectedSE.length?'<div class="pw-tags">'+pw.selectedSE.map(s=>'<span class="tg tg-se">'+e(s)+'</span>').join(' ')+'</div>':''}${pw.selectedLim.length?'<div class="pw-tags">'+pw.selectedLim.map(l=>'<span class="tg tg-lm">'+e(l)+'</span>').join(' ')+'</div>':''}</div>`;});
+    powHtml+='</div>';
+  });
+  // Stunts
+  let stuntHtml='';
+  (ch.stunts||[]).forEach(st=>{stuntHtml+=`<div class="st-item"><span class="st-n">${e(st.name)}</span> <span class="pw-c">(${st.cost} HP)</span><div class="st-d">${e(st.desc)}</div></div>`;});
+  // Consequences
+  const consHtml=`<div class="con-row"><span class="con-l">Mild (2):</span><span class="con-v">${e(ch.consequences.mild)||'<span class="con-line"></span>'}</span></div><div class="con-row"><span class="con-l">Moderate (4):</span><span class="con-v">${e(ch.consequences.moderate)||'<span class="con-line"></span>'}</span></div><div class="con-row"><span class="con-l">Severe (6):</span><span class="con-v">${e(ch.consequences.severe)||'<span class="con-line"></span>'}</span></div>`;
+  // Supporting cast & rogues
+  let castHtml='';
+  (ch.supportingCast||[]).forEach(sc=>{if(sc.name)castHtml+=`<div class="cast-item"><span class="cast-n">${e(sc.name)}</span><span class="cast-d">${e(sc.desc)}</span></div>`;});
+  let rogueHtml='';
+  (ch.roguesGallery||[]).forEach(rg=>{if(rg.name)rogueHtml+=`<div class="cast-item"><span class="cast-n">${e(rg.name)}</span><span class="cast-d">${e(rg.desc)}</span></div>`;});
+
+  const css=`@page{size:letter portrait;margin:.5in}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,Helvetica,sans-serif;font-size:10.5pt;color:#111;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.hdr{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2.5px solid #111;padding-bottom:5px;margin-bottom:8px}
+.h-name{font-size:22pt;font-weight:900;line-height:1}.h-civ{font-size:10pt;color:#555;margin-top:2px}
+.h-right{text-align:right}.h-title{font-size:14pt;font-weight:900;letter-spacing:2px;color:#c00}.h-sub{font-size:7pt;color:#bbb;letter-spacing:1px}
+.meta{display:flex;gap:12px;margin-bottom:8px;flex-wrap:wrap}
+.meta-box{border:1px solid #bbb;border-radius:4px;padding:3px 8px;font-size:9pt}
+.meta-l{font-weight:700;text-transform:uppercase;font-size:7.5pt;color:#888;letter-spacing:.5px}.meta-v{font-weight:700;font-size:12pt}
+.body{display:flex;gap:0}.col{padding:0 8px}.col:first-child{padding-left:0;width:40%;border-right:1px solid #ddd}.col:last-child{flex:1;padding-right:0}
+.sec{margin-bottom:8px}.sec-t{font-size:8pt;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#999;border-bottom:1px solid #ddd;margin-bottom:4px;padding-bottom:1px}
+.asp{font-size:9.5pt;margin-bottom:3px;line-height:1.3}.al{font-weight:700}
+.sk-tier{font-size:8pt;font-weight:700;text-transform:uppercase;color:#999;margin-top:4px;margin-bottom:1px;letter-spacing:.3px}
+.sk-item{font-size:10pt;padding:1px 0 1px 8px;border-bottom:1px solid #f0f0f0}
+.sb{display:inline-block;width:16px;height:16px;border:1.5px solid #222;border-radius:2px;text-align:center;font-size:8pt;line-height:16px;margin-right:2px}
+.stress-row{margin-bottom:4px}
+.stress-l{font-size:8pt;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:2px}
+.con-row{display:flex;align-items:baseline;gap:4px;margin-bottom:3px;font-size:9.5pt}
+.con-l{font-weight:700;font-size:8.5pt;text-transform:uppercase;color:#888;min-width:80px}
+.con-v{flex:1}.con-line{display:block;border-bottom:1px solid #bbb;width:100%;height:12px}
+.ps-card{border:1.5px solid #8e44ad;border-radius:4px;padding:6px;margin-bottom:6px}
+.ps-name{font-size:11pt;font-weight:900;color:#8e44ad}.ps-asp{font-size:8.5pt;color:#888;font-style:italic;margin-bottom:3px}
+.pw-item{padding:2px 0;font-size:9.5pt;border-bottom:1px solid #f0f0f0}
+.pw-n{font-weight:700}.pw-lv{color:#c00;font-weight:600}.pw-c{color:#888;font-size:8.5pt}
+.pw-tags{margin-top:1px}.tg{display:inline-block;padding:0 4px;border-radius:6px;font-size:7.5pt;font-weight:700;margin-right:2px}
+.tg-se{background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7}.tg-lm{background:#ffebee;color:#c62828;border:1px solid #ef9a9a}
+.st-item{padding:2px 0;font-size:9.5pt;border-bottom:1px solid #f0f0f0}.st-n{font-weight:700}.st-d{font-size:8.5pt;color:#666}
+.cast-item{display:flex;gap:6px;font-size:9pt;padding:1px 0;border-bottom:1px solid #f0f0f0}.cast-n{font-weight:700}.cast-d{color:#666}
+.gear{font-size:9pt;white-space:pre-wrap;color:#444}
+@media print{@page{size:letter portrait;margin:.5in}body{margin:0}}`;
+
+  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${e(ch.costumedName)} — Daring Comics</title><style>${css}</style></head><body>
+<div class="hdr">
+  <div><div class="h-name">${e(ch.costumedName)}</div><div class="h-civ">${e(ch.civilianName)}</div></div>
+  <div class="h-right"><div class="h-title">DARING COMICS</div><div class="h-sub">CHARACTER SHEET</div></div>
+</div>
+<div class="meta">
+  <div class="meta-box"><div class="meta-l">Refresh</div><div class="meta-v">${ch.refresh}</div></div>
+  <div class="meta-box"><div class="meta-l">Fate Points</div><div class="meta-v">${ch.fatePoints}</div></div>
+  <div class="meta-box"><div class="meta-l">Tone</div><div class="meta-v" style="font-size:9pt">${e(tone?.name||'')}</div></div>
+  <div class="meta-box"><div class="meta-l">Level</div><div class="meta-v" style="font-size:9pt">${e(level?.name||'')}</div></div>
+  <div class="meta-box"><div class="meta-l">Experience</div><div class="meta-v" style="font-size:9pt">${e(exp?.name||'')}</div></div>
+</div>
+<div class="body">
+  <div class="col">
+    <div class="sec"><div class="sec-t">Aspects</div>${aspHtml}</div>
+    <div class="sec"><div class="sec-t">Skills</div>${skillsHtml}</div>
+    <div class="sec"><div class="sec-t">Stress</div>
+      <div class="stress-row"><div class="stress-l">Physical</div>${stressBoxes(ch.stress.physical)}</div>
+      <div class="stress-row"><div class="stress-l">Mental</div>${stressBoxes(ch.stress.mental)}</div>
+    </div>
+    <div class="sec"><div class="sec-t">Consequences</div>${consHtml}</div>
+    ${castHtml?`<div class="sec"><div class="sec-t">Supporting Cast</div>${castHtml}</div>`:''}
+    ${rogueHtml?`<div class="sec"><div class="sec-t">Rogues Gallery</div>${rogueHtml}</div>`:''}
+  </div>
+  <div class="col">
+    ${powHtml?`<div class="sec"><div class="sec-t">Power Sets</div>${powHtml}</div>`:''}
+    ${stuntHtml?`<div class="sec"><div class="sec-t">Stunts</div>${stuntHtml}</div>`:''}
+    <div class="sec"><div class="sec-t">Gear &amp; Notes</div><div class="gear">${e(ch.gear||'')}</div></div>
+  </div>
+</div>
+</body></html>`;
+
+  const win=window.open('','_blank');
+  if(!win){alert('Please allow popups to print the character sheet.');return;}
+  win.document.write(html);win.document.close();win.focus();
+  setTimeout(()=>win.print(),500);
+}
 
 // ═══════════════════════════════════════════════════════════
 // TEAM

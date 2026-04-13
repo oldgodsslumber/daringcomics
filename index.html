@@ -162,11 +162,16 @@ select{cursor:pointer;-webkit-appearance:none;appearance:none;background-image:u
 .mb-1{margin-bottom:4px}.mb-2{margin-bottom:8px}.mb-3{margin-bottom:12px}
 .fw-700{font-weight:700}.tac{text-align:center}
 ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:3px}
+#theme-wrap{display:none}
+#nb-theme{display:flex}
+#theme-popup{display:none}
 @media(min-width:700px){
   #nav{bottom:auto;top:0;left:0;transform:none;width:80px;max-width:80px;height:100vh;flex-direction:column;border-top:none;border-right:1px solid var(--border);padding-bottom:0}
   .nb{padding:12px 4px;flex:initial}
   body{margin-left:80px;max-width:600px;padding-bottom:16px}
-  #theme-wrap{margin-top:auto}
+  #theme-wrap{display:block!important;margin-top:auto}
+  #nb-theme{display:none!important}
+  #theme-popup{display:none!important}
 }
 </style>
 </head>
@@ -190,8 +195,11 @@ select{cursor:pointer;-webkit-appearance:none;appearance:none;background-image:u
   <button class="nb" onclick="showTab('notes')" id="nb-notes">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Notes
   </button>
-  <button class="nb" onclick="openHUD()" id="nb-hud" style="border-top:1px solid var(--border)">
+  <button class="nb" onclick="openHUD()" id="nb-hud">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>HUD
+  </button>
+  <button class="nb" onclick="toggleThemePopup()" id="nb-theme">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>Theme
   </button>
   <div id="theme-wrap" style="padding:8px 10px;border-top:1px solid var(--border)">
     <div style="font-size:8px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;font-family:var(--font-label)">Theme</div>
@@ -204,6 +212,16 @@ select{cursor:pointer;-webkit-appearance:none;appearance:none;background-image:u
     </div>
   </div>
 </nav>
+<div id="theme-popup" style="display:none;position:fixed;bottom:62px;left:50%;transform:translateX(-50%);width:220px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);padding:14px;z-index:150;box-shadow:0 -4px 20px rgba(0,0,0,.5)">
+  <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;font-family:var(--font-label);text-align:center">Choose Theme</div>
+  <div style="display:flex;gap:8px;justify-content:center">
+    <button class="theme-swatch" data-theme="" title="Classic Comics" style="width:32px;height:32px;background:linear-gradient(135deg,#0a0e1a,#e63946)"></button>
+    <button class="theme-swatch" data-theme="dark" title="Dark &amp; Gritty" style="width:32px;height:32px;background:linear-gradient(135deg,#0c0c0c,#d4a020)"></button>
+    <button class="theme-swatch" data-theme="cosmic" title="Cosmic" style="width:32px;height:32px;background:linear-gradient(135deg,#0a0020,#ff2d78)"></button>
+    <button class="theme-swatch" data-theme="street" title="Street Level" style="width:32px;height:32px;background:linear-gradient(135deg,#111510,#e8a020)"></button>
+    <button class="theme-swatch" data-theme="golden" title="Golden Age" style="width:32px;height:32px;background:linear-gradient(135deg,#1a140e,#cc3333)"></button>
+  </div>
+</div>
 <div class="page active" id="page-hero"><div id="hero-creation"></div><div id="hero-sheet" style="display:none"></div></div>
 <div class="page" id="page-team"><div id="team-content"></div></div>
 <div class="page" id="page-npcs"><div id="npcs-content"></div></div>
@@ -469,7 +487,8 @@ function renderAll(){renderHero();}
 // ═══════════════════════════════════════════════════════════
 // THEME
 // ═══════════════════════════════════════════════════════════
-document.querySelectorAll('.theme-swatch').forEach(b=>{b.addEventListener('click',()=>{const t=b.dataset.theme;document.documentElement.setAttribute('data-theme',t);try{localStorage.setItem('dc_theme',t);}catch(e){}document.querySelectorAll('.theme-swatch').forEach(s=>s.classList.toggle('active',s.dataset.theme===t));});});
+function toggleThemePopup(){const p=document.getElementById('theme-popup');p.style.display=p.style.display==='block'?'none':'block';}
+document.querySelectorAll('.theme-swatch').forEach(b=>{b.addEventListener('click',()=>{const t=b.dataset.theme;document.documentElement.setAttribute('data-theme',t);try{localStorage.setItem('dc_theme',t);}catch(e){}document.querySelectorAll('.theme-swatch').forEach(s=>s.classList.toggle('active',s.dataset.theme===t));const p=document.getElementById('theme-popup');if(p)p.style.display='none';});});
 (function(){try{const t=localStorage.getItem('dc_theme');if(t){document.documentElement.setAttribute('data-theme',t);document.querySelectorAll('.theme-swatch').forEach(b=>{b.classList.toggle('active',b.dataset.theme===t);});}}catch(e){}})();
 
 // ═══════════════════════════════════════════════════════════

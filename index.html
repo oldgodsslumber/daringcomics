@@ -501,11 +501,12 @@ function renderCreationStep(){
 }
 function creationNext(){S.creation.step++;save();renderCreationStep();}
 function creationBack(){if(S.creation.step>0){S.creation.step--;save();renderCreationStep();}}
+function updateContinue(){const btn=document.getElementById('btn-continue');if(!btn)return;const c=S.creation;let ok=false;if(c.step===1)ok=c.costumedName.trim().length>0;else if(c.step===2)ok=c.aspects.concept.trim().length>0&&c.aspects.motivation.trim().length>0;if(ok){btn.disabled=false;btn.style.opacity='1';}else{btn.disabled=true;btn.style.opacity='.4';}}
 
 // Step 0: Series
 function renderStepSeries(){
   let h='<div class="label">Series Tone</div><div class="grid-3 mb-3">';
-  SERIES_TONES.forEach(t=>{h+=`<div class="game-opt ${S.series.tone===t.id?'selected':''}" onclick="S.series.tone='${t.id}';save();renderCreationStep()"><div class="opt-title">${t.name}</div><div class="opt-desc">${t.desc}</div><div class="opt-stats">Refresh ${t.refresh} | +${t.stressBonus} Stress</div></div>`;});
+  SERIES_TONES.forEach(t=>{h+=`<div class="game-opt ${S.series.tone===t.id?'selected':''}" onclick="S.series.tone='${t.id}';save();renderCreationStep()"><div class="opt-title">${t.name}</div><div class="opt-desc">${t.desc}</div><div class="opt-stats">Refresh ${t.refresh} | ${2+t.stressBonus} Stress Boxes</div></div>`;});
   h+='</div><div class="label">Series Level (Base Hero Points)</div><div class="grid-2 mb-3">';
   SERIES_LEVELS.forEach(l=>{h+=`<div class="game-opt ${S.series.level===l.id?'selected':''}" onclick="S.series.level='${l.id}';save();renderCreationStep()"><div class="opt-title">${l.name}</div><div class="opt-desc">${l.desc}</div><div class="opt-stats">${l.baseHP} HP</div></div>`;});
   h+='</div><div class="label">Experience Level</div><div style="display:grid;gap:6px" class="mb-3">';
@@ -514,14 +515,14 @@ function renderStepSeries(){
   h+=`<button class="btn btn-primary btn-full" ${ok?'':`disabled style="opacity:.4"`} onclick="creationNext()">Continue \u2192</button>`;return h;
 }
 // Step 1: Names
-function renderStepNames(){const c=S.creation;return`<div class="card"><div class="form-group"><label>Costumed Identity *</label><input value="${esc(c.costumedName)}" oninput="S.creation.costumedName=this.value;save()" placeholder="e.g. Captain Valor"></div><div class="form-group"><label>Civilian Identity</label><input value="${esc(c.civilianName)}" oninput="S.creation.civilianName=this.value;save()" placeholder="e.g. James Reed"></div></div><button class="btn btn-primary btn-full" ${c.costumedName.trim()?'':`disabled style="opacity:.4"`} onclick="creationNext()">Continue \u2192</button>`;}
+function renderStepNames(){const c=S.creation;return`<div class="card"><div class="form-group"><label>Costumed Identity *</label><input value="${esc(c.costumedName)}" oninput="S.creation.costumedName=this.value;save();updateContinue()" placeholder="e.g. Captain Valor"></div><div class="form-group"><label>Civilian Identity</label><input value="${esc(c.civilianName)}" oninput="S.creation.civilianName=this.value;save()" placeholder="e.g. James Reed"></div></div><button id="btn-continue" class="btn btn-primary btn-full" ${c.costumedName.trim()?'':`disabled style="opacity:.4"`} onclick="creationNext()">Continue \u2192</button>`;}
 // Step 2: Aspects
 function renderStepAspects(){
   const a=S.creation.aspects;
-  let h=`<div class="card"><div class="form-group"><label>Concept * <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:10px">(What are you?)</span></label><input value="${esc(a.concept)}" oninput="S.creation.aspects.concept=this.value;save()" placeholder="e.g. Vigilante Detective"></div><div class="form-group"><label>Motivation * <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:10px">(Why do you fight?)</span></label><input value="${esc(a.motivation)}" oninput="S.creation.aspects.motivation=this.value;save()" placeholder="e.g. Defend Those Who Cannot Defend Themselves"></div><div class="divider"></div><div class="label mb-2">Contingent Aspects (pick 3)</div>`;
+  let h=`<div class="card"><div class="form-group"><label>Concept * <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:10px">(What are you?)</span></label><input value="${esc(a.concept)}" oninput="S.creation.aspects.concept=this.value;save();updateContinue()" placeholder="e.g. Vigilante Detective"></div><div class="form-group"><label>Motivation * <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:10px">(Why do you fight?)</span></label><input value="${esc(a.motivation)}" oninput="S.creation.aspects.motivation=this.value;save();updateContinue()" placeholder="e.g. Defend Those Who Cannot Defend Themselves"></div><div class="divider"></div><div class="label mb-2">Contingent Aspects (pick 3)</div>`;
   for(let i=0;i<3;i++){const ct=a.contingent[i];h+=`<div style="margin-bottom:10px"><select style="margin-bottom:4px;font-size:13px" onchange="S.creation.aspects.contingent[${i}].cat=this.value;save()"><option value="">— Category —</option>${ASPECT_CATEGORIES.map(c=>`<option ${ct.cat===c?'selected':''}>${c}</option>`).join('')}</select><input value="${esc(ct.text)}" oninput="S.creation.aspects.contingent[${i}].text=this.value;save()" placeholder="Describe this aspect..."></div>`;}
   h+='</div>';const ok=a.concept.trim()&&a.motivation.trim();
-  h+=`<button class="btn btn-primary btn-full" ${ok?'':`disabled style="opacity:.4"`} onclick="creationNext()">Continue \u2192</button>`;return h;
+  h+=`<button id="btn-continue" class="btn btn-primary btn-full" ${ok?'':`disabled style="opacity:.4"`} onclick="creationNext()">Continue \u2192</button>`;return h;
 }
 // Step 3: Cast & Rogues
 function renderStepCast(){

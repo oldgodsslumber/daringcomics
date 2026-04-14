@@ -1068,11 +1068,71 @@ function renderTeamSheet(el){
   TEAM_STUNTS.forEach(ts=>{const sel=t.stunts.includes(ts.id),req=!ts.requires||t.stunts.includes(ts.requires),can=t.stunts.length<mx||sel;h+=`<label style="display:flex;gap:8px;align-items:start;padding:6px 0;border-bottom:1px solid var(--border);cursor:${req&&can?'pointer':'default'};opacity:${req?1:.4}"><input type="checkbox" ${sel?'checked':''} ${req&&can?'':'disabled'} onchange="toggleTS('${ts.id}')"><div><div class="fw-700" style="font-size:13px">${ts.name}</div><div style="font-size:11px;color:var(--muted)">${ts.desc}</div>${ts.requires?`<div style="font-size:10px;color:var(--yellow)">Requires: ${TEAM_STUNTS.find(s=>s.id===ts.requires)?.name}</div>`:''}</div></label>`;});
   h+=`</div><div class="card"><div class="label mb-1">Complications <span class="text-muted" style="font-weight:400">(optional)</span></div>`;
   TEAM_COMPLICATIONS.forEach(tc=>{const sel=t.complications.includes(tc.id);h+=`<label style="display:flex;gap:8px;align-items:start;padding:6px 0;cursor:pointer"><input type="checkbox" ${sel?'checked':''} onchange="toggleTC('${tc.id}')"><div><div class="fw-700" style="font-size:13px">${tc.name}</div><div style="font-size:11px;color:var(--muted)">${tc.desc}</div></div></label>`;});
-  h+=`</div><button class="btn btn-danger btn-full mt-2" onclick="if(confirm('Disband?')){S.team=null;save();renderTeam();}">Disband Team</button>`;el.innerHTML=h;
+  h+=`</div>`;
+  // Expanded Super Team
+  h+=`<div class="divider"></div>`;
+  const ex=t.expanded;
+  if(!ex){
+    h+=`<div class="card"><div class="label mb-1">Expanded Super Team</div><div style="font-size:12px;color:var(--muted);margin-bottom:8px">Treat the wider team roster as a single character for peripheral adventures (once per Issue, 15-20 min). Requires the Robust Team stunt.</div><button class="btn btn-gold btn-sm btn-full" onclick="initExpandedTeam()">Create Expanded Roster</button></div>`;
+  } else {
+    const{tone}=getSeriesConfig();
+    const stressMax=tone?2+tone.stressBonus:4;
+    h+=`<div class="card" style="border-color:var(--purple)"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div class="label" style="color:var(--purple);margin:0;font-size:13px">Expanded Super Team</div><button class="btn btn-danger btn-xs" onclick="if(confirm('Remove expanded roster?')){delete S.team.expanded;save();renderTeam();}">Remove</button></div>`;
+    // Aspects
+    h+=`<div class="form-group"><label>Expanded Aspect 1</label><input value="${esc(ex.aspect1)}" oninput="S.team.expanded.aspect1=this.value;save()" placeholder="Team aspect for expanded adventures"></div>`;
+    h+=`<div class="form-group"><label>Expanded Aspect 2</label><input value="${esc(ex.aspect2)}" oninput="S.team.expanded.aspect2=this.value;save()" placeholder="Second team aspect"></div>`;
+    // Skills
+    h+=`<div class="label mt-2 mb-1">Team Skills <span class="text-muted" style="font-weight:400">(3 pts to distribute, max +3 each)</span></div>`;
+    const exSkills=['Combat','Expertise','Social','Undercover'];
+    const exSkillDesc={Combat:'Offense, defense, powers in conflict',Expertise:'Knowledge, investigation, science, sorcery',Social:'Rapport, intimidation, contacts, persuasion',Undercover:'Stealth, disguises, infiltration, thievery'};
+    const exUsed=exSkills.reduce((s,sk)=>s+(ex.skills[sk]||0),0);
+    const exRem=3-exUsed;
+    exSkills.forEach(sk=>{const v=ex.skills[sk]||0;h+=`<div class="skill-row"><div class="sk-name">${sk}<div style="font-size:9px;color:var(--muted);font-weight:400;font-family:var(--font-body)">${exSkillDesc[sk]}</div></div><div class="sk-label">${ladderName(v)}</div><button class="sk-btn" onclick="adjExSkill('${sk}',-1)" ${v<=0?'disabled':''}>−</button><div class="sk-val">+${v}</div><button class="sk-btn" onclick="adjExSkill('${sk}',1)" ${v>=3||exRem<=0?'disabled':''}>+</button></div>`;});
+    h+=`<div style="font-size:11px;color:var(--muted);margin-top:4px">${exUsed}/3 points used</div>`;
+    // Hero Points / Stunts & Powers
+    const exHPSpent=(ex.stunts||[]).reduce((s,st)=>s+st.cost,0)+(ex.powers||[]).reduce((s,p)=>s+p.cost,0);
+    const exHPRem=10-exHPSpent;
+    h+=`<div class="divider"></div><div class="label mb-1">Team Stunts & Powers <span class="text-muted" style="font-weight:400">(${exHPSpent}/10 HP)</span></div>`;
+    (ex.stunts||[]).forEach((st,i)=>{h+=`<div class="card-sm" style="display:flex;gap:6px;align-items:start"><div style="flex:1"><div class="fw-700" style="font-size:12px">${esc(st.name)} <span class="tag tag-cost">${st.cost} HP</span></div><div style="font-size:11px;color:var(--muted)">${esc(st.desc)}</div></div><button class="btn btn-danger btn-xs" onclick="S.team.expanded.stunts.splice(${i},1);save();renderTeam()">X</button></div>`;});
+    (ex.powers||[]).forEach((pw,i)=>{h+=`<div class="card-sm" style="display:flex;gap:6px;align-items:start;border-color:var(--purple)"><div style="flex:1"><div class="fw-700" style="font-size:12px">${esc(pw.name)} <span class="tag tag-cost">${pw.cost} HP</span></div><div style="font-size:11px;color:var(--muted)">${esc(pw.desc||'')}</div></div><button class="btn btn-danger btn-xs" onclick="S.team.expanded.powers.splice(${i},1);save();renderTeam()">X</button></div>`;});
+    if(exHPRem>0){
+      h+=`<div style="display:flex;gap:4px"><button class="btn btn-secondary btn-xs" onclick="addExStunt()">+ Stunt</button><button class="btn btn-gold btn-xs" onclick="addExPower()">+ Power</button></div>`;
+    }
+    // Stress
+    h+=`<div class="divider"></div><div class="label mb-1">Team Stress</div>`;
+    h+=`<div style="margin-bottom:6px"><span style="font-size:11px;font-weight:700;color:var(--muted)">Physical</span><div style="display:flex;gap:6px;margin-top:3px">`;
+    for(let i=0;i<stressMax;i++){h+=`<div class="stress-box ${ex.stress?.physical?.[i]?'filled':''}" onclick="toggleExStress('physical',${i})">${i+1}</div>`;}
+    h+=`</div></div><div><span style="font-size:11px;font-weight:700;color:var(--muted)">Mental</span><div style="display:flex;gap:6px;margin-top:3px">`;
+    for(let i=0;i<stressMax;i++){h+=`<div class="stress-box ${ex.stress?.mental?.[i]?'filled':''}" onclick="toggleExStress('mental',${i})">${i+1}</div>`;}
+    h+=`</div></div>`;
+    // Consequences
+    h+=`<div class="divider"></div><div class="label mb-1">Team Consequences <span class="text-muted" style="font-weight:400">(no Extreme)</span></div>`;
+    h+=`<div class="conseq-row"><div class="conseq-label">Mild (2)</div><div class="conseq-input"><input value="${esc(ex.consequences?.mild||'')}" oninput="S.team.expanded.consequences.mild=this.value;save()" placeholder="\u2014"></div></div>`;
+    h+=`<div class="conseq-row"><div class="conseq-label">Moderate (4)</div><div class="conseq-input"><input value="${esc(ex.consequences?.moderate||'')}" oninput="S.team.expanded.consequences.moderate=this.value;save()" placeholder="\u2014"></div></div>`;
+    h+=`<div class="conseq-row"><div class="conseq-label">Severe (6)</div><div class="conseq-input"><input value="${esc(ex.consequences?.severe||'')}" oninput="S.team.expanded.consequences.severe=this.value;save()" placeholder="\u2014"></div></div>`;
+    // Refresh / FP
+    const exRefresh=tone?.refresh||5;
+    h+=`<div class="divider"></div><div style="display:flex;align-items:center;justify-content:space-between"><div><div class="label">Team Fate Points</div><div style="font-size:10px;color:var(--muted)">Refresh: ${exRefresh}</div></div><div style="display:flex;align-items:center;gap:8px"><button class="sk-btn" onclick="S.team.expanded.fp=Math.max(0,(S.team.expanded.fp||${exRefresh})-1);save();renderTeam()">−</button><span style="font-size:22px;font-weight:900;font-family:var(--font-title);color:var(--gold)">${ex.fp!==undefined?ex.fp:exRefresh}</span><button class="sk-btn" onclick="S.team.expanded.fp=(S.team.expanded.fp||${exRefresh})+1;save();renderTeam()">+</button></div></div>`;
+    h+=`</div>`;
+  }
+  h+=`<button class="btn btn-danger btn-full mt-2" onclick="if(confirm('Disband?')){S.team=null;save();renderTeam();}">Disband Team</button>`;el.innerHTML=h;
 }
 function addTR(){const n=prompt('Rogue Name:');if(!n)return;S.team.rogues.push({name:n,desc:prompt('Description:')||''});save();renderTeam();}
 function toggleTS(id){const t=S.team,i=t.stunts.indexOf(id);if(i>=0){t.stunts.splice(i,1);TEAM_STUNTS.filter(ts=>ts.requires===id).forEach(ts=>{const di=t.stunts.indexOf(ts.id);if(di>=0)t.stunts.splice(di,1);});}else t.stunts.push(id);save();renderTeam();}
 function toggleTC(id){const t=S.team,i=t.complications.indexOf(id);if(i>=0)t.complications.splice(i,1);else t.complications.push(id);save();renderTeam();}
+function initExpandedTeam(){
+  const{tone}=getSeriesConfig();const stressMax=tone?2+tone.stressBonus:4;
+  S.team.expanded={aspect1:'',aspect2:'',skills:{Combat:0,Expertise:0,Social:0,Undercover:0},stunts:[],powers:[],
+    stress:{physical:Array(stressMax).fill(false),mental:Array(stressMax).fill(false)},
+    consequences:{mild:'',moderate:'',severe:''},fp:tone?.refresh||5};
+  save();renderTeam();
+}
+function adjExSkill(sk,d){const ex=S.team.expanded,cur=ex.skills[sk]||0,nv=cur+d;if(nv<0||nv>3)return;
+  const used=Object.values(ex.skills).reduce((s,v)=>s+v,0);if(d>0&&used>=3)return;
+  ex.skills[sk]=nv;save();renderTeam();}
+function toggleExStress(track,i){const ex=S.team.expanded;if(!ex.stress[track])ex.stress[track]=[];ex.stress[track][i]=!ex.stress[track][i];save();renderTeam();}
+function addExStunt(){const n=prompt('Team Stunt Name:');if(!n)return;const d=prompt('Description:')||'';const c=Math.max(1,Math.min(3,parseInt(prompt('HP Cost (1-3):','1'))||1));S.team.expanded.stunts.push({name:n,desc:d,cost:c});save();renderTeam();}
+function addExPower(){const n=prompt('Power Name:');if(!n)return;const d=prompt('Description:')||'';const c=Math.max(1,Math.min(6,parseInt(prompt('HP Cost (1-6):','1'))||1));S.team.expanded.powers.push({name:n,desc:d,cost:c});save();renderTeam();}
 
 // ═══════════════════════════════════════════════════════════
 // NPCs

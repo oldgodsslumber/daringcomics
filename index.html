@@ -262,6 +262,141 @@ const EXP_LEVELS=[
   {id:'highly',name:'Highly Experienced',skillPts:45,bonusHP:15}
 ];
 const SKILLS=['Accuracy','Arcanum','Artificing','Athletics','Contacts','Controlling','Deceive','Empathy','Fight','Investigate','Knowledge','Leadership','Notice','Physique','Provoke','Rapport','Resources','Stealth','Technology','Thief','Treatment','Vehicles','Weapons','Will'];
+const SKILL_DESC={
+Accuracy:'Ranged attacks, throwing, and hitting your mark at a distance.',
+Arcanum:'Knowledge of the mystical, extradimensional entities, and ancient rituals.',
+Artificing:'Creating and destroying mystical artifacts and enchanted objects.',
+Athletics:'General physical fitness, running, jumping, climbing, and dodging.',
+Contacts:'Knowing the right people in the right places for information.',
+Controlling:'Activating and directing super-powers (Magic, Mental, or Power source).',
+Deceive:'Lying, misdirection, disguises, and creating false impressions.',
+Empathy:'Reading emotions, spotting mood changes, and understanding people.',
+Fight:'All forms of unarmed and close-quarters melee combat.',
+Investigate:'Finding things through concentrated effort, scrutiny, and analysis.',
+Knowledge:'Academic and specialized information across various fields.',
+Leadership:'Commanding others, devising tactics, and inspiring allies.',
+Notice:'Perception, spotting details at a glance, and general awareness.',
+Physique:'Raw physical strength, endurance, and toughness.',
+Provoke:'Intimidation, getting a rise out of people, and eliciting negative emotion.',
+Rapport:'Making positive connections, being liked and trusted, persuasion.',
+Resources:'Material wealth and the ability to acquire things.',
+Stealth:'Avoiding detection, hiding, and moving unseen.',
+Technology:'Understanding and working with modern tech, vehicles, and devices.',
+Thief:'Picking locks, breaking into places, stealing, and bypassing security.',
+Treatment:'Medical care, first aid, emergency surgery, and diagnosing injuries.',
+Vehicles:'Operating cars, motorcycles, boats, aircraft, and other vehicles.',
+Weapons:'Fighting with swords, shields, batons, staves, and other melee weapons.',
+Will:'Mental fortitude, resisting mental attacks, and concentration.'
+};
+const SAMPLE_COLUMNS={
+25:[
+  {label:'Focused Expert',tiers:{5:1,4:1,3:2,2:3,1:4}},
+  {label:'Skilled Specialist',tiers:{4:1,3:3,2:3,1:6}},
+  {label:'Well-Rounded',tiers:{3:3,2:3,1:10}},
+  {label:'Broad Generalist',tiers:{3:2,2:3,1:13}}
+],
+30:[
+  {label:'Focused Expert',tiers:{5:1,4:2,3:2,2:3,1:5}},
+  {label:'Skilled Specialist',tiers:{4:2,3:3,2:3,1:7}},
+  {label:'Well-Rounded',tiers:{4:1,3:3,2:4,1:9}},
+  {label:'Broad Generalist',tiers:{3:3,2:4,1:13}}
+],
+35:[
+  {label:'Focused Expert',tiers:{5:2,4:2,3:2,2:3,1:5}},
+  {label:'Skilled Specialist',tiers:{5:1,4:2,3:3,2:4,1:6}},
+  {label:'Well-Rounded',tiers:{4:3,3:3,2:3,1:9}},
+  {label:'Broad Generalist',tiers:{4:2,3:3,2:3,1:12}}
+],
+40:[
+  {label:'Focused Expert',tiers:{6:1,5:2,4:2,3:2,2:3,1:4}},
+  {label:'Skilled Specialist',tiers:{5:2,4:2,3:3,2:4,1:5}},
+  {label:'Well-Rounded',tiers:{5:1,4:2,3:4,2:4,1:7}},
+  {label:'Broad Generalist',tiers:{4:2,3:4,2:6,1:8}}
+],
+45:[
+  {label:'Focused Expert',tiers:{6:2,5:2,4:2,3:2,2:3,1:3}},
+  {label:'Skilled Specialist',tiers:{6:1,5:2,4:2,3:3,2:4,1:4}},
+  {label:'Well-Rounded',tiers:{5:2,4:3,3:3,2:4,1:6}},
+  {label:'Broad Generalist',tiers:{5:1,4:3,3:3,2:6,1:7}}
+]
+};
+const SAMPLE_STUNTS=[
+{name:'Any Object is a Bullet',skill:'Accuracy',cost:1,desc:'Declare any small object as a ranged weapon when thrown. Weapon: 2 rating.'},
+{name:'Lead Rain',skill:'Accuracy',cost:1,desc:'With full-auto weapon success, create Fair (+2) movement opposition in zone until next turn.'},
+{name:'Quick Draw',skill:'Accuracy',cost:1,desc:'Use Accuracy instead of Notice for turn order in shooting conflicts.'},
+{name:'Ricochet Expert',skill:'Accuracy',cost:1,desc:'Bounce attacks off surfaces to strike targets. Twice per conflict.'},
+{name:'Superior Marksman',skill:'Accuracy',cost:1,desc:'Extra free invocation when placing an aspect by taking aim with style.'},
+{name:'Trick Shot',skill:'Accuracy',cost:1,desc:'+2 when using ranged weapon to create a Situation Aspect for a fancy shot.'},
+{name:'Fortune Telling',skill:'Arcanum',cost:1,desc:'Once per Issue, make a prediction via Create an Advantage.'},
+{name:'Hypnotic Voice',skill:'Arcanum',cost:1,desc:'After calm conversation, use Arcanum instead of Rapport or Deceive.'},
+{name:'Sixth Sense',skill:'Arcanum',cost:1,desc:'Use Arcanum instead of Notice for mystical/sorcerous things.'},
+{name:'Powerful Sixth Sense',skill:'Arcanum',cost:1,desc:'+2 when using Arcanum to discover aspects. Requires Sixth Sense.'},
+{name:'A Kind of Magic',skill:'Artificing',cost:1,desc:'Free invocation of artifact aspect when you succeed with style creating it.'},
+{name:'Master Artificer',skill:'Artificing',cost:1,desc:'Ignore first 2 points of opposition increase for artifact quality above workshop.'},
+{name:'Dazing Counter',skill:'Athletics',cost:1,desc:'On defend with style vs Fight, attach Dazed aspect to opponent with free invoke.'},
+{name:'Fluid Technique',skill:'Athletics',cost:1,desc:'Use Athletics instead of Fight to attack and defend in melee.'},
+{name:'Uncanny Agility',skill:'Athletics',cost:1,desc:'+2 to Athletics Defend actions when dodging ranged attacks.'},
+{name:'Superhuman Agility',skill:'Athletics',cost:1,desc:'+4 to Defend actions for dodging. Requires Uncanny Agility.'},
+{name:'Big Man',skill:'Contacts',cost:1,desc:'Pick a field (Criminal, Business, etc). Use Contacts instead of Resources in that field.'},
+{name:'Talk the Talk',skill:'Contacts',cost:1,desc:'+2 to Rapport with your field, or use Contacts instead. Requires Big Man.'},
+{name:'In the Know',skill:'Contacts',cost:1,desc:'+2 when using Contacts to create a Situation Aspect against someone.'},
+{name:'Word on the Street',skill:'Contacts',cost:1,desc:'Once per issue, roll Contacts vs Fair (+2) for crime/plot info.'},
+{name:'Power Stunt Expert',skill:'Controlling',cost:1,desc:'+2 bonus when performing Power Stunts.'},
+{name:'Power Stunt Mastery',skill:'Controlling',cost:1,desc:'+4 to Power Stunts. Requires Power Stunt Expert.'},
+{name:'Actor',skill:'Deceive',cost:1,desc:'Use Deceive instead of Rapport when charming through a situation.'},
+{name:'Impersonator',skill:'Deceive',cost:1,desc:'Easily imitate mannerisms and voice; removes cause for disguise examination.'},
+{name:'Master of Disguise',skill:'Deceive',cost:1,desc:'+2 to Deceive to prevent someone seeing through your disguise.'},
+{name:'Counselor',skill:'Empathy',cost:1,desc:'+2 to Empathy when reducing Mental Consequences in others.'},
+{name:'Emotional Trigger',skill:'Empathy',cost:1,desc:'Use Empathy instead of Provoke to intimidate or anger.'},
+{name:'Empathic Read',skill:'Empathy',cost:1,desc:'After observation, roll vs Fair (+2) to discover target aspects.'},
+{name:'Lie Detector',skill:'Empathy',cost:1,desc:'+2 to all Empathy rolls to detect lies.'},
+{name:'Into the Fray',skill:'Fight',cost:1,desc:'Extra Shift of damage when outnumbered in a fight.'},
+{name:'Everywhere at Once',skill:'Fight',cost:1,desc:'+2 to Fight when facing 2+ opponents. Requires Into the Fray.'},
+{name:'One-Man Army',skill:'Fight',cost:1,desc:'Opponents get no bonus for outnumbering you. Requires Everywhere at Once.'},
+{name:'Attention to Detail',skill:'Investigate',cost:1,desc:'Use Investigate instead of Empathy to defend against Deceive.'},
+{name:'Eavesdropper',skill:'Investigate',cost:1,desc:'On success eavesdropping, discover or create one additional aspect.'},
+{name:'Focused Senses',skill:'Investigate',cost:1,desc:'+2 to Investigation actions when focused on one sense.'},
+{name:'Specialist',skill:'Knowledge',cost:1,desc:'+2 to Knowledge in your chosen field. Can take multiple times.'},
+{name:'Know It All',skill:'Knowledge',cost:1,desc:'Extra free invocation on Knowledge aspects in your specialty. Requires Specialist.'},
+{name:'Mad Scientist',skill:'Knowledge',cost:1,desc:'Use Knowledge instead of Technology in your field. Requires Specialist.'},
+{name:'Tactician',skill:'Leadership',cost:1,desc:'+2 to creating situation aspects after studying opponent for 1 minute.'},
+{name:'Master Tactician',skill:'Leadership',cost:1,desc:'+2 to Create Advantage after just 1 exchange. Requires Tactician.'},
+{name:'Organizational Funding',skill:'Leadership',cost:1,desc:'Use higher of Leadership or Resources for organization funds.'},
+{name:'Body Language Reader',skill:'Notice',cost:1,desc:'Use Notice in place of Empathy to learn aspects through observation.'},
+{name:'Situational Reflexes',skill:'Notice',cost:1,desc:'Spend a fate point to go first in any exchange regardless of initiative.'},
+{name:'Thought Equals Action',skill:'Notice',cost:1,desc:'+2 to Notice for determining initiative; breaks ties.'},
+{name:'Face the Pain',skill:'Physique',cost:1,desc:'Once per scene, spend a fate point to clear your 1-Stress or 2-Stress box.'},
+{name:'Take the Blow',skill:'Physique',cost:1,desc:'Use Physique to defend against Fight and Weapons attacks.'},
+{name:'Tough as Nails',skill:'Physique',cost:1,desc:'Once per scene, spend a fate point to reduce moderate consequence to mild, or erase mild.'},
+{name:'Armor of Fear',skill:'Provoke',cost:1,desc:'Roll Provoke vs Will to prevent target from attacking or approaching you.'},
+{name:'Intimidating Presence',skill:'Provoke',cost:1,desc:'Use Provoke in place of Empathy to learn aspects by bullying.'},
+{name:'Provoke Violence',skill:'Provoke',cost:1,desc:'When you create advantage with Provoke, use free invoke to become their next target.'},
+{name:'Best Foot Forward',skill:'Rapport',cost:1,desc:'Twice per session, upgrade a Rapport boost into a full situation aspect.'},
+{name:'Demagogue',skill:'Rapport',cost:1,desc:'+2 to Rapport when delivering an inspiring speech to a crowd.'},
+{name:'Popular',skill:'Rapport',cost:1,desc:'In areas where you\'re popular, use Rapport in place of Contacts.'},
+{name:'Smooth Over',skill:'Rapport',cost:1,desc:'+2 to Rapport when calming a situation (if you\'re not the cause).'},
+{name:'Grease the Wheels',skill:'Resources',cost:1,desc:'Use Resources instead of Contacts to find people by spreading money around.'},
+{name:'Money Talks',skill:'Resources',cost:1,desc:'Use Resources instead of Rapport where wealth displays would help.'},
+{name:'Long Term Investment',skill:'Resources',cost:1,desc:'Once per session, +2 to one Resources roll by selling an investment.'},
+{name:'Face in the Crowd',skill:'Stealth',cost:1,desc:'+2 to Stealth to blend into a crowd.'},
+{name:'Master of Shadows',skill:'Stealth',cost:1,desc:'+2 to Stealth advantage creation in darkness/shadows.'},
+{name:'Ninja Vanish',skill:'Stealth',cost:1,desc:'Once per scene, spend fate point to vanish in plain sight.'},
+{name:'Slippery Target',skill:'Stealth',cost:1,desc:'In darkness, use Stealth to defend against ranged attacks from 1+ zones away.'},
+{name:'Strike from the Shadows',skill:'Stealth',cost:1,desc:'Use Stealth for physical attacks if target is unaware of you.'},
+{name:'Power Tech',skill:'Technology',cost:1,desc:'Roll Technology instead of Power skill when using device-based powers.'},
+{name:'Master Inventor',skill:'Technology',cost:1,desc:'Device quality above workshop only increases opposition if +3 steps higher.'},
+{name:'No Locks are Safe',skill:'Thief',cost:1,desc:'+2 when picking locks, hacking security, or disarming traps.'},
+{name:'Professional Thief',skill:'Thief',cost:1,desc:'+2 to heist-related aspects after casing a place for a day.'},
+{name:'Doctor',skill:'Treatment',cost:1,desc:'+2 when treating physical consequences in a facility matching consequence severity.'},
+{name:'Field Medic',skill:'Treatment',cost:1,desc:'Once per conflict, treat Stress mid-battle by rolling vs total Stress to heal.'},
+{name:'Hard to Shake',skill:'Vehicles',cost:1,desc:'+2 to Vehicles when pursuing another vehicle in a chase.'},
+{name:'Pedal to the Metal',skill:'Vehicles',cost:1,desc:'Ties in speed-based contests count as successes.'},
+{name:'Riposte',skill:'Weapons',cost:1,desc:'On successful melee Defend with Weapons, inflict 1-Stress on attacker.'},
+{name:'Turnabout',skill:'Weapons',cost:1,desc:'On Defend with style using Weapons, deal Shifts as damage. Requires Riposte.'},
+{name:'Weapon Blur',skill:'Weapons',cost:1,desc:'Use Weapons instead of Deceive when performing a feint.'},
+{name:'Arsenal',skill:'Weapons',cost:1,desc:'Begin play with Kevlar armor and four types of guns or melee weapons.'},
+{name:'Backup Weapon',skill:'Weapons',cost:1,desc:'Spend fate point when about to be Disarmed to declare a backup weapon.'}
+];
 const LADDER=[{val:-2,name:'Terrible'},{val:-1,name:'Poor'},{val:0,name:'Mediocre'},{val:1,name:'Average'},{val:2,name:'Fair'},{val:3,name:'Good'},{val:4,name:'Great'},{val:5,name:'Superb'},{val:6,name:'Fantastic'},{val:7,name:'Epic'},{val:8,name:'Legendary'}];
 function ladderName(v){return(LADDER.find(l=>l.val===v)||{name:'???'}).name;}
 const ASPECT_CATEGORIES=['Life Changing Event','Life Secret','Core Value','Inner Demons','Inner Strength','Flaw','Dark Secret','Relationships','Personal Belief'];
@@ -557,15 +692,107 @@ function renderStepCast(){
   h+=`</div><div class="card-sm tac"><span class="text-green fw-700">${c.supportingCast.length} Cast</span> \u2192 +${c.supportingCast.length} Skill Pts &nbsp;|&nbsp; <span class="text-accent fw-700">${c.roguesGallery.length} Rogues</span> \u2192 +${c.roguesGallery.length} HP</div><button class="btn btn-primary btn-full mt-2" onclick="creationNext()">Continue \u2192</button>`;return h;
 }
 // Step 4: Skills
+let _skillMode=null; // null=choose, 'template', 'advanced'
 function renderStepSkills(){
   const c=S.creation,budget=getSkillBudget(),used=getSkillUsed(),rem=budget-used,valid=validateColumn();
-  let h=`<div class="card-sm" style="display:flex;justify-content:space-between;align-items:center"><div><span class="label">Skill Points</span><br><span class="fw-700 ${rem<0?'text-red':rem===0?'text-green':'text-gold'}">${used}/${budget}</span> <span class="text-muted">(${rem} left)</span></div><div>${valid.ok?'<span class="text-green fw-700">\u2713 Valid</span>':'<span class="text-red fw-700">\u2717 '+valid.msg+'</span>'}</div></div>`;
-  h+='<div class="card-sm">';for(let lv=6;lv>=1;lv--){const cnt=SKILLS.filter(s=>(c.skills[s]||0)>=lv).length;if(cnt>0||lv<=3){h+=`<div class="pyramid-row"><div class="pyramid-label">${ladderName(lv)} +${lv}</div>`;for(let b=0;b<cnt;b++)h+='<div class="pyramid-block"></div>';if(!cnt)h+='<span style="font-size:10px;color:var(--muted)">\u2014</span>';h+='</div>';}}h+='</div><div style="margin-top:8px">';
-  SKILLS.forEach(sk=>{const v=c.skills[sk]||0;h+=`<div class="skill-row"><div class="sk-name">${sk}</div><div class="sk-label">${ladderName(v)}</div><button class="sk-btn" onclick="adjSkill('${sk}',-1)" ${v<=0?'disabled':''}>−</button><div class="sk-val">+${v}</div><button class="sk-btn" onclick="adjSkill('${sk}',1)" ${v>=6||rem<=0?'disabled':''}>+</button></div>`;});
-  h+='</div>';const canNext=rem===0&&valid.ok;
+  // Auto-detect mode if skills already assigned
+  if(_skillMode===null&&used>0)_skillMode='advanced';
+  let h='';
+  if(_skillMode===null){
+    // MODE SELECTION
+    h+=`<div class="card"><div class="label mb-2">Choose a Method</div>
+      <div class="game-opt mb-2" onclick="_skillMode='template';renderCreationStep()" style="cursor:pointer"><div class="opt-title">Sample Columns</div><div class="opt-desc">Pick a pre-built column shape from the book, then assign skills to each tier.</div></div>
+      <div class="game-opt" onclick="_skillMode='advanced';renderCreationStep()" style="cursor:pointer"><div class="opt-title">Advanced (Manual)</div><div class="opt-desc">Assign each skill's rating individually with +/- buttons.</div></div>
+    </div>`;
+    return h;
+  }
+  // Budget bar
+  h+=`<div class="card-sm" style="display:flex;justify-content:space-between;align-items:center"><div><span class="label">Skill Points</span><br><span class="fw-700 ${rem<0?'text-red':rem===0?'text-green':'text-gold'}">${used}/${budget}</span> <span class="text-muted">(${rem} left)</span></div><div>${valid.ok?'<span class="text-green fw-700">\u2713 Valid</span>':'<span class="text-red fw-700">\u2717 '+valid.msg+'</span>'}</div></div>`;
+  if(_skillMode==='template'){
+    h+=renderSkillTemplate(budget,used,rem,valid);
+  } else {
+    h+=renderSkillAdvanced(rem,valid);
+  }
+  // Mode switch
+  h+=`<div class="tac mt-2"><button class="btn btn-secondary btn-xs" onclick="_skillMode='${_skillMode==='template'?'advanced':'template'}';renderCreationStep()">Switch to ${_skillMode==='template'?'Advanced':'Sample Columns'}</button></div>`;
+  const canNext=rem===0&&valid.ok;
   h+=`<button class="btn btn-primary btn-full mt-3" ${canNext?'':`disabled style="opacity:.4"`} onclick="creationNext()">Continue \u2192</button>`;
   if(!canNext&&rem===0&&!valid.ok)h+=`<div class="text-red mt-1" style="font-size:12px;text-align:center">${valid.msg}</div>`;
-  if(!canNext&&rem>0)h+=`<div class="text-muted mt-1" style="font-size:12px;text-align:center">Spend all skill points to continue</div>`;return h;
+  if(!canNext&&rem>0)h+=`<div class="text-muted mt-1" style="font-size:12px;text-align:center">Spend all skill points to continue</div>`;
+  return h;
+}
+function renderSkillTemplate(budget,used,rem,valid){
+  const baseBudget=getSeriesConfig().exp?.skillPts||25;
+  const columns=SAMPLE_COLUMNS[baseBudget]||SAMPLE_COLUMNS[25];
+  const c=S.creation;
+  let h='<div class="card"><div class="label mb-2">Pick a Column Shape</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px">';
+  columns.forEach((col,ci)=>{
+    const sel=c._selectedColumn===ci;
+    let preview='';
+    for(let lv=6;lv>=1;lv--){const cnt=col.tiers[lv]||0;if(cnt)preview+=`<div style="font-size:10px;color:var(--muted)">${ladderName(lv)}(+${lv}): ${cnt}</div>`;}
+    h+=`<div class="game-opt ${sel?'selected':''}" onclick="applyColumnTemplate(${ci})"><div class="opt-title" style="font-size:13px">${col.label}</div>${preview}</div>`;
+  });
+  h+='</div></div>';
+  // Show assignment UI: for each tier, show dropdowns to pick which skills go there
+  if(c._selectedColumn!==undefined&&c._selectedColumn!==null){
+    const col=columns[c._selectedColumn];
+    h+=`<div class="card"><div class="label mb-2">Assign Skills to Tiers</div>`;
+    const assigned=new Set();
+    // Collect currently assigned skills per tier
+    for(let lv=6;lv>=1;lv--){
+      const cnt=col.tiers[lv]||0;if(!cnt)continue;
+      const currentAtLv=SKILLS.filter(sk=>(c.skills[sk]||0)===lv);
+      currentAtLv.forEach(sk=>assigned.add(sk));
+    }
+    for(let lv=6;lv>=1;lv--){
+      const cnt=col.tiers[lv]||0;if(!cnt)continue;
+      h+=`<div class="label mt-2" style="color:var(--accent)">${ladderName(lv)} (+${lv}) \u2014 pick ${cnt}</div>`;
+      const currentAtLv=SKILLS.filter(sk=>(c.skills[sk]||0)===lv);
+      for(let s=0;s<cnt;s++){
+        const cur=currentAtLv[s]||'';
+        h+=`<select style="margin-bottom:4px;font-size:13px" onchange="assignSkillTier(${lv},${s},this.value)"><option value="">— select skill —</option>`;
+        SKILLS.forEach(sk=>{
+          const taken=(c.skills[sk]||0)>0&&c.skills[sk]!==lv;
+          const takenSameLv=(c.skills[sk]||0)===lv&&sk!==cur&&currentAtLv.indexOf(sk)!==-1&&currentAtLv.indexOf(sk)!==s;
+          h+=`<option value="${sk}" ${cur===sk?'selected':''} ${taken?'disabled':''}>${sk}${SKILL_DESC[sk]?' — '+SKILL_DESC[sk].substring(0,40)+'...':''}</option>`;
+        });
+        h+='</select>';
+      }
+    }
+    h+='</div>';
+  }
+  return h;
+}
+function applyColumnTemplate(ci){
+  const c=S.creation;
+  const baseBudget=getSeriesConfig().exp?.skillPts||25;
+  const columns=SAMPLE_COLUMNS[baseBudget]||SAMPLE_COLUMNS[25];
+  c._selectedColumn=ci;
+  // Clear existing skills
+  c.skills={};
+  save();renderCreationStep();
+}
+function assignSkillTier(lv,slotIdx,sk){
+  const c=S.creation;
+  // Remove any skill previously in this slot at this level
+  const atLv=SKILLS.filter(s=>(c.skills[s]||0)===lv);
+  if(atLv[slotIdx])delete c.skills[atLv[slotIdx]];
+  // Assign new skill
+  if(sk){
+    // Clear it from any other level first
+    if(c.skills[sk])delete c.skills[sk];
+    c.skills[sk]=lv;
+  }
+  save();renderCreationStep();
+}
+function renderSkillAdvanced(rem,valid){
+  const c=S.creation;
+  let h='';
+  // Pyramid
+  h+='<div class="card-sm">';for(let lv=6;lv>=1;lv--){const cnt=SKILLS.filter(s=>(c.skills[s]||0)>=lv).length;if(cnt>0||lv<=3){h+=`<div class="pyramid-row"><div class="pyramid-label">${ladderName(lv)} +${lv}</div>`;for(let b=0;b<cnt;b++)h+='<div class="pyramid-block"></div>';if(!cnt)h+='<span style="font-size:10px;color:var(--muted)">\u2014</span>';h+='</div>';}}h+='</div><div style="margin-top:8px">';
+  SKILLS.forEach(sk=>{const v=c.skills[sk]||0;h+=`<div class="skill-row"><div class="sk-name">${sk}<div style="font-size:9px;color:var(--muted);font-weight:400;font-family:var(--font-body);line-height:1.2">${SKILL_DESC[sk]||''}</div></div><div class="sk-label">${ladderName(v)}</div><button class="sk-btn" onclick="adjSkill('${sk}',-1)" ${v<=0?'disabled':''}>−</button><div class="sk-val">+${v}</div><button class="sk-btn" onclick="adjSkill('${sk}',1)" ${v>=6||rem<=0?'disabled':''}>+</button></div>`;});
+  h+='</div>';
+  return h;
 }
 function adjSkill(sk,d){const c=S.creation,cur=c.skills[sk]||0,nv=cur+d;if(nv<0||nv>6)return;if(d>0&&getSkillUsed()>=getSkillBudget())return;c.skills[sk]=nv;if(!nv)delete c.skills[sk];save();renderCreationStep();}
 function validateColumn(){const counts={};SKILLS.forEach(sk=>{const v=S.creation.skills[sk]||0;if(v>0)counts[v]=(counts[v]||0)+1;});for(let lv=6;lv>=2;lv--){const above=counts[lv]||0,below=counts[lv-1]||0;if(above>0&&above>below)return{ok:false,msg:`Need more +${lv-1} skills (${below} < ${above})`};}return{ok:true,msg:''};}
@@ -578,7 +805,8 @@ function renderStepPowers(){
   // Stunts
   h+=`<div class="card"><div class="label mb-2">Stunts</div>`;
   (c.stunts||[]).forEach((st,i)=>{h+=`<div class="card-sm" style="display:flex;gap:6px;align-items:start"><div style="flex:1"><div class="fw-700" style="font-size:13px">${esc(st.name)} <span class="tag tag-cost">${st.cost} HP</span></div><div style="font-size:12px;color:var(--muted)">${esc(st.desc)}</div></div><button class="btn btn-danger btn-xs" onclick="S.creation.stunts.splice(${i},1);save();renderCreationStep()">X</button></div>`;});
-  h+=`<button class="btn btn-secondary btn-sm" onclick="addStunt()">+ Add Stunt</button></div>`;
+  h+=`<button class="btn btn-secondary btn-sm" onclick="addStunt()">+ Browse Stunts</button></div>`;
+  h+=renderStuntBrowser();
   // Power Sets
   h+=`<div class="card"><div class="label mb-2">Power Sets</div>`;
   (c.powerSets||[]).forEach((ps,psi)=>{
@@ -589,7 +817,33 @@ function renderStepPowers(){
   h+=`<button class="btn btn-gold btn-sm" onclick="S.creation.powerSets.push({name:'',aspect:'',powers:[]});save();renderCreationStep()">+ New Power Set</button></div>`;
   h+=`<button class="btn btn-primary btn-full mt-3" ${finalRef>=1?'':`disabled style="opacity:.4"`} onclick="creationNext()">Continue \u2192</button>`;return h;
 }
-function addStunt(){const n=prompt('Stunt Name:');if(!n)return;const d=prompt('Description:')||'',cs=prompt('HP Cost (1-3):','1'),c=Math.max(1,Math.min(3,parseInt(cs)||1));if(!S.creation.stunts)S.creation.stunts=[];S.creation.stunts.push({name:n,desc:d,cost:c});save();renderCreationStep();}
+let _stuntBrowseOpen=false,_stuntSearch='',_stuntSkillFilter='';
+function addStunt(){_stuntBrowseOpen=true;_stuntSearch='';_stuntSkillFilter='';renderCreationStep();}
+function addCustomStunt(){const n=prompt('Stunt Name:');if(!n)return;const d=prompt('Description:')||'',cs=prompt('HP Cost (1-3):','1'),c=Math.max(1,Math.min(3,parseInt(cs)||1));if(!S.creation.stunts)S.creation.stunts=[];S.creation.stunts.push({name:n,desc:d,cost:c});save();renderCreationStep();}
+function renderStuntBrowser(){
+  if(!_stuntBrowseOpen)return'';
+  const q=_stuntSearch.toLowerCase(),sf=_stuntSkillFilter;
+  const filtered=SAMPLE_STUNTS.filter(s=>{if(q&&!s.name.toLowerCase().includes(q)&&!s.desc.toLowerCase().includes(q))return false;if(sf&&s.skill!==sf)return false;return true;});
+  const skillFilters=['All',...[...new Set(SAMPLE_STUNTS.map(s=>s.skill))].sort()];
+  let h=`<div class="card" style="border-color:var(--accent)"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div class="label" style="margin:0">Sample Stunts</div><button class="btn btn-secondary btn-xs" onclick="_stuntBrowseOpen=false;renderCreationStep()">Close</button></div>`;
+  h+=`<input placeholder="Search stunts..." value="${esc(_stuntSearch)}" oninput="_stuntSearch=this.value;renderCreationStep()" style="margin-bottom:6px;font-size:12px;padding:7px">`;
+  h+=`<div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:8px">${skillFilters.map(f=>`<button class="btn btn-xs ${(f==='All'&&!sf)||sf===f?'btn-primary':'btn-secondary'}" onclick="_stuntSkillFilter='${f==='All'?'':f}';renderCreationStep()" style="font-size:10px;padding:3px 7px">${f}</button>`).join('')}</div>`;
+  h+=`<div style="max-height:40vh;overflow-y:auto">`;
+  const existing=(S.creation.stunts||[]).map(s=>s.name);
+  filtered.forEach(s=>{
+    const have=existing.includes(s.name);
+    h+=`<div class="card-sm" style="display:flex;gap:8px;align-items:start;${have?'opacity:.5':''}"><div style="flex:1"><div class="fw-700" style="font-size:12px">${esc(s.name)} <span class="text-muted" style="font-weight:400;font-size:10px">[${s.skill}]</span></div><div style="font-size:11px;color:var(--muted)">${esc(s.desc)}</div></div>${have?'<span class="text-green" style="font-size:10px">\u2713</span>':`<button class="btn btn-primary btn-xs" onclick="pickSampleStunt('${esc(s.name)}')">Add</button>`}</div>`;
+  });
+  if(!filtered.length)h+='<div class="tac text-muted" style="padding:12px">No matches</div>';
+  h+=`</div><div class="divider"></div><button class="btn btn-secondary btn-sm btn-full" onclick="addCustomStunt()">Create Custom Stunt</button></div>`;
+  return h;
+}
+function pickSampleStunt(name){
+  const s=SAMPLE_STUNTS.find(x=>x.name===name);if(!s)return;
+  if(!S.creation.stunts)S.creation.stunts=[];
+  S.creation.stunts.push({name:s.name,desc:s.desc,cost:s.cost});
+  save();renderCreationStep();
+}
 
 // Power Browser
 let _pbPSI=0,_pbSearch='',_pbSkill='';

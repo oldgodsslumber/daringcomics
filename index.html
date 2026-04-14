@@ -165,6 +165,7 @@ select{cursor:pointer;-webkit-appearance:none;appearance:none;background-image:u
 #theme-wrap{display:none}
 #nb-theme{display:flex}
 #theme-popup{display:none}
+#nb-hud{display:none}
 @media(min-width:700px){
   #nav{bottom:auto;top:0;left:0;transform:none;width:80px;max-width:80px;height:100vh;flex-direction:column;border-top:none;border-right:1px solid var(--border);padding-bottom:0}
   .nb{padding:12px 4px;flex:initial}
@@ -172,6 +173,7 @@ select{cursor:pointer;-webkit-appearance:none;appearance:none;background-image:u
   #theme-wrap{display:block!important;margin-top:auto}
   #nb-theme{display:none!important}
   #theme-popup{display:none!important}
+  #nb-hud{display:flex!important}
 }
 </style>
 </head>
@@ -581,7 +583,7 @@ function renderStepPowers(){
   h+=`<div class="card"><div class="label mb-2">Power Sets</div>`;
   (c.powerSets||[]).forEach((ps,psi)=>{
     h+=`<div class="powerset-card"><div style="display:flex;justify-content:space-between;align-items:start"><div><input value="${esc(ps.name)}" oninput="S.creation.powerSets[${psi}].name=this.value;save()" placeholder="Power Set Name" style="font-family:var(--font-title);font-size:18px;color:var(--purple);background:transparent;border:none;padding:0;width:200px"><input value="${esc(ps.aspect)}" oninput="S.creation.powerSets[${psi}].aspect=this.value;save()" placeholder="Power Set Aspect" style="font-size:12px;font-style:italic;color:var(--muted);background:transparent;border:none;padding:0;width:100%;margin-top:2px"></div><button class="btn btn-danger btn-xs" onclick="S.creation.powerSets.splice(${psi},1);save();renderCreationStep()">X</button></div>`;
-    (ps.powers||[]).forEach((pw,pwi)=>{const pd=POWERS.find(p=>p.id===pw.powerId);h+=`<div class="card-sm mt-2" style="border-color:var(--purple)"><div style="display:flex;justify-content:space-between;align-items:center"><div><span class="fw-700">${pd?.name||pw.powerId}</span>${pw.level>1?` <span class="text-accent">Lv${pw.level}</span>`:''} <span class="tag tag-cost">${pw.totalCost} HP</span></div><button class="btn btn-danger btn-xs" onclick="S.creation.powerSets[${psi}].powers.splice(${pwi},1);save();renderCreationStep()">X</button></div>${pw.selectedSE.length?'<div style="margin-top:4px">'+pw.selectedSE.map(se=>`<span class="tag tag-se">${se}</span>`).join(' ')+'</div>':''}${pw.selectedLim.length?'<div style="margin-top:2px">'+pw.selectedLim.map(l=>`<span class="tag tag-lim">${l}</span>`).join(' ')+'</div>':''}</div>`;});
+    (ps.powers||[]).forEach((pw,pwi)=>{const pd=POWERS.find(p=>p.id===pw.powerId);h+=`<div class="card-sm mt-2" style="border-color:var(--purple)"><div style="display:flex;justify-content:space-between;align-items:center"><div><span class="fw-700">${pw.customName||pd?.name||pw.powerId}</span>${pw.level>1?` <span class="text-accent">Lv${pw.level}</span>`:''} <span class="tag tag-cost">${pw.totalCost} HP</span></div><button class="btn btn-danger btn-xs" onclick="S.creation.powerSets[${psi}].powers.splice(${pwi},1);save();renderCreationStep()">X</button></div>${pw.selectedSE.length?'<div style="margin-top:4px">'+pw.selectedSE.map(se=>`<span class="tag tag-se">${se}</span>`).join(' ')+'</div>':''}${pw.selectedLim.length?'<div style="margin-top:2px">'+pw.selectedLim.map(l=>`<span class="tag tag-lim">${l}</span>`).join(' ')+'</div>':''}</div>`;});
     h+=`<button class="btn btn-secondary btn-xs mt-1" onclick="openPowerBrowser(${psi})">+ Add Power</button></div>`;
   });
   h+=`<button class="btn btn-gold btn-sm" onclick="S.creation.powerSets.push({name:'',aspect:'',powers:[]});save();renderCreationStep()">+ New Power Set</button></div>`;
@@ -605,7 +607,7 @@ function renderPB(){
 function showPD(id){
   const p=POWERS.find(pw=>pw.id===id);if(!p)return;
   const isVar=!p.flat,allSE=[...p.se,...GENERAL_SE],allLim=[...p.lim,...GENERAL_LIMITS];
-  let h=`<div class="card"><button class="btn btn-secondary btn-xs" onclick="renderPB()" style="margin-bottom:8px">\u2190 Back</button><div class="pg-title" style="font-size:20px">${p.name}</div><div style="font-size:12px;color:var(--muted);margin-bottom:6px">Skill: ${p.skill} | Cost: ${p.cost}</div><div style="font-size:13px;margin-bottom:10px">${p.desc}</div>`;
+  let h=`<div class="card"><button class="btn btn-secondary btn-xs" onclick="renderPB()" style="margin-bottom:8px">\u2190 Back</button><div class="pg-title" style="font-size:20px">${p.name}</div><div style="font-size:12px;color:var(--muted);margin-bottom:6px">Skill: ${p.skill} | Cost: ${p.cost}</div><div style="font-size:13px;margin-bottom:10px">${p.desc}</div><div class="form-group"><label>Display Name <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:10px">(rename if desired)</span></label><input id="pw-custom-name" value="${esc(p.name)}" placeholder="${esc(p.name)}"></div>`;
   if(isVar){h+=`<div class="label mb-1">Power Level</div><div style="display:flex;gap:4px;margin-bottom:10px">`;p.levels.forEach(lv=>{h+=`<button class="btn btn-xs ${lv===1?'btn-primary':'btn-secondary'}" id="pw-lv-${lv}" onclick="setPDLv(${lv})">${lv}</button>`;});h+='</div>';}
   h+=`<div class="label mb-1">Special Effects</div><div id="pw-se-list" style="margin-bottom:10px;max-height:200px;overflow-y:auto">`;
   allSE.forEach(se=>{h+=`<label style="display:flex;gap:6px;align-items:start;margin-bottom:4px;cursor:pointer;font-size:12px"><input type="checkbox" data-se="${esc(se.name)}" data-cost="${se.cost}"><div><span>${se.name} <span class="text-green">(+${se.cost})</span></span> <span class="text-muted">\u2014 ${se.desc}</span></div></label>`;});
@@ -618,7 +620,7 @@ function showPD(id){
 }
 function setPDLv(lv){window._pdLv=lv;const p=POWERS.find(pw=>pw.id===window._pdId);if(p)p.levels.forEach(l=>{const b=document.getElementById('pw-lv-'+l);if(b)b.className='btn btn-xs'+(l===lv?' btn-primary':' btn-secondary');});updatePDCost();}
 function updatePDCost(){const p=POWERS.find(pw=>pw.id===window._pdId);if(!p)return;let c=p.flat?parseInt(p.cost)||0:window._pdLv;document.querySelectorAll('#pw-se-list input:checked').forEach(i=>c+=parseInt(i.dataset.cost)||0);document.querySelectorAll('#pw-lim-list input:checked').forEach(i=>c+=parseInt(i.dataset.cost)||0);c=Math.max(1,c);const el=document.getElementById('pw-cost-disp');if(el)el.textContent='Total: '+c+' HP';}
-function addPD(id){const p=POWERS.find(pw=>pw.id===id);if(!p)return;const lv=window._pdLv||1;let c=p.flat?parseInt(p.cost)||0:lv;const se=[],lm=[];document.querySelectorAll('#pw-se-list input:checked').forEach(i=>{c+=parseInt(i.dataset.cost)||0;se.push(i.dataset.se);});document.querySelectorAll('#pw-lim-list input:checked').forEach(i=>{c+=parseInt(i.dataset.cost)||0;lm.push(i.dataset.lim);});c=Math.max(1,c);if(!S.creation.powerSets[_pbPSI])return;S.creation.powerSets[_pbPSI].powers.push({powerId:id,level:lv,selectedSE:se,selectedLim:lm,totalCost:c});save();closePB();renderCreationStep();}
+function addPD(id){const p=POWERS.find(pw=>pw.id===id);if(!p)return;const lv=window._pdLv||1;let c=p.flat?parseInt(p.cost)||0:lv;const se=[],lm=[];document.querySelectorAll('#pw-se-list input:checked').forEach(i=>{c+=parseInt(i.dataset.cost)||0;se.push(i.dataset.se);});document.querySelectorAll('#pw-lim-list input:checked').forEach(i=>{c+=parseInt(i.dataset.cost)||0;lm.push(i.dataset.lim);});c=Math.max(1,c);if(!S.creation.powerSets[_pbPSI])return;const customName=(document.getElementById('pw-custom-name')?.value||'').trim()||p.name;S.creation.powerSets[_pbPSI].powers.push({powerId:id,customName,level:lv,selectedSE:se,selectedLim:lm,totalCost:c});save();closePB();renderCreationStep();}
 
 // Step 6: Review
 function renderStepReview(){
@@ -633,7 +635,7 @@ function renderStepReview(){
   SKILLS.filter(sk=>(c.skills[sk]||0)>0).sort((a,b)=>(c.skills[b]||0)-(c.skills[a]||0)).forEach(sk=>{h+=`<span class="tag" style="background:var(--surface2);color:var(--text);border:1px solid var(--border)">${sk} +${c.skills[sk]}</span>`;});
   h+=`</div><div class="divider"></div><div class="label">Powers & Stunts</div>`;
   (c.stunts||[]).forEach(st=>{h+=`<div style="font-size:12px">\u2605 <strong>${esc(st.name)}</strong> (${st.cost} HP)</div>`;});
-  (c.powerSets||[]).forEach(ps=>{h+=`<div style="margin-top:4px"><span class="text-purple fw-700">${esc(ps.name||'Power Set')}</span> <span class="text-muted" style="font-size:11px;font-style:italic">${esc(ps.aspect)}</span></div>`;(ps.powers||[]).forEach(pw=>{const pd=POWERS.find(p=>p.id===pw.powerId);h+=`<div style="font-size:12px;margin-left:12px">\u26A1 ${pd?.name||pw.powerId}${pw.level>1?' Lv'+pw.level:''} (${pw.totalCost} HP)</div>`;});});
+  (c.powerSets||[]).forEach(ps=>{h+=`<div style="margin-top:4px"><span class="text-purple fw-700">${esc(ps.name||'Power Set')}</span> <span class="text-muted" style="font-size:11px;font-style:italic">${esc(ps.aspect)}</span></div>`;(ps.powers||[]).forEach(pw=>{const pd=POWERS.find(p=>p.id===pw.powerId);h+=`<div style="font-size:12px;margin-left:12px">\u26A1 ${pw.customName||pd?.name||pw.powerId}${pw.level>1?' Lv'+pw.level:''} (${pw.totalCost} HP)</div>`;});});
   h+=`<div class="divider"></div><div class="grid-2"><div class="card-sm tac"><div class="label">Physical Stress</div><div class="fw-700 text-accent" style="font-size:18px">${ps} boxes</div></div><div class="card-sm tac"><div class="label">Mental Stress</div><div class="fw-700 text-accent" style="font-size:18px">${ms} boxes</div></div><div class="card-sm tac"><div class="label">Refresh</div><div class="fw-700 text-green" style="font-size:18px">${fr}</div></div><div class="card-sm tac"><div class="label">HP Spent</div><div class="fw-700 text-gold" style="font-size:18px">${hpS}/${tHP}</div></div></div><div class="label mt-2">Consequences</div><div style="font-size:12px">Mild | Moderate | Severe</div></div><button class="btn btn-primary btn-full mt-2" style="font-size:18px;padding:14px" onclick="finishCreation()">Create Hero!</button>`;return h;
 }
 function finishCreation(){
@@ -670,7 +672,7 @@ function renderSheet(){
   h+=`<div class="card"><div class="label mb-1">Skills</div>`;
   SKILLS.filter(sk=>(ch.skills[sk]||0)>0).sort((a,b)=>(ch.skills[b]||0)-(ch.skills[a]||0)).forEach(sk=>{h+=`<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:13px;border-bottom:1px solid var(--border)"><span>${sk}</span><span class="fw-700 text-accent">${ladderName(ch.skills[sk])} (+${ch.skills[sk]})</span></div>`;});h+='</div>';
   // Power Sets
-  (ch.powerSets||[]).forEach(ps=>{h+=`<div class="powerset-card"><div class="powerset-name">${esc(ps.name||'Power Set')}</div><div class="powerset-aspect">${esc(ps.aspect)}</div>`;(ps.powers||[]).forEach(pw=>{const pd=POWERS.find(p=>p.id===pw.powerId);h+=`<div style="padding:4px 0;font-size:13px"><span class="fw-700">${pd?.name||pw.powerId}</span>${pw.level>1?' <span class="text-accent">Lv'+pw.level+'</span>':''} <span class="text-muted">(${pw.totalCost} HP)</span>${pw.selectedSE.length?'<br>'+pw.selectedSE.map(se=>`<span class="tag tag-se">${se}</span>`).join(' '):''}${pw.selectedLim.length?'<br>'+pw.selectedLim.map(l=>`<span class="tag tag-lim">${l}</span>`).join(' '):''}</div>`;});h+='</div>';});
+  (ch.powerSets||[]).forEach(ps=>{h+=`<div class="powerset-card"><div class="powerset-name">${esc(ps.name||'Power Set')}</div><div class="powerset-aspect">${esc(ps.aspect)}</div>`;(ps.powers||[]).forEach(pw=>{const pd=POWERS.find(p=>p.id===pw.powerId);h+=`<div style="padding:4px 0;font-size:13px"><span class="fw-700">${pw.customName||pd?.name||pw.powerId}</span>${pw.level>1?' <span class="text-accent">Lv'+pw.level+'</span>':''} <span class="text-muted">(${pw.totalCost} HP)</span>${pw.selectedSE.length?'<br>'+pw.selectedSE.map(se=>`<span class="tag tag-se">${se}</span>`).join(' '):''}${pw.selectedLim.length?'<br>'+pw.selectedLim.map(l=>`<span class="tag tag-lim">${l}</span>`).join(' '):''}</div>`;});h+='</div>';});
   // Stunts
   if(ch.stunts?.length){h+=`<div class="card"><div class="label mb-1">Stunts</div>`;ch.stunts.forEach(st=>{h+=`<div style="padding:3px 0;font-size:13px">\u2605 <strong>${esc(st.name)}</strong> <span class="text-muted">(${st.cost} HP)</span><br><span style="font-size:12px;color:var(--muted)">${esc(st.desc)}</span></div>`;});h+='</div>';}
   // Gear
@@ -700,7 +702,7 @@ function printCharSheet(){
   let powHtml='';
   (ch.powerSets||[]).forEach(ps=>{
     powHtml+=`<div class="ps-card"><div class="ps-name">${e(ps.name||'Power Set')}</div><div class="ps-asp">${e(ps.aspect)}</div>`;
-    (ps.powers||[]).forEach(pw=>{const pd=POWERS.find(p=>p.id===pw.powerId);powHtml+=`<div class="pw-item"><span class="pw-n">${e(pd?.name||pw.powerId)}</span>${pw.level>1?' <span class="pw-lv">Lv'+pw.level+'</span>':''} <span class="pw-c">(${pw.totalCost} HP)</span>${pw.selectedSE.length?'<div class="pw-tags">'+pw.selectedSE.map(s=>'<span class="tg tg-se">'+e(s)+'</span>').join(' ')+'</div>':''}${pw.selectedLim.length?'<div class="pw-tags">'+pw.selectedLim.map(l=>'<span class="tg tg-lm">'+e(l)+'</span>').join(' ')+'</div>':''}</div>`;});
+    (ps.powers||[]).forEach(pw=>{const pd=POWERS.find(p=>p.id===pw.powerId);powHtml+=`<div class="pw-item"><span class="pw-n">${e(pw.customName||pd?.name||pw.powerId)}</span>${pw.level>1?' <span class="pw-lv">Lv'+pw.level+'</span>':''} <span class="pw-c">(${pw.totalCost} HP)</span>${pw.selectedSE.length?'<div class="pw-tags">'+pw.selectedSE.map(s=>'<span class="tg tg-se">'+e(s)+'</span>').join(' ')+'</div>':''}${pw.selectedLim.length?'<div class="pw-tags">'+pw.selectedLim.map(l=>'<span class="tg tg-lm">'+e(l)+'</span>').join(' ')+'</div>':''}</div>`;});
     powHtml+='</div>';
   });
   // Stunts

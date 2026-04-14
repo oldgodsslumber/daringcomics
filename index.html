@@ -931,9 +931,9 @@ function renderSheet(){
   h+=`<div class="card"><div class="label mb-1">Consequences</div><div class="conseq-row"><div class="conseq-label">Mild (2)</div><div class="conseq-input"><input value="${esc(ch.consequences.mild)}" oninput="S.char.consequences.mild=this.value;save()" placeholder="\u2014"></div></div><div class="conseq-row"><div class="conseq-label">Moderate (4)</div><div class="conseq-input"><input value="${esc(ch.consequences.moderate)}" oninput="S.char.consequences.moderate=this.value;save()" placeholder="\u2014"></div></div><div class="conseq-row"><div class="conseq-label">Severe (6)</div><div class="conseq-input"><input value="${esc(ch.consequences.severe)}" oninput="S.char.consequences.severe=this.value;save()" placeholder="\u2014"></div></div></div>`;
   // Skills
   h+=`<div class="card"><div class="label mb-1">Skills</div>`;
-  SKILLS.filter(sk=>(ch.skills[sk]||0)>0).sort((a,b)=>(ch.skills[b]||0)-(ch.skills[a]||0)).forEach(sk=>{h+=`<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:13px;border-bottom:1px solid var(--border)"><span>${sk}</span><span class="fw-700 text-accent">${ladderName(ch.skills[sk])} (+${ch.skills[sk]})</span></div>`;});h+='</div>';
+  SKILLS.filter(sk=>(ch.skills[sk]||0)>0).sort((a,b)=>(ch.skills[b]||0)-(ch.skills[a]||0)).forEach(sk=>{h+=`<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;border-bottom:1px solid var(--border)"><div><span class="fw-700">${sk}</span><div style="font-size:10px;color:var(--muted);line-height:1.2">${SKILL_DESC[sk]||''}</div></div><span class="fw-700 text-accent" style="white-space:nowrap;margin-left:8px">${ladderName(ch.skills[sk])} (+${ch.skills[sk]})</span></div>`;});h+='</div>';
   // Power Sets
-  (ch.powerSets||[]).forEach(ps=>{h+=`<div class="powerset-card"><div class="powerset-name">${esc(ps.name||'Power Set')}</div><div class="powerset-aspect">${esc(ps.aspect)}</div>`;(ps.powers||[]).forEach(pw=>{const pd=POWERS.find(p=>p.id===pw.powerId);h+=`<div style="padding:4px 0;font-size:13px"><span class="fw-700">${pw.customName||pd?.name||pw.powerId}</span>${pw.level>1?' <span class="text-accent">Lv'+pw.level+'</span>':''} <span class="text-muted">(${pw.totalCost} HP)</span>${pd?.desc?`<div style="font-size:11px;color:var(--muted);margin-top:1px">${esc(pd.desc)}</div>`:''}${pw.selectedSE.length?'<div style="margin-top:3px">'+pw.selectedSE.map(se=>`<span class="tag tag-se">${se}</span>`).join(' ')+'</div>':''}${pw.selectedLim.length?'<div style="margin-top:2px">'+pw.selectedLim.map(l=>`<span class="tag tag-lim">${l}</span>`).join(' ')+'</div>':''}</div>`;});h+='</div>';});
+  (ch.powerSets||[]).forEach(ps=>{h+=`<div class="powerset-card"><div class="powerset-name">${esc(ps.name||'Power Set')}</div><div class="powerset-aspect">${esc(ps.aspect)}</div>`;(ps.powers||[]).forEach(pw=>{const pd=POWERS.find(p=>p.id===pw.powerId);h+=`<div style="padding:4px 0;font-size:13px"><span class="fw-700">${pw.customName||pd?.name||pw.powerId}</span>${pw.level>1?' <span class="text-accent">Lv'+pw.level+'</span>':''} <span class="text-muted">(${pw.totalCost} HP)</span>${pd?.desc?`<div style="font-size:11px;color:var(--muted);margin-top:1px">${esc(pd.desc)}</div>`:''}${pw.selectedSE.length?'<div style="margin-top:3px">'+pw.selectedSE.map(se=>{const def=[...(pd?.se||[]),...GENERAL_SE].find(x=>x.name===se);return`<div style="font-size:11px;margin-bottom:2px"><span class="tag tag-se">${se}</span>${def?' <span style="color:var(--muted)">'+esc(def.desc)+'</span>':''}</div>`;}).join('')+'</div>':''}${pw.selectedLim.length?'<div style="margin-top:2px">'+pw.selectedLim.map(l=>{const def=[...(pd?.lim||[]),...GENERAL_LIMITS].find(x=>x.name===l);return`<div style="font-size:11px;margin-bottom:2px"><span class="tag tag-lim">${l}</span>${def?' <span style="color:var(--muted)">'+esc(def.desc)+'</span>':''}</div>`;}).join('')+'</div>':''}</div>`;});h+='</div>';});
   // Stunts
   if(ch.stunts?.length){h+=`<div class="card"><div class="label mb-1">Stunts</div>`;ch.stunts.forEach(st=>{h+=`<div style="padding:3px 0;font-size:13px">\u2605 <strong>${esc(st.name)}</strong> <span class="text-muted">(${st.cost} HP)</span><br><span style="font-size:12px;color:var(--muted)">${esc(st.desc)}</span></div>`;});h+='</div>';}
   // Gear
@@ -955,7 +955,7 @@ function printCharSheet(){
   const sortedSk=SKILLS.filter(sk=>(ch.skills[sk]||0)>0).sort((a,b)=>(ch.skills[b]||0)-(ch.skills[a]||0));
   let skillsHtml='';
   let prevLv=99;
-  sortedSk.forEach(sk=>{const v=ch.skills[sk];if(v<prevLv){skillsHtml+=`<div class="sk-tier">${ladderName(v)} (+${v})</div>`;prevLv=v;}skillsHtml+=`<div class="sk-item">${e(sk)}</div>`;});
+  sortedSk.forEach(sk=>{const v=ch.skills[sk];if(v<prevLv){skillsHtml+=`<div class="sk-tier">${ladderName(v)} (+${v})</div>`;prevLv=v;}skillsHtml+=`<div class="sk-item">${e(sk)}<span class="sk-desc">${e(SKILL_DESC[sk]||'')}</span></div>`;});
   // Aspects
   let aspHtml=`<div class="asp"><span class="al">Concept:</span> ${e(ch.aspects.concept)}</div><div class="asp"><span class="al">Motivation:</span> ${e(ch.aspects.motivation)}</div>`;
   ch.aspects.contingent.forEach(ct=>{if(ct.text)aspHtml+=`<div class="asp"><span class="al">${e(ct.cat||'Aspect')}:</span> ${e(ct.text)}</div>`;});
@@ -963,7 +963,7 @@ function printCharSheet(){
   let powHtml='';
   (ch.powerSets||[]).forEach(ps=>{
     powHtml+=`<div class="ps-card"><div class="ps-name">${e(ps.name||'Power Set')}</div><div class="ps-asp">${e(ps.aspect)}</div>`;
-    (ps.powers||[]).forEach(pw=>{const pd=POWERS.find(p=>p.id===pw.powerId);powHtml+=`<div class="pw-item"><span class="pw-n">${e(pw.customName||pd?.name||pw.powerId)}</span>${pw.level>1?' <span class="pw-lv">Lv'+pw.level+'</span>':''} <span class="pw-c">(${pw.totalCost} HP)</span>${pd?.desc?`<div class="pw-desc">${e(pd.desc)}</div>`:''}${pw.selectedSE.length?'<div class="pw-tags">'+pw.selectedSE.map(s=>'<span class="tg tg-se">'+e(s)+'</span>').join(' ')+'</div>':''}${pw.selectedLim.length?'<div class="pw-tags">'+pw.selectedLim.map(l=>'<span class="tg tg-lm">'+e(l)+'</span>').join(' ')+'</div>':''}</div>`;});
+    (ps.powers||[]).forEach(pw=>{const pd=POWERS.find(p=>p.id===pw.powerId);powHtml+=`<div class="pw-item"><span class="pw-n">${e(pw.customName||pd?.name||pw.powerId)}</span>${pw.level>1?' <span class="pw-lv">Lv'+pw.level+'</span>':''} <span class="pw-c">(${pw.totalCost} HP)</span>${pd?.desc?`<div class="pw-desc">${e(pd.desc)}</div>`:''}${pw.selectedSE.length?'<div class="pw-tags">'+pw.selectedSE.map(s=>{const def=[...(pd?.se||[]),...GENERAL_SE].find(x=>x.name===s);return'<span class="tg tg-se">'+e(s)+'</span>'+(def?' <span class="tg-desc">'+e(def.desc)+'</span>':'');}).join('<br>')+'</div>':''}${pw.selectedLim.length?'<div class="pw-tags">'+pw.selectedLim.map(l=>{const def=[...(pd?.lim||[]),...GENERAL_LIMITS].find(x=>x.name===l);return'<span class="tg tg-lm">'+e(l)+'</span>'+(def?' <span class="tg-desc">'+e(def.desc)+'</span>':'');}).join('<br>')+'</div>':''}</div>`;});
     powHtml+='</div>';
   });
   // Stunts
@@ -991,6 +991,7 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:10.5pt;color:#111;backgrou
 .asp{font-size:9.5pt;margin-bottom:3px;line-height:1.3}.al{font-weight:700}
 .sk-tier{font-size:8pt;font-weight:700;text-transform:uppercase;color:#999;margin-top:4px;margin-bottom:1px;letter-spacing:.3px}
 .sk-item{font-size:10pt;padding:1px 0 1px 8px;border-bottom:1px solid #f0f0f0}
+.sk-desc{display:block;font-size:7.5pt;color:#999;line-height:1.2;margin-top:0}
 .sb{display:inline-block;width:16px;height:16px;border:1.5px solid #222;border-radius:2px;text-align:center;font-size:8pt;line-height:16px;margin-right:2px}
 .stress-row{margin-bottom:4px}
 .stress-l{font-size:8pt;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:2px}
@@ -1004,6 +1005,7 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:10.5pt;color:#111;backgrou
 .pw-desc{font-size:8pt;color:#666;line-height:1.3;margin-top:1px}
 .pw-tags{margin-top:1px}.tg{display:inline-block;padding:0 4px;border-radius:6px;font-size:7.5pt;font-weight:700;margin-right:2px}
 .tg-se{background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7}.tg-lm{background:#ffebee;color:#c62828;border:1px solid #ef9a9a}
+.tg-desc{font-size:7pt;color:#888;font-weight:400}
 .st-item{padding:2px 0;font-size:9.5pt;border-bottom:1px solid #f0f0f0}.st-n{font-weight:700}.st-d{font-size:8.5pt;color:#666}
 .cast-item{display:flex;gap:6px;font-size:9pt;padding:1px 0;border-bottom:1px solid #f0f0f0}.cast-n{font-weight:700}.cast-d{color:#666}
 .gear{font-size:9pt;white-space:pre-wrap;color:#444}

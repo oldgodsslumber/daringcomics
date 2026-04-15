@@ -938,6 +938,22 @@ function renderSheet(){
   if(ch.stunts?.length){h+=`<div class="card"><div class="label mb-1">Stunts</div>`;ch.stunts.forEach(st=>{h+=`<div style="padding:3px 0;font-size:13px">\u2605 <strong>${esc(st.name)}</strong> <span class="text-muted">(${st.cost} HP)</span><br><span style="font-size:12px;color:var(--muted)">${esc(st.desc)}</span></div>`;});h+='</div>';}
   // Gear
   h+=`<div class="card"><div class="label mb-1">Gear & Notes</div><textarea oninput="S.char.gear=this.value;save()" placeholder="Equipment, devices, notes...">${esc(ch.gear||'')}</textarea></div>`;
+  // Super Team summary
+  if(S.team){
+    const t=S.team;
+    h+=`<div class="card" style="border-color:var(--purple)"><div class="label mb-1" style="color:var(--purple)">Super Team: ${esc(t.name)}</div>`;
+    h+=`<div style="font-size:12px;margin-bottom:4px"><strong>Charter:</strong> ${esc(t.charter)}</div>`;
+    h+=`<div style="font-size:12px;margin-bottom:4px"><strong>Friction:</strong> ${esc(t.friction)}</div>`;
+    if(t.stunts.length){h+=`<div style="font-size:11px;color:var(--muted);margin-top:4px">Stunts: ${t.stunts.map(id=>TEAM_STUNTS.find(ts=>ts.id===id)?.name||id).join(', ')}</div>`;}
+    if(t.expanded){
+      const ex=t.expanded;
+      h+=`<div class="divider"></div><div class="label mb-1" style="font-size:10px">Expanded Roster</div>`;
+      const exSkills=['Combat','Expertise','Social','Undercover'];
+      h+=`<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:4px">${exSkills.filter(sk=>(ex.skills[sk]||0)>0).map(sk=>`<span class="tag" style="background:var(--surface3);color:var(--text);border:1px solid var(--border)">${sk} +${ex.skills[sk]}</span>`).join('')}</div>`;
+      if(ex.stunts?.length||ex.powers?.length){h+=`<div style="font-size:11px;color:var(--muted)">${[...(ex.stunts||[]).map(s=>s.name),...(ex.powers||[]).map(p=>p.name)].join(', ')}</div>`;}
+    }
+    h+=`</div>`;
+  }
   h+=`<button onclick="printCharSheet()" style="width:100%;padding:11px;border-radius:var(--radius-btn);border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:13px;font-weight:600;cursor:pointer;margin-top:6px;display:flex;align-items:center;justify-content:center;gap:8px;font-family:var(--font-label)">Print Character Sheet</button>`;
   document.getElementById('hero-sheet').innerHTML=h;
 }
@@ -1175,14 +1191,17 @@ function saveNPC(){
 // ═══════════════════════════════════════════════════════════
 function renderDice(){
   const el=document.getElementById('dice-content'),ch=S.char;
-  let h=`<div class="pg-title">Fate Dice</div><div class="pg-sub">4dF + Skill + Modifier</div><div class="card"><div class="grid-2 mb-2"><div class="form-group"><label>Skill</label><select id="d-sk" onchange="updateDP()"><option value="">— None —</option>${SKILLS.map(sk=>`<option value="${sk}">${sk} (+${ch?.skills?.[sk]||0})</option>`).join('')}</select></div><div class="form-group"><label>Modifier</label><input type="number" id="d-mod" value="0" onchange="updateDP()"></div></div><div id="d-preview" class="tac text-muted mb-2" style="font-size:12px"></div><div class="tac"><button class="roll-btn" onclick="doRoll()">ROLL</button></div></div><div id="d-result"></div>`;
+  const ex=S.team?.expanded;const exSkills=ex?['Combat','Expertise','Social','Undercover']:[];
+  let h=`<div class="pg-title">Fate Dice</div><div class="pg-sub">4dF + Skill + Modifier</div><div class="card"><div class="grid-2 mb-2"><div class="form-group"><label>Skill</label><select id="d-sk" onchange="updateDP()"><option value="">— None —</option>${SKILLS.map(sk=>`<option value="${sk}">${sk} (+${ch?.skills?.[sk]||0})</option>`).join('')}${exSkills.length?`<optgroup label="Team: ${esc(S.team.name)}">${exSkills.map(sk=>`<option value="team:${sk}">${sk} (+${ex.skills[sk]||0})</option>`).join('')}</optgroup>`:''}</select></div><div class="form-group"><label>Modifier</label><input type="number" id="d-mod" value="0" onchange="updateDP()"></div></div><div id="d-preview" class="tac text-muted mb-2" style="font-size:12px"></div><div class="tac"><button class="roll-btn" onclick="doRoll()">ROLL</button></div></div><div id="d-result"></div>`;
   if(ch)h+=`<div class="card" style="display:flex;align-items:center;justify-content:space-between"><div class="label">Fate Points</div><div style="display:flex;align-items:center;gap:8px"><button class="sk-btn" onclick="adjFP(-1);renderDice()">−</button><span style="font-size:22px;font-weight:900;color:var(--gold)">${ch.fatePoints}</span><button class="sk-btn" onclick="adjFP(1);renderDice()">+</button></div></div>`;
   h+=`<div id="d-actions" style="display:none" class="card tac"><button class="btn btn-gold btn-sm" onclick="invokeAsp()">Invoke (+2)</button> <button class="btn btn-secondary btn-sm" onclick="rerollDice()">Reroll</button> <button class="btn btn-success btn-sm" onclick="compelAsp()">Compel (+1 FP)</button></div><div id="d-hist"></div>`;
   el.innerHTML=h;renderDR();
 }
-function updateDP(){const sk=document.getElementById('d-sk')?.value,mod=parseInt(document.getElementById('d-mod')?.value)||0,sv=S.char?.skills?.[sk]||0;const el=document.getElementById('d-preview');if(el)el.textContent=sk?`4dF + ${sk}(+${sv})${mod?' + '+(mod>0?'+':'')+mod:''}`:'4dF';}
+function getSkillVal(sk){if(sk.startsWith('team:')){const tsk=sk.substring(5);return S.team?.expanded?.skills?.[tsk]||0;}return S.char?.skills?.[sk]||0;}
+function getSkillLabel(sk){return sk.startsWith('team:')?sk.substring(5):sk;}
+function updateDP(){const sk=document.getElementById('d-sk')?.value,mod=parseInt(document.getElementById('d-mod')?.value)||0,sv=getSkillVal(sk||'');const el=document.getElementById('d-preview');if(el)el.textContent=sk?`4dF + ${getSkillLabel(sk)}(+${sv})${mod?' + '+(mod>0?'+':'')+mod:''}`:'4dF';}
 function rollFD(){return[-1,0,1][Math.floor(Math.random()*3)];}
-function doRoll(){const sk=document.getElementById('d-sk')?.value||'',mod=parseInt(document.getElementById('d-mod')?.value)||0,sv=S.char?.skills?.[sk]||0,dice=[rollFD(),rollFD(),rollFD(),rollFD()],ds=dice.reduce((a,b)=>a+b,0),tot=ds+sv+mod;S.dice={skill:sk,skillVal:sv,mod,dice,diceSum:ds,total:tot};save();renderDR();}
+function doRoll(){const sk=document.getElementById('d-sk')?.value||'',mod=parseInt(document.getElementById('d-mod')?.value)||0,sv=getSkillVal(sk),dice=[rollFD(),rollFD(),rollFD(),rollFD()],ds=dice.reduce((a,b)=>a+b,0),tot=ds+sv+mod;S.dice={skill:getSkillLabel(sk),skillVal:sv,mod,dice,diceSum:ds,total:tot};save();renderDR();}
 function renderDR(){
   const area=document.getElementById('d-result'),act=document.getElementById('d-actions');if(!area)return;const d=S.dice;
   if(!d||!d.dice){area.innerHTML='';if(act)act.style.display='none';return;}
@@ -1205,7 +1224,9 @@ function renderConflict(){
     h+=`<div class="card-sm" style="display:flex;justify-content:space-between;align-items:center"><div><span class="label">Round</span> <span class="fw-700 text-accent" style="font-size:20px">${c.round}</span></div><div style="display:flex;gap:4px"><button class="btn btn-secondary btn-xs" onclick="nextRound()">Next Round</button><button class="btn btn-danger btn-xs" onclick="endConflict()">End</button></div></div>`;
     h+=`<div class="card"><div class="label mb-1">Turn Order</div>`;
     c.turnOrder.forEach((t,i)=>{h+=`<div class="combatant ${i===c.currentTurn?'current':''}"><div style="width:20px;font-size:12px;font-weight:700;color:${i===c.currentTurn?'var(--accent)':'var(--muted)'}">${i+1}</div><div style="flex:1;font-weight:600;font-size:13px">${esc(t.name)}</div><span style="font-size:11px;color:var(--muted)">${t.type}</span><button class="btn btn-danger btn-xs" onclick="S.conflict.turnOrder.splice(${i},1);if(S.conflict.currentTurn>=${i}&&S.conflict.currentTurn>0)S.conflict.currentTurn--;save();renderConflict()" style="padding:2px 6px">X</button></div>`;});
-    h+=`<div style="display:flex;gap:4px;margin-top:6px"><input id="ct-name" placeholder="Name" style="flex:1;font-size:12px;padding:6px"><select id="ct-type" style="width:80px;font-size:12px;padding:6px"><option>Hero</option><option>NPC</option><option>Villain</option></select><button class="btn btn-secondary btn-xs" onclick="addCombat()">Add</button></div><button class="btn btn-primary btn-sm btn-full mt-2" onclick="nextTurn()">Next Turn \u2192</button></div>`;
+    h+=`<div style="display:flex;gap:4px;margin-top:6px"><input id="ct-name" placeholder="Name" style="flex:1;font-size:12px;padding:6px"><select id="ct-type" style="width:80px;font-size:12px;padding:6px"><option>Hero</option><option>NPC</option><option>Villain</option><option>Team</option></select><button class="btn btn-secondary btn-xs" onclick="addCombat()">Add</button></div>`;
+    if(S.team?.expanded&&!c.turnOrder.some(t=>t.type==='Team')){h+=`<button class="btn btn-gold btn-xs btn-full mt-1" onclick="S.conflict.turnOrder.push({name:'${esc(S.team.name)} (Team)',type:'Team'});S.conflict.log.push('${esc(S.team.name)} joined');save();renderConflict()">+ Add ${esc(S.team.name)}</button>`;}
+    h+=`<button class="btn btn-primary btn-sm btn-full mt-2" onclick="nextTurn()">Next Turn \u2192</button></div>`;
     h+=`<div class="card"><div class="label mb-1">Zones</div>`;
     c.zones.forEach((z,i)=>{h+=`<div class="zone-card"><div style="display:flex;justify-content:space-between;align-items:center"><div class="zone-name">${esc(z.name)}</div><button class="btn btn-danger btn-xs" onclick="S.conflict.zones.splice(${i},1);save();renderConflict()">X</button></div>${z.aspects?`<div style="font-size:11px;color:var(--muted);font-style:italic">${esc(z.aspects)}</div>`:''}<div style="font-size:11px;margin-top:4px">${(z.occupants||[]).map(o=>`<span class="tag" style="background:var(--surface3);color:var(--text);border:1px solid var(--border)">${esc(o)}</span>`).join(' ')}</div><div style="display:flex;gap:4px;margin-top:4px"><input id="za-${i}" placeholder="Add occupant" style="flex:1;font-size:11px;padding:4px"><button class="btn btn-secondary btn-xs" onclick="addToZone(${i})">+</button></div></div>`;});
     h+=`<div style="display:flex;gap:4px"><input id="zn-name" placeholder="New zone" style="flex:1;font-size:12px;padding:6px"><button class="btn btn-secondary btn-xs" onclick="addZone()">+ Zone</button></div></div>`;
@@ -1213,7 +1234,7 @@ function renderConflict(){
   }
   el.innerHTML=h;
 }
-function startConflict(){S.conflict={active:true,zones:[{name:'Zone 1',aspects:'',occupants:[]}],turnOrder:[],currentTurn:0,round:1,log:['Conflict started']};if(S.char)S.conflict.turnOrder.push({name:S.char.costumedName,type:'Hero'});save();renderConflict();}
+function startConflict(){S.conflict={active:true,zones:[{name:'Zone 1',aspects:'',occupants:[]}],turnOrder:[],currentTurn:0,round:1,log:['Conflict started']};if(S.char)S.conflict.turnOrder.push({name:S.char.costumedName,type:'Hero'});if(S.team?.expanded)S.conflict.turnOrder.push({name:S.team.name+' (Team)',type:'Team'});save();renderConflict();}
 function endConflict(){if(confirm('End conflict?')){S.conflict={active:false,zones:[],turnOrder:[],currentTurn:0,round:1,log:[]};save();renderConflict();}}
 function nextTurn(){const c=S.conflict;c.currentTurn=(c.currentTurn+1)%Math.max(1,c.turnOrder.length);c.log.push('Turn: '+(c.turnOrder[c.currentTurn]?.name||'?'));save();renderConflict();}
 function nextRound(){S.conflict.round++;S.conflict.currentTurn=0;S.conflict.log.push('--- Round '+S.conflict.round+' ---');save();renderConflict();}

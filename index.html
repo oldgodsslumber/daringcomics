@@ -182,9 +182,6 @@ select{cursor:pointer;-webkit-appearance:none;appearance:none;background-image:u
   <button class="nb active" onclick="showTab('hero')" id="nb-hero">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>Hero
   </button>
-  <button class="nb" onclick="showTab('team')" id="nb-team">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Team
-  </button>
   <button class="nb" onclick="showTab('npcs')" id="nb-npcs">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><circle cx="16" cy="8" r="3"/><path d="M2 20c0-3 2.7-5 6-5m4 0c3.3 0 6 2 6 5"/></svg>NPCs
   </button>
@@ -225,7 +222,6 @@ select{cursor:pointer;-webkit-appearance:none;appearance:none;background-image:u
   </div>
 </div>
 <div class="page active" id="page-hero"><div id="hero-creation"></div><div id="hero-sheet" style="display:none"></div></div>
-<div class="page" id="page-team"><div id="team-content"></div></div>
 <div class="page" id="page-npcs"><div id="npcs-content"></div></div>
 <div class="page" id="page-dice"><div id="dice-content"></div></div>
 <div class="page" id="page-conflict"><div id="conflict-content"></div></div>
@@ -617,7 +613,7 @@ function showTab(id){
   document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
   document.getElementById('page-'+id).classList.add('active');
   const nb=document.getElementById('nb-'+id);if(nb)nb.classList.add('active');
-  if(id==='hero')renderHero();if(id==='team')renderTeam();if(id==='npcs')renderNPCs();
+  if(id==='hero')renderHero();if(id==='npcs')renderNPCs();
   if(id==='dice')renderDice();if(id==='conflict')renderConflict();if(id==='notes')renderNotes();
 }
 function renderAll(){renderHero();}
@@ -1072,17 +1068,20 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:10.5pt;color:#111;backgrou
 // ═══════════════════════════════════════════════════════════
 // TEAM
 // ═══════════════════════════════════════════════════════════
-function renderTeam(){
-  const el=document.getElementById('team-content');
-  if(S.team)renderTeamSheet(el);else renderTeamCreate(el);
+function renderTeam(targetEl){
+  const el=targetEl||document.getElementById('npcs-content');
+  let h=`<div class="pg-title">NPCs</div><div class="pg-sub">Characters, Villains & Team</div><div class="npc-tabs">${NPC_TABS.map(t=>`<div class="npc-tab ${_npcTab===t.id?'active':''}" onclick="_npcTab='${t.id}';renderNPCs()">${t.label}</div>`).join('')}</div>`;
+  if(S.team){let teamH='';renderTeamSheet({set innerHTML(v){teamH=v;}});h+=teamH;}
+  else{let teamH='';renderTeamCreate({set innerHTML(v){teamH=v;}});h+=teamH;}
+  el.innerHTML=h;
 }
 function renderTeamCreate(el){el.innerHTML=`<div class="pg-title">Super Team</div><div class="pg-sub">Create your team identity</div><div class="card"><div class="form-group"><label>Team Name</label><input id="tm-name" placeholder="e.g. Sentinels of Society"></div><div class="form-group"><label>Charter Aspect (Mission)</label><input id="tm-charter" placeholder="e.g. United Nations Global Response Team"></div><div class="form-group"><label>Friction Aspect (Conflict)</label><input id="tm-friction" placeholder="e.g. Clashing Egos and Hidden Agendas"></div></div><button class="btn btn-primary btn-full" onclick="createTeam()">Create Team</button>`;}
-function createTeam(){const n=document.getElementById('tm-name').value.trim(),c=document.getElementById('tm-charter').value.trim(),f=document.getElementById('tm-friction').value.trim();if(!n)return alert('Name required');S.team={name:n,charter:c,friction:f,rogues:[],stunts:[],complications:[]};save();renderTeam();}
+function createTeam(){const n=document.getElementById('tm-name').value.trim(),c=document.getElementById('tm-charter').value.trim(),f=document.getElementById('tm-friction').value.trim();if(!n)return alert('Name required');S.team={name:n,charter:c,friction:f,rogues:[],stunts:[],complications:[]};save();renderNPCs();}
 function renderTeamSheet(el){
   const t=S.team,mx=(S.char?1:0)+t.rogues.length;
   let h=`<div class="pg-title">${esc(t.name)}</div><div class="pg-sub">Super Team</div><div class="card"><div class="label">Charter</div><div style="font-size:14px;margin-bottom:6px">${esc(t.charter)}</div><div class="label">Friction</div><div style="font-size:14px">${esc(t.friction)}</div></div>`;
   h+=`<div class="card"><div class="label mb-1">Team Rogues <span class="text-muted" style="font-weight:400">(max 3, +1 stunt each)</span></div>`;
-  t.rogues.forEach((r,i)=>{h+=`<div class="card-sm" style="display:flex;gap:6px"><div style="flex:1"><strong>${esc(r.name)}</strong><br><span class="text-muted" style="font-size:12px">${esc(r.desc)}</span></div><button class="btn btn-danger btn-xs" onclick="S.team.rogues.splice(${i},1);save();renderTeam()">X</button></div>`;});
+  t.rogues.forEach((r,i)=>{h+=`<div class="card-sm" style="display:flex;gap:6px"><div style="flex:1"><strong>${esc(r.name)}</strong><br><span class="text-muted" style="font-size:12px">${esc(r.desc)}</span></div><button class="btn btn-danger btn-xs" onclick="S.team.rogues.splice(${i},1);save();renderNPCs()">X</button></div>`;});
   if(t.rogues.length<3)h+=`<button class="btn btn-secondary btn-sm" onclick="addTR()">+ Add Rogue</button>`;
   h+=`</div><div class="card"><div class="label mb-1">Team Stunts <span class="text-muted" style="font-weight:400">(${t.stunts.length}/${mx})</span></div>`;
   TEAM_STUNTS.forEach(ts=>{const sel=t.stunts.includes(ts.id),req=!ts.requires||t.stunts.includes(ts.requires),can=t.stunts.length<mx||sel;h+=`<label style="display:flex;gap:8px;align-items:start;padding:6px 0;border-bottom:1px solid var(--border);cursor:${req&&can?'pointer':'default'};opacity:${req?1:.4}"><input type="checkbox" ${sel?'checked':''} ${req&&can?'':'disabled'} onchange="toggleTS('${ts.id}')"><div><div class="fw-700" style="font-size:13px">${ts.name}</div><div style="font-size:11px;color:var(--muted)">${ts.desc}</div>${ts.requires?`<div style="font-size:10px;color:var(--yellow)">Requires: ${TEAM_STUNTS.find(s=>s.id===ts.requires)?.name}</div>`:''}</div></label>`;});
@@ -1097,7 +1096,7 @@ function renderTeamSheet(el){
   } else {
     const{tone}=getSeriesConfig();
     const stressMax=tone?2+tone.stressBonus:4;
-    h+=`<div class="card" style="border-color:var(--purple)"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div class="label" style="color:var(--purple);margin:0;font-size:13px">Expanded Super Team</div><button class="btn btn-danger btn-xs" onclick="if(confirm('Remove expanded roster?')){delete S.team.expanded;save();renderTeam();}">Remove</button></div>`;
+    h+=`<div class="card" style="border-color:var(--purple)"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div class="label" style="color:var(--purple);margin:0;font-size:13px">Expanded Super Team</div><button class="btn btn-danger btn-xs" onclick="if(confirm('Remove expanded roster?')){delete S.team.expanded;save();renderNPCs();}">Remove</button></div>`;
     // Aspects
     h+=`<div class="form-group"><label>Expanded Aspect 1</label><input value="${esc(ex.aspect1)}" oninput="S.team.expanded.aspect1=this.value;save()" placeholder="Team aspect for expanded adventures"></div>`;
     h+=`<div class="form-group"><label>Expanded Aspect 2</label><input value="${esc(ex.aspect2)}" oninput="S.team.expanded.aspect2=this.value;save()" placeholder="Second team aspect"></div>`;
@@ -1113,8 +1112,8 @@ function renderTeamSheet(el){
     const exHPSpent=(ex.stunts||[]).reduce((s,st)=>s+st.cost,0)+(ex.powers||[]).reduce((s,p)=>s+p.cost,0);
     const exHPRem=10-exHPSpent;
     h+=`<div class="divider"></div><div class="label mb-1">Team Stunts & Powers <span class="text-muted" style="font-weight:400">(${exHPSpent}/10 HP)</span></div>`;
-    (ex.stunts||[]).forEach((st,i)=>{h+=`<div class="card-sm" style="display:flex;gap:6px;align-items:start"><div style="flex:1"><div class="fw-700" style="font-size:12px">${esc(st.name)} <span class="tag tag-cost">${st.cost} HP</span></div><div style="font-size:11px;color:var(--muted)">${esc(st.desc)}</div></div><button class="btn btn-danger btn-xs" onclick="S.team.expanded.stunts.splice(${i},1);save();renderTeam()">X</button></div>`;});
-    (ex.powers||[]).forEach((pw,i)=>{h+=`<div class="card-sm" style="display:flex;gap:6px;align-items:start;border-color:var(--purple)"><div style="flex:1"><div class="fw-700" style="font-size:12px">${esc(pw.name)} <span class="tag tag-cost">${pw.cost} HP</span></div><div style="font-size:11px;color:var(--muted)">${esc(pw.desc||'')}</div></div><button class="btn btn-danger btn-xs" onclick="S.team.expanded.powers.splice(${i},1);save();renderTeam()">X</button></div>`;});
+    (ex.stunts||[]).forEach((st,i)=>{h+=`<div class="card-sm" style="display:flex;gap:6px;align-items:start"><div style="flex:1"><div class="fw-700" style="font-size:12px">${esc(st.name)} <span class="tag tag-cost">${st.cost} HP</span></div><div style="font-size:11px;color:var(--muted)">${esc(st.desc)}</div></div><button class="btn btn-danger btn-xs" onclick="S.team.expanded.stunts.splice(${i},1);save();renderNPCs()">X</button></div>`;});
+    (ex.powers||[]).forEach((pw,i)=>{h+=`<div class="card-sm" style="display:flex;gap:6px;align-items:start;border-color:var(--purple)"><div style="flex:1"><div class="fw-700" style="font-size:12px">${esc(pw.name)} <span class="tag tag-cost">${pw.cost} HP</span></div><div style="font-size:11px;color:var(--muted)">${esc(pw.desc||'')}</div></div><button class="btn btn-danger btn-xs" onclick="S.team.expanded.powers.splice(${i},1);save();renderNPCs()">X</button></div>`;});
     if(exHPRem>0){
       h+=`<div style="display:flex;gap:4px"><button class="btn btn-secondary btn-xs" onclick="addExStunt()">+ Stunt</button><button class="btn btn-gold btn-xs" onclick="addExPower()">+ Power</button></div>`;
     }
@@ -1132,35 +1131,37 @@ function renderTeamSheet(el){
     h+=`<div class="conseq-row"><div class="conseq-label">Severe (6)</div><div class="conseq-input"><input value="${esc(ex.consequences?.severe||'')}" oninput="S.team.expanded.consequences.severe=this.value;save()" placeholder="\u2014"></div></div>`;
     // Refresh / FP
     const exRefresh=tone?.refresh||5;
-    h+=`<div class="divider"></div><div style="display:flex;align-items:center;justify-content:space-between"><div><div class="label">Team Fate Points</div><div style="font-size:10px;color:var(--muted)">Refresh: ${exRefresh}</div></div><div style="display:flex;align-items:center;gap:8px"><button class="sk-btn" onclick="S.team.expanded.fp=Math.max(0,(S.team.expanded.fp||${exRefresh})-1);save();renderTeam()">−</button><span style="font-size:22px;font-weight:900;font-family:var(--font-title);color:var(--gold)">${ex.fp!==undefined?ex.fp:exRefresh}</span><button class="sk-btn" onclick="S.team.expanded.fp=(S.team.expanded.fp||${exRefresh})+1;save();renderTeam()">+</button></div></div>`;
+    h+=`<div class="divider"></div><div style="display:flex;align-items:center;justify-content:space-between"><div><div class="label">Team Fate Points</div><div style="font-size:10px;color:var(--muted)">Refresh: ${exRefresh}</div></div><div style="display:flex;align-items:center;gap:8px"><button class="sk-btn" onclick="S.team.expanded.fp=Math.max(0,(S.team.expanded.fp||${exRefresh})-1);save();renderNPCs()">−</button><span style="font-size:22px;font-weight:900;font-family:var(--font-title);color:var(--gold)">${ex.fp!==undefined?ex.fp:exRefresh}</span><button class="sk-btn" onclick="S.team.expanded.fp=(S.team.expanded.fp||${exRefresh})+1;save();renderNPCs()">+</button></div></div>`;
     h+=`</div>`;
   }
-  h+=`<button class="btn btn-danger btn-full mt-2" onclick="if(confirm('Disband?')){S.team=null;save();renderTeam();}">Disband Team</button>`;el.innerHTML=h;
+  h+=`<button class="btn btn-danger btn-full mt-2" onclick="if(confirm('Disband?')){S.team=null;save();renderNPCs();}">Disband Team</button>`;el.innerHTML=h;
 }
-function addTR(){const n=prompt('Rogue Name:');if(!n)return;S.team.rogues.push({name:n,desc:prompt('Description:')||''});save();renderTeam();}
-function toggleTS(id){const t=S.team,i=t.stunts.indexOf(id);if(i>=0){t.stunts.splice(i,1);TEAM_STUNTS.filter(ts=>ts.requires===id).forEach(ts=>{const di=t.stunts.indexOf(ts.id);if(di>=0)t.stunts.splice(di,1);});}else t.stunts.push(id);save();renderTeam();}
-function toggleTC(id){const t=S.team,i=t.complications.indexOf(id);if(i>=0)t.complications.splice(i,1);else t.complications.push(id);save();renderTeam();}
+function addTR(){const n=prompt('Rogue Name:');if(!n)return;S.team.rogues.push({name:n,desc:prompt('Description:')||''});save();renderNPCs();}
+function toggleTS(id){const t=S.team,i=t.stunts.indexOf(id);if(i>=0){t.stunts.splice(i,1);TEAM_STUNTS.filter(ts=>ts.requires===id).forEach(ts=>{const di=t.stunts.indexOf(ts.id);if(di>=0)t.stunts.splice(di,1);});}else t.stunts.push(id);save();renderNPCs();}
+function toggleTC(id){const t=S.team,i=t.complications.indexOf(id);if(i>=0)t.complications.splice(i,1);else t.complications.push(id);save();renderNPCs();}
 function initExpandedTeam(){
   const{tone}=getSeriesConfig();const stressMax=tone?2+tone.stressBonus:4;
   S.team.expanded={aspect1:'',aspect2:'',skills:{Combat:0,Expertise:0,Social:0,Undercover:0},stunts:[],powers:[],
     stress:{physical:Array(stressMax).fill(false),mental:Array(stressMax).fill(false)},
     consequences:{mild:'',moderate:'',severe:''},fp:tone?.refresh||5};
-  save();renderTeam();
+  save();renderNPCs();
 }
 function adjExSkill(sk,d){const ex=S.team.expanded,cur=ex.skills[sk]||0,nv=cur+d;if(nv<0||nv>3)return;
   const used=Object.values(ex.skills).reduce((s,v)=>s+v,0);if(d>0&&used>=3)return;
-  ex.skills[sk]=nv;save();renderTeam();}
-function toggleExStress(track,i){const ex=S.team.expanded;if(!ex.stress[track])ex.stress[track]=[];ex.stress[track][i]=!ex.stress[track][i];save();renderTeam();}
-function addExStunt(){const n=prompt('Team Stunt Name:');if(!n)return;const d=prompt('Description:')||'';const c=Math.max(1,Math.min(3,parseInt(prompt('HP Cost (1-3):','1'))||1));S.team.expanded.stunts.push({name:n,desc:d,cost:c});save();renderTeam();}
-function addExPower(){const n=prompt('Power Name:');if(!n)return;const d=prompt('Description:')||'';const c=Math.max(1,Math.min(6,parseInt(prompt('HP Cost (1-6):','1'))||1));S.team.expanded.powers.push({name:n,desc:d,cost:c});save();renderTeam();}
+  ex.skills[sk]=nv;save();renderNPCs();}
+function toggleExStress(track,i){const ex=S.team.expanded;if(!ex.stress[track])ex.stress[track]=[];ex.stress[track][i]=!ex.stress[track][i];save();renderNPCs();}
+function addExStunt(){const n=prompt('Team Stunt Name:');if(!n)return;const d=prompt('Description:')||'';const c=Math.max(1,Math.min(3,parseInt(prompt('HP Cost (1-3):','1'))||1));S.team.expanded.stunts.push({name:n,desc:d,cost:c});save();renderNPCs();}
+function addExPower(){const n=prompt('Power Name:');if(!n)return;const d=prompt('Description:')||'';const c=Math.max(1,Math.min(6,parseInt(prompt('HP Cost (1-6):','1'))||1));S.team.expanded.powers.push({name:n,desc:d,cost:c});save();renderNPCs();}
 
 // ═══════════════════════════════════════════════════════════
 // NPCs
 // ═══════════════════════════════════════════════════════════
 let _npcTab='supporting',_npcEdit=null;
+const NPC_TABS=[{id:'supporting',label:'Cast'},{id:'rogue',label:'Rogues'},{id:'nameless',label:'Nameless'},{id:'main',label:'Main'},{id:'team',label:'Team'}];
 function renderNPCs(){
   const el=document.getElementById('npcs-content');
-  let h=`<div class="pg-title">NPCs</div><div class="pg-sub">Characters & Villains</div><div class="npc-tabs">${['supporting','rogue','nameless','main'].map(t=>`<div class="npc-tab ${_npcTab===t?'active':''}" onclick="_npcTab='${t}';renderNPCs()">${t==='supporting'?'Cast':t==='rogue'?'Rogues':t==='nameless'?'Nameless':'Main'}</div>`).join('')}</div>`;
+  let h=`<div class="pg-title">NPCs</div><div class="pg-sub">Characters, Villains & Team</div><div class="npc-tabs">${NPC_TABS.map(t=>`<div class="npc-tab ${_npcTab===t.id?'active':''}" onclick="_npcTab='${t.id}';renderNPCs()">${t.label}</div>`).join('')}</div>`;
+  if(_npcTab==='team'){renderTeam(el);return;}
   S.npcs.filter(n=>n.type===_npcTab).forEach(npc=>{const ri=S.npcs.indexOf(npc);
     h+=`<div class="card-sm"><div style="display:flex;justify-content:space-between;align-items:start"><div><div class="fw-700">${esc(npc.name)}</div>${npc.desc?`<div style="font-size:12px;color:var(--muted)">${esc(npc.desc)}</div>`:''}`;
     if(npc.type==='main'||npc.type==='rogue'){if(npc.aspects?.length)h+=`<div style="font-size:11px;margin-top:2px">${npc.aspects.map(a=>`<span class="tag" style="background:var(--surface3);color:var(--text);border:1px solid var(--border)">${esc(a)}</span>`).join(' ')}</div>`;if(npc.powers)h+=`<div style="font-size:11px;color:var(--purple);margin-top:2px">${esc(npc.powers)}</div>`;}

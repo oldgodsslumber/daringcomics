@@ -162,6 +162,20 @@ select{cursor:pointer;-webkit-appearance:none;appearance:none;background-image:u
 .mb-1{margin-bottom:4px}.mb-2{margin-bottom:8px}.mb-3{margin-bottom:12px}
 .fw-700{font-weight:700}.tac{text-align:center}
 ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:3px}
+/* MAP */
+#map-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;width:100%;max-width:420px;margin:0 auto 14px}
+.map-cell{aspect-ratio:1;background:var(--surface2);border:2px solid var(--border);border-radius:var(--radius-card);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;transition:all .2s;overflow:hidden}
+.map-cell:hover{border-color:var(--accent)}
+.map-cell.current{border-color:var(--accent);box-shadow:0 0 10px rgba(230,57,70,.5)}
+.map-cell.explored{background:var(--surface3)}
+.map-cell.unexplored{opacity:.35}
+.map-cell.adjacent{border-color:var(--blue)}
+.map-cell.void{background:var(--bg);border:2px dashed var(--border);cursor:default;opacity:.3}
+.map-cell.void:hover{border-color:var(--border)}
+.cell-num{color:var(--muted);font-size:8px;position:absolute;top:2px;left:4px;font-family:var(--font-label)}
+.cell-icon{font-size:20px}
+.cell-name{font-size:8px;color:var(--accent);text-align:center;padding:0 2px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--font-label);letter-spacing:.3px}
+@media(min-width:481px){.cell-icon{font-size:28px}.cell-name{font-size:10px}.cell-num{font-size:9px}}
 #theme-wrap{display:none}
 #nb-theme{display:flex}
 #theme-popup{display:none}
@@ -196,6 +210,9 @@ select{cursor:pointer;-webkit-appearance:none;appearance:none;background-image:u
   </button>
   <button class="nb" onclick="showTab('npcs')" id="nb-npcs">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><circle cx="16" cy="8" r="3"/><path d="M2 20c0-3 2.7-5 6-5m4 0c3.3 0 6 2 6 5"/></svg>NPCs
+  </button>
+  <button class="nb" onclick="showTab('map')" id="nb-map">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>Map
   </button>
   <button class="nb" onclick="showTab('dice')" id="nb-dice">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="4"/><circle cx="8" cy="8" r="1.5" fill="currentColor"/><circle cx="16" cy="16" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></svg>Dice
@@ -235,6 +252,7 @@ select{cursor:pointer;-webkit-appearance:none;appearance:none;background-image:u
 </div>
 <div class="page active" id="page-hero"><div id="hero-main"><div id="hero-creation"></div><div id="hero-sheet" style="display:none"></div></div><div id="hero-dice-sidebar"></div></div>
 <div class="page" id="page-npcs"><div id="npcs-content"></div></div>
+<div class="page" id="page-map"><div id="map-content"></div></div>
 <div class="page" id="page-dice"><div id="dice-content"></div></div>
 <div class="page" id="page-conflict"><div id="conflict-content"></div></div>
 <div class="page" id="page-notes">
@@ -594,7 +612,7 @@ const NOTE_TYPES=[
 function defaultState(){
   return{series:{tone:null,level:null,experience:null},char:null,
     creation:{step:0,costumedName:'',civilianName:'',aspects:{concept:'',motivation:'',contingent:[{cat:'',text:''},{cat:'',text:''},{cat:'',text:''}]},supportingCast:[],roguesGallery:[],skills:{},powerSets:[],stunts:[]},
-    team:null,npcs:[],conflict:{active:false,zones:[],turnOrder:[],currentTurn:0,round:1,log:[]},dice:null,notes:[]};
+    team:null,npcs:[],regions:[defaultRegion()],activeRegion:0,conflict:{active:false,zones:[],turnOrder:[],currentTurn:0,round:1,log:[]},dice:null,notes:[]};
 }
 let S=defaultState(),currentSlot=null;
 function slotKey(n){return'dc_slot_'+n;}
@@ -625,7 +643,7 @@ function showTab(id){
   document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
   document.getElementById('page-'+id).classList.add('active');
   const nb=document.getElementById('nb-'+id);if(nb)nb.classList.add('active');
-  if(id==='hero')renderHero();if(id==='npcs')renderNPCs();
+  if(id==='hero')renderHero();if(id==='npcs')renderNPCs();if(id==='map')renderMap();
   if(id==='dice')renderDice();if(id==='conflict')renderConflict();if(id==='notes')renderNotes();
 }
 function renderAll(){renderHero();}
@@ -1344,6 +1362,99 @@ function hudBroadcast(){try{if(!_hudCh)_hudCh=new BroadcastChannel('daring-comic
 function openHUD(){const w=window.open('','_blank','width=1280,height=720');if(!w)return;w.document.write(buildHUD());w.document.close();setTimeout(()=>hudBroadcast(),600);}
 function buildHUD(){return`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Daring Comics HUD</title><link href="https://fonts.googleapis.com/css2?family=Bangers&family=Oswald:wght@400;700&family=Comic+Neue:wght@400;700&display=swap" rel="stylesheet"><style>*{box-sizing:border-box;margin:0;padding:0}body{background:#0a0e1a;color:#f0f0f0;font-family:'Comic Neue',sans-serif;padding:24px;display:grid;grid-template-columns:1fr 1fr;gap:20px}.hc{background:#121828;border:1px solid #2a3a5a;border-radius:12px;padding:16px}.ht{font-family:'Bangers',cursive;font-size:28px;color:#e63946}.hl{font-family:'Oswald',sans-serif;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#7a8a9e;margin-bottom:4px}.sb{display:inline-flex;width:32px;height:32px;border:2px solid #2a3a5a;border-radius:6px;align-items:center;justify-content:center;margin:2px;font-size:14px;font-weight:700}.sb.f{background:#e63946;border-color:#e63946;color:#fff}.fd{display:inline-flex;width:56px;height:56px;border-radius:12px;align-items:center;justify-content:center;font-size:36px;font-weight:900;border:2px solid #2a3a5a;background:#1a2236;margin:4px}.fd.p{color:#2ecc71;border-color:#2ecc71}.fd.m{color:#e74c3c;border-color:#e74c3c}</style></head><body><div class="hc" id="hh" style="grid-column:span 2"><div class="ht" id="hn">Waiting...</div></div><div class="hc"><div class="hl">Stress & FP</div><div id="hs"></div></div><div class="hc"><div class="hl">Last Roll</div><div id="hd" style="text-align:center"></div></div><div class="hc"><div class="hl">Conflict</div><div id="hcf"></div></div><div class="hc"><div class="hl">Journal</div><div id="hn2"></div></div><script>const ch=new BroadcastChannel('daring-comics-hud');ch.postMessage({type:'ping'});ch.onmessage=function(e){const d=e.data;if(d.type!=='state')return;if(d.char){document.getElementById('hn').innerHTML=d.char.costumedName;let s='<div style="margin-top:8px"><div class="hl">Physical</div>';d.char.stress.physical.forEach(function(v,i){s+='<div class="sb'+(v?' f':'')+'\">'+(i+1)+'</div>';});s+='</div><div style="margin-top:8px"><div class="hl">Mental</div>';d.char.stress.mental.forEach(function(v,i){s+='<div class="sb'+(v?' f':'')+'\">'+(i+1)+'</div>';});s+='</div><div style="margin-top:12px;font-size:28px;font-weight:900;color:#f1c40f">FP: '+d.char.fatePoints+'</div>';document.getElementById('hs').innerHTML=s;}if(d.dice&&d.dice.dice){var dh=d.dice.dice.map(function(v){return'<div class="fd'+(v>0?' p':v<0?' m':'')+'\">'+(v>0?'+':v<0?'\\u2212':'0')+'</div>';}).join('');dh+='<div style="font-size:48px;font-weight:900;font-family:Bangers;color:#e63946;margin-top:8px">'+(d.dice.total>=0?'+':'')+d.dice.total+'</div>';document.getElementById('hd').innerHTML=dh;}if(d.conflict&&d.conflict.active){var c='<div style="font-size:16px;font-weight:700">Round '+d.conflict.round+'</div>';d.conflict.turnOrder.forEach(function(t,i){c+='<div style="padding:4px 0;'+(i===d.conflict.currentTurn?'color:#e63946;font-weight:700':'color:#7a8a9e')+'">'+t.name+'</div>';});document.getElementById('hcf').innerHTML=c;}else document.getElementById('hcf').innerHTML='<div style="color:#7a8a9e">No conflict</div>';if(d.notes&&d.notes.length){var n='';d.notes.slice(-5).forEach(function(x){n+='<div style="font-size:13px;padding:2px 0;color:#ccc">'+(x.text||'')+'</div>';});document.getElementById('hn2').innerHTML=n;}};<\/script></body></html>`;}
 (function(){try{var hc=new BroadcastChannel('daring-comics-hud');hc.onmessage=function(e){if(e.data&&e.data.type==='ping')hudBroadcast();};}catch(e){}})();
+
+// ═══════════════════════════════════════════════════════════
+// MAP
+// ═══════════════════════════════════════════════════════════
+function defaultRegion(name){
+  const cells=Array.from({length:25},(_,i)=>({type:'unknown',isVoid:false,isCurrent:i===12,name:i===12?'':'',icon:'',notes:'',feature:'',subZone:null}));
+  return{name:name||'Downtown',cells,currentCell:12};
+}
+window._mapZoom=null;window._selMapCell=null;
+function heroMarker(){return S.char?esc(S.char.costumedName.charAt(0)):'H';}
+function isAdj(a,b){const ar=Math.floor(a/5),ac=a%5,br=Math.floor(b/5),bc=b%5;return Math.abs(ar-br)+Math.abs(ac-bc)===1;}
+
+function renderMap(){
+  if(!S.regions)S.regions=[defaultRegion()];
+  if(S.activeRegion===undefined)S.activeRegion=0;
+  const el=document.getElementById('map-content');
+  el.innerHTML=renderMapContent();
+}
+
+function renderMapContent(){
+  const region=S.regions[S.activeRegion];if(!region)return'<div class="card">No region data.</div>';
+
+  // SUB-ZONE VIEW
+  if(window._mapZoom){
+    const sz=window._mapZoom.subZone,szCI=window._mapZoom.cellIdx;
+    let g='<div id="map-grid">';
+    for(let i=0;i<25;i++){const c=sz.cells[i],cur=sz.currentCell===i,adj=isAdj(sz.currentCell,i)&&!c.isVoid;
+      let cls='map-cell';if(c.isVoid)cls+=' void';else if(cur)cls+=' current';else if(adj)cls+=' adjacent';else if(c.type==='explored')cls+=' explored';else cls+=' unexplored';
+      const ico=c.icon||(cur?`<span style="color:var(--accent);font-weight:900;font-family:var(--font-title);font-size:22px">${heroMarker()}</span>`:'<span style="color:var(--muted)">\u00b7</span>');
+      g+=`<div class="${cls}" onclick="clickSZCell(${i})"><span class="cell-num">${i+1}</span><span class="cell-icon">${ico}</span>${c.name?`<span class="cell-name">${esc(c.name)}</span>`:''}</div>`;}
+    g+='</div>';
+    const si=window._selMapCell??sz.currentCell,sc=sz.cells[si];
+    let det='';
+    if(sc&&!sc.isVoid){const cur=si===sz.currentCell,adj=isAdj(sz.currentCell,si);
+      det=`<div class="card"><div class="fw-700" style="font-size:14px;font-family:var(--font-title);color:var(--accent);margin-bottom:6px">Area ${si+1}: ${esc(sc.name)||'Unknown'}</div><div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px">${!cur&&adj?`<button class="btn btn-primary btn-xs" onclick="travelSZ(${si})">Travel Here</button>`:''}<button class="btn btn-secondary btn-xs" onclick="toggleSZVoid(${si})">${sc.isVoid?'Clear Void':'Mark Void'}</button></div><div class="form-group"><label>Name</label><input value="${esc(sc.name)}" onchange="setSZProp(${si},'name',this.value)" placeholder="e.g. Rooftop, Lab, Alley..."></div><div class="form-group"><label>Icon (emoji)</label><input value="${esc(sc.icon)}" onchange="setSZProp(${si},'icon',this.value)" placeholder="e.g. 🏢 🔬 🌃"></div><div class="form-group"><label>Feature</label><input value="${esc(sc.feature)}" onchange="setSZProp(${si},'feature',this.value)" placeholder="e.g. Sniper Nest, Evidence Room..."></div><div class="form-group"><label>Notes</label><textarea rows="2" onchange="setSZProp(${si},'notes',this.value)">${esc(sc.notes)}</textarea></div></div>`;}
+    return`<div class="card"><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap"><button class="btn btn-secondary btn-xs" onclick="exitSZ()">\u2190 Back to ${esc(region.name)}</button><span class="pg-title" style="font-size:18px;margin:0">${esc(sz.name)}</span>${sz.type?`<span class="tag" style="background:var(--surface3);color:var(--text);border:1px solid var(--border)">${sz.type}</span>`:''}</div><div class="form-group"><label>Zone Name</label><input value="${esc(sz.name)}" onchange="setSZName(this.value)" style="font-weight:700;color:var(--accent)"></div><div style="font-size:10px;color:var(--muted);margin-bottom:8px">Click adjacent area to travel. Click any cell to view/edit.</div>${g}<div style="display:flex;gap:10px;flex-wrap:wrap;font-size:10px;color:var(--muted)"><span style="color:var(--accent)">\u25a3 You</span><span style="color:var(--blue)">\u25a3 Adjacent</span><span>\u25a0 Explored</span><span style="opacity:.5">\u25a0 Unexplored</span><span style="opacity:.3">\u25a0 Void</span></div></div>${det}`;
+  }
+
+  // NORMAL REGION VIEW
+  let sw='<div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;margin-bottom:10px">';
+  S.regions.forEach((r,i)=>{sw+=`<button class="btn btn-xs ${i===S.activeRegion?'btn-primary':'btn-secondary'}" onclick="switchRegion(${i})">${esc(r.name)}</button>`;});
+  sw+=`<button class="btn btn-xs btn-gold" onclick="newRegion()">+ New</button></div>`;
+
+  let g='<div id="map-grid">';
+  for(let i=0;i<25;i++){const c=region.cells[i],cur=region.currentCell===i,adj=isAdj(region.currentCell,i)&&!c.isVoid;
+    let cls='map-cell';if(c.isVoid)cls+=' void';else if(cur)cls+=' current';else if(adj)cls+=' adjacent';else if(c.type==='explored')cls+=' explored';else cls+=' unexplored';
+    const ico=c.icon||(cur?`<span style="color:var(--accent);font-weight:900;font-family:var(--font-title);font-size:22px">${heroMarker()}</span>`:'<span style="color:var(--muted)">\u00b7</span>');
+    g+=`<div class="${cls}" onclick="clickMapCell(${i})"><span class="cell-num">${i+1}</span><span class="cell-icon">${ico}</span>${c.name?`<span class="cell-name">${esc(c.name)}</span>`:''}</div>`;}
+  g+='</div>';
+
+  const si=window._selMapCell??region.currentCell,sc=region.cells[si];
+  let det='';
+  if(sc&&!sc.isVoid){const cur=si===region.currentCell,adj=isAdj(region.currentCell,si);
+    det=`<div class="card"><div class="fw-700" style="font-size:14px;font-family:var(--font-title);color:var(--accent);margin-bottom:6px">Location ${si+1}: ${esc(sc.name)||'Unknown'}</div><div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px">${!cur&&adj?`<button class="btn btn-primary btn-xs" onclick="travelTo(${si})">Travel Here</button>`:''}<button class="btn btn-secondary btn-xs" onclick="toggleMapVoid(${si})">${sc.isVoid?'Clear Void':'Mark Void'}</button><button class="btn btn-gold btn-xs" onclick="enterSZ(${si})">Zoom In${sc.subZone?' ('+sc.subZone.type+')':''}</button></div><div class="form-group"><label>Location Name</label><input value="${esc(sc.name)}" onchange="setMapProp(${si},'name',this.value)" placeholder="e.g. Wayne Tower, City Hall, Docks..."></div><div class="form-group"><label>Icon (emoji)</label><input value="${esc(sc.icon)}" onchange="setMapProp(${si},'icon',this.value)" placeholder="e.g. 🏢 🏭 🌳 🏥 🏛"></div><div class="form-group"><label>Feature</label><input value="${esc(sc.feature)}" onchange="setMapProp(${si},'feature',this.value)" placeholder="e.g. Villain HQ, Hospital, Park..."></div><div class="form-group"><label>Notes</label><textarea rows="2" onchange="setMapProp(${si},'notes',this.value)">${esc(sc.notes)}</textarea></div></div>`;}
+
+  const heroInfo=S.char?`<div class="card-sm" style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><span style="font-size:22px;font-weight:900;font-family:var(--font-title);color:var(--accent)">${heroMarker()}</span><div><div style="font-weight:700;color:var(--accent)">${esc(S.char.costumedName)}</div><div style="font-size:10px;color:var(--muted)">${esc(S.char.civilianName)}</div></div></div>`:'';
+
+  return`<div class="pg-title">Region Map</div><div class="pg-sub">Explore the city</div>${sw}<div class="card"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><span style="font-size:16px;font-weight:700;font-family:var(--font-title);color:var(--accent)">${esc(region.name)}</span><div style="display:flex;gap:4px"><button class="btn btn-secondary btn-xs" onclick="renameRegion()">Rename</button>${S.regions.length>1?`<button class="btn btn-danger btn-xs" onclick="deleteRegion()">Delete</button>`:''}</div></div>${heroInfo}<div style="font-size:10px;color:var(--muted);margin-bottom:8px">5\u00d75 grid. Click adjacent location to travel. Click any cell to view/edit.</div>${g}<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;font-size:10px;color:var(--muted)"><span style="color:var(--accent)">\u25a3 You</span><span style="color:var(--blue)">\u25a3 Adjacent</span><span>\u25a0 Explored</span><span style="opacity:.5">\u25a0 Unexplored</span><span style="opacity:.3">\u25a0 Void</span></div></div>${det}`;
+}
+
+// Region operations
+function clickMapCell(i){window._selMapCell=i;const r=S.regions[S.activeRegion];if(r)r.cells[i].type='explored';save();renderMap();}
+function travelTo(i){const r=S.regions[S.activeRegion];if(!r)return;r.cells[r.currentCell].isCurrent=false;r.currentCell=i;r.cells[i].isCurrent=true;r.cells[i].type='explored';window._selMapCell=i;save();renderMap();}
+function setMapProp(i,p,v){const r=S.regions[S.activeRegion];if(r)r.cells[i][p]=v;save();}
+function toggleMapVoid(i){const r=S.regions[S.activeRegion];if(r)r.cells[i].isVoid=!r.cells[i].isVoid;save();renderMap();}
+function switchRegion(i){S.activeRegion=i;window._selMapCell=null;window._mapZoom=null;save();renderMap();}
+function newRegion(){const n=prompt('Region name:','Neighborhood '+(S.regions.length+1));if(!n)return;S.regions.push(defaultRegion(n));S.activeRegion=S.regions.length-1;window._selMapCell=null;save();renderMap();}
+function renameRegion(){const r=S.regions[S.activeRegion];if(!r)return;const n=prompt('Rename region:',r.name);if(n)r.name=n;save();renderMap();}
+function deleteRegion(){if(S.regions.length<=1)return alert('Cannot delete the only region.');if(!confirm('Delete this region?'))return;S.regions.splice(S.activeRegion,1);S.activeRegion=Math.max(0,S.activeRegion-1);save();renderMap();}
+
+// Sub-zone operations
+function enterSZ(ci){
+  const r=S.regions[S.activeRegion];if(!r)return;const c=r.cells[ci];
+  if(!c.subZone){
+    const types=['Building','Street','Underground','Rooftop','Hideout'];
+    let h='<div class="card"><div class="pg-title" style="font-size:18px">Zone Type</div><div style="font-size:12px;color:var(--muted);margin-bottom:10px">What kind of location is this?</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">';
+    types.forEach(t=>{const icons={Building:'\ud83c\udfe2',Street:'\ud83c\udfd9',Underground:'\ud83d\ude87',Rooftop:'\ud83c\udf06',Hideout:'\ud83d\udd75'};h+=`<button class="btn btn-primary" style="padding:12px;font-size:13px" onclick="createSZ(${ci},'${t}')">${icons[t]||''} ${t}</button>`;});
+    h+='</div></div>';
+    document.getElementById('map-content').innerHTML=h;return;
+  }
+  window._mapZoom={cellIdx:ci,subZone:c.subZone};window._selMapCell=null;renderMap();
+}
+function createSZ(ci,type){
+  const r=S.regions[S.activeRegion];if(!r)return;const c=r.cells[ci];
+  c.subZone={name:c.name||('Area '+(ci+1)),type,currentCell:12,cells:Array.from({length:25},()=>({name:'',icon:'',isVoid:false,notes:'',feature:'',type:'unknown'}))};
+  save();window._mapZoom={cellIdx:ci,subZone:c.subZone};window._selMapCell=null;renderMap();
+}
+function exitSZ(){window._mapZoom=null;window._selMapCell=null;renderMap();}
+function setSZName(v){if(!window._mapZoom)return;window._mapZoom.subZone.name=v;const r=S.regions[S.activeRegion];if(r)r.cells[window._mapZoom.cellIdx].subZone=window._mapZoom.subZone;save();}
+function setSZProp(i,p,v){if(!window._mapZoom)return;window._mapZoom.subZone.cells[i][p]=v;const r=S.regions[S.activeRegion];if(r)r.cells[window._mapZoom.cellIdx].subZone=window._mapZoom.subZone;save();}
+function clickSZCell(i){if(!window._mapZoom)return;window._selMapCell=i;window._mapZoom.subZone.cells[i].type='explored';const r=S.regions[S.activeRegion];if(r)r.cells[window._mapZoom.cellIdx].subZone=window._mapZoom.subZone;save();renderMap();}
+function travelSZ(i){if(!window._mapZoom)return;const sz=window._mapZoom.subZone;sz.currentCell=i;sz.cells[i].type='explored';window._selMapCell=i;const r=S.regions[S.activeRegion];if(r)r.cells[window._mapZoom.cellIdx].subZone=sz;save();renderMap();}
+function toggleSZVoid(i){if(!window._mapZoom)return;window._mapZoom.subZone.cells[i].isVoid=!window._mapZoom.subZone.cells[i].isVoid;const r=S.regions[S.activeRegion];if(r)r.cells[window._mapZoom.cellIdx].subZone=window._mapZoom.subZone;save();renderMap();}
 
 // ═══════════════════════════════════════════════════════════
 // UTILITY & INIT

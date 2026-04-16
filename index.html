@@ -960,11 +960,11 @@ function renderSheet(){
   // Quick roll toast area
   h+=`<div id="quick-roll-toast" style="position:sticky;top:0;z-index:50"></div>`;
   // Mobile dice bar
-  h+=`<div id="hero-dice-mobile"><div class="dice-bar-toggle" onclick="document.getElementById('dice-bar-body').classList.toggle('open')"><div style="display:flex;align-items:center;gap:6px"><span style="font-size:16px">&#127922;</span><span class="fw-700" style="font-size:13px;font-family:var(--font-label)">Dice Roller</span></div><span class="text-muted" style="font-size:11px">tap to expand</span></div><div class="dice-bar-body" id="dice-bar-body"><div style="display:flex;gap:6px;align-items:end"><div style="flex:1"><div class="label" style="margin-bottom:2px">Skill</div><select id="dm-sk" style="font-size:12px;padding:7px"><option value="">— None —</option>${SKILLS.map(sk=>`<option value="${sk}">${sk} (+${ch?.skills?.[sk]||0})</option>`).join('')}</select></div><div style="width:55px"><div class="label" style="margin-bottom:2px">Mod</div><input type="number" id="dm-mod" value="0" style="font-size:12px;padding:7px"></div><button class="roll-btn" style="width:44px;height:44px;font-size:14px;flex-shrink:0" onclick="doMobileRoll()">ROLL</button></div></div></div>`;
-  h+=`<div class="card"><div class="label mb-1">Skills <span class="text-muted" style="font-weight:400;text-transform:none;letter-spacing:0;font-size:9px">tap to roll</span></div>`;
-  SKILLS.filter(sk=>(ch.skills[sk]||0)>0).sort((a,b)=>(ch.skills[b]||0)-(ch.skills[a]||0)).forEach(sk=>{h+=`<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;border-bottom:1px solid var(--border);cursor:pointer" onclick="quickRoll('${sk}',0)"><div><span class="fw-700">${sk}</span><div style="font-size:10px;color:var(--muted);line-height:1.2">${SKILL_DESC[sk]||''}</div></div><span class="fw-700 text-accent" style="white-space:nowrap;margin-left:8px">${ladderName(ch.skills[sk])} (+${ch.skills[sk]})</span></div>`;});h+='</div>';
+  h+=`<div id="hero-dice-mobile"><div class="dice-bar-toggle" onclick="document.getElementById('dice-bar-body').classList.toggle('open')"><div style="display:flex;align-items:center;gap:6px"><span style="font-size:16px">&#127922;</span><span class="fw-700" style="font-size:13px;font-family:var(--font-label)">Dice Roller</span><span id="dm-loaded" style="font-size:10px;color:var(--accent)"></span></div><span class="text-muted" style="font-size:11px">tap to expand</span></div><div class="dice-bar-body" id="dice-bar-body"><div id="dm-loaded-info" style="margin-bottom:6px"></div><div style="display:flex;gap:6px;align-items:end"><div style="flex:1"><div class="label" style="margin-bottom:2px">Skill</div><select id="dm-sk" style="font-size:12px;padding:7px" onchange="_loadedPower='';updateLoadedInfo('m')"><option value="">— None —</option>${SKILLS.map(sk=>`<option value="${sk}">${sk} (+${ch?.skills?.[sk]||0})</option>`).join('')}</select></div><div style="width:50px"><div class="label" style="margin-bottom:2px">Mod</div><input type="number" id="dm-mod" value="0" style="font-size:12px;padding:7px"></div><div style="width:50px"><div class="label" style="margin-bottom:2px">TN</div><input type="number" id="dm-tn" value="0" style="font-size:12px;padding:7px"></div><button class="roll-btn" style="width:44px;height:44px;font-size:14px;flex-shrink:0" onclick="doMobileRoll()">ROLL</button></div></div></div>`;
+  h+=`<div class="card"><div class="label mb-1">Skills <span class="text-muted" style="font-weight:400;text-transform:none;letter-spacing:0;font-size:9px">tap to load into roller</span></div>`;
+  SKILLS.filter(sk=>(ch.skills[sk]||0)>0).sort((a,b)=>(ch.skills[b]||0)-(ch.skills[a]||0)).forEach(sk=>{h+=`<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;border-bottom:1px solid var(--border);cursor:pointer" onclick="loadRoll('${sk}',0)"><div><span class="fw-700">${sk}</span><div style="font-size:10px;color:var(--muted);line-height:1.2">${SKILL_DESC[sk]||''}</div></div><span class="fw-700 text-accent" style="white-space:nowrap;margin-left:8px">${ladderName(ch.skills[sk])} (+${ch.skills[sk]})</span></div>`;});h+='</div>';
   // Power Sets
-  (ch.powerSets||[]).forEach(ps=>{h+=`<div class="powerset-card"><div class="powerset-name">${esc(ps.name||'Power Set')}</div><div class="powerset-aspect">${esc(ps.aspect)}</div>`;(ps.powers||[]).forEach(pw=>{const pd=POWERS.find(p=>p.id===pw.powerId);const pSkill=pd?.skill?.split('/')[0]||'';const rollable=pSkill&&pSkill!=='None';const rollSkill=pSkill==='Magic'||pSkill==='Mental'||pSkill==='Power'?'Controlling':pSkill;const pwName=esc(pw.customName||pd?.name||pw.powerId);h+=`<div style="padding:6px 4px;font-size:13px;border-bottom:1px solid var(--border);${rollable?'cursor:pointer':''}" ${rollable?`onclick="quickRoll('${rollSkill}',${pw.level>1?pw.level:0},'${pwName.replace(/'/g,"\\'")}')"`:''}><span class="fw-700">${pwName}</span>${rollable?' <span style="font-size:9px;color:var(--accent);vertical-align:middle">ROLL</span>':''}${pw.level>1?' <span class="text-accent">Lv'+pw.level+'</span>':''} <span class="text-muted">(${pw.totalCost} HP)</span>${pd?.desc?`<div style="font-size:11px;color:var(--muted);margin-top:1px">${esc(pd.desc)}</div>`:''}${pd?.levelDesc&&pd.levelDesc[pw.level]?`<div style="font-size:11px;color:var(--accent);margin-top:1px">${esc(pd.levelDesc[pw.level])}</div>`:''}${pw.selectedSE.length?'<div style="margin-top:3px">'+pw.selectedSE.map(se=>{const def=[...(pd?.se||[]),...GENERAL_SE].find(x=>x.name===se);return`<div style="font-size:11px;margin-bottom:2px"><span class="tag tag-se">${se}</span>${def?' <span style="color:var(--muted)">'+esc(def.desc)+'</span>':''}</div>`;}).join('')+'</div>':''}${pw.selectedLim.length?'<div style="margin-top:2px">'+pw.selectedLim.map(l=>{const def=[...(pd?.lim||[]),...GENERAL_LIMITS].find(x=>x.name===l);return`<div style="font-size:11px;margin-bottom:2px"><span class="tag tag-lim">${l}</span>${def?' <span style="color:var(--muted)">'+esc(def.desc)+'</span>':''}</div>`;}).join('')+'</div>':''}</div>`;});h+='</div>';});
+  (ch.powerSets||[]).forEach(ps=>{h+=`<div class="powerset-card"><div class="powerset-name">${esc(ps.name||'Power Set')}</div><div class="powerset-aspect">${esc(ps.aspect)}</div>`;(ps.powers||[]).forEach(pw=>{const pd=POWERS.find(p=>p.id===pw.powerId);const pSkill=pd?.skill?.split('/')[0]||'';const rollable=pSkill&&pSkill!=='None';const rollSkill=pSkill==='Magic'||pSkill==='Mental'||pSkill==='Power'?'Controlling':pSkill;const pwName=esc(pw.customName||pd?.name||pw.powerId);h+=`<div style="padding:6px 4px;font-size:13px;border-bottom:1px solid var(--border);${rollable?'cursor:pointer':''}" ${rollable?`onclick="loadRoll('${rollSkill}',${pw.level>1?pw.level:0},'${pwName.replace(/'/g,"\\'")}')"`:''}><span class="fw-700">${pwName}</span>${rollable?' <span style="font-size:9px;color:var(--blue);vertical-align:middle">LOAD</span>':''}${pw.level>1?' <span class="text-accent">Lv'+pw.level+'</span>':''} <span class="text-muted">(${pw.totalCost} HP)</span>${pd?.desc?`<div style="font-size:11px;color:var(--muted);margin-top:1px">${esc(pd.desc)}</div>`:''}${pd?.levelDesc&&pd.levelDesc[pw.level]?`<div style="font-size:11px;color:var(--accent);margin-top:1px">${esc(pd.levelDesc[pw.level])}</div>`:''}${pw.selectedSE.length?'<div style="margin-top:3px">'+pw.selectedSE.map(se=>{const def=[...(pd?.se||[]),...GENERAL_SE].find(x=>x.name===se);return`<div style="font-size:11px;margin-bottom:2px"><span class="tag tag-se">${se}</span>${def?' <span style="color:var(--muted)">'+esc(def.desc)+'</span>':''}</div>`;}).join('')+'</div>':''}${pw.selectedLim.length?'<div style="margin-top:2px">'+pw.selectedLim.map(l=>{const def=[...(pd?.lim||[]),...GENERAL_LIMITS].find(x=>x.name===l);return`<div style="font-size:11px;margin-bottom:2px"><span class="tag tag-lim">${l}</span>${def?' <span style="color:var(--muted)">'+esc(def.desc)+'</span>':''}</div>`;}).join('')+'</div>':''}</div>`;});h+='</div>';});
   // Stunts
   if(ch.stunts?.length){h+=`<div class="card"><div class="label mb-1">Stunts</div>`;ch.stunts.forEach(st=>{h+=`<div style="padding:3px 0;font-size:13px">\u2605 <strong>${esc(st.name)}</strong> <span class="text-muted">(${st.cost} HP)</span><br><span style="font-size:12px;color:var(--muted)">${esc(st.desc)}</span></div>`;});h+='</div>';}
   // Gear
@@ -994,8 +994,9 @@ function renderSheet(){
 function buildDicePanel(){
   const ch=S.char;
   const ex=S.team?.expanded;const exSkills=ex?['Combat','Expertise','Social','Undercover']:[];
-  let h=`<div class="card"><div class="pg-title" style="font-size:18px;margin-bottom:8px">Dice Roller</div>`;
-  h+=`<div style="display:flex;gap:6px;margin-bottom:8px"><div style="flex:1"><div class="label" style="margin-bottom:2px">Skill</div><select id="ds-sk" style="font-size:12px;padding:7px" onchange="updateDSP()"><option value="">— None —</option>${SKILLS.map(sk=>`<option value="${sk}">${sk} (+${ch?.skills?.[sk]||0})</option>`).join('')}${exSkills.length?`<optgroup label="Team">${exSkills.map(sk=>`<option value="team:${sk}">${sk} (+${ex.skills[sk]||0})</option>`).join('')}</optgroup>`:''}</select></div><div style="width:60px"><div class="label" style="margin-bottom:2px">Mod</div><input type="number" id="ds-mod" value="0" style="font-size:12px;padding:7px"></div></div>`;
+  let h=`<div class="card"><div class="pg-title" style="font-size:18px;margin-bottom:4px">Dice Roller</div>`;
+  h+=`<div id="ds-loaded" style="font-size:12px;color:var(--purple);font-weight:700;font-family:var(--font-title);margin-bottom:6px">${_loadedPower?esc(_loadedPower):''}</div>`;
+  h+=`<div style="display:flex;gap:6px;margin-bottom:6px"><div style="flex:1"><div class="label" style="margin-bottom:2px">Skill</div><select id="ds-sk" style="font-size:12px;padding:7px" onchange="_loadedPower='';updateLoadedInfo('s')"><option value="">— None —</option>${SKILLS.map(sk=>`<option value="${sk}"${_loadedSkill===sk?' selected':''}>${sk} (+${ch?.skills?.[sk]||0})</option>`).join('')}${exSkills.length?`<optgroup label="Team">${exSkills.map(sk=>`<option value="team:${sk}">${sk} (+${ex.skills[sk]||0})</option>`).join('')}</optgroup>`:''}</select></div><div style="width:50px"><div class="label" style="margin-bottom:2px">Mod</div><input type="number" id="ds-mod" value="${_loadedMod}" style="font-size:12px;padding:7px"></div><div style="width:50px"><div class="label" style="margin-bottom:2px">TN</div><input type="number" id="ds-tn" value="0" style="font-size:12px;padding:7px" placeholder="0"></div></div>`;
   h+=`<div class="tac"><button class="roll-btn" style="width:60px;height:60px;font-size:18px" onclick="doSidebarRoll()">ROLL</button></div>`;
   h+=`<div id="ds-result" style="margin-top:8px"></div>`;
   if(ch){h+=`<div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)"><div class="label" style="margin:0">Fate Points</div><div style="display:flex;align-items:center;gap:8px"><button class="sk-btn" style="width:22px;height:22px;font-size:14px" onclick="adjFP(-1);renderSheet()">−</button><span style="font-size:20px;font-weight:900;color:var(--gold)">${ch.fatePoints}</span><button class="sk-btn" style="width:22px;height:22px;font-size:14px" onclick="adjFP(1);renderSheet()">+</button></div></div>`;}
@@ -1248,47 +1249,74 @@ function renderDice(){
   h+=`<div id="d-actions" style="display:none" class="card tac"><button class="btn btn-gold btn-sm" onclick="invokeAsp()">Invoke (+2)</button> <button class="btn btn-secondary btn-sm" onclick="rerollDice()">Reroll</button> <button class="btn btn-success btn-sm" onclick="compelAsp()">Compel (+1 FP)</button></div><div id="d-hist"></div>`;
   el.innerHTML=h;renderDR();
 }
-function quickRoll(skill,bonus,powerName){
-  const sv=S.char?.skills?.[skill]||0;
-  const mod=bonus||0;
-  const dice=[rollFD(),rollFD(),rollFD(),rollFD()];
-  const ds=dice.reduce((a,b)=>a+b,0);
-  const tot=ds+sv+mod;
-  S.dice={skill,skillVal:sv,mod,dice,diceSum:ds,total:tot,powerName:powerName||''};
-  save();quickRollShow();
+let _loadedSkill='',_loadedMod=0,_loadedPower='';
+function loadRoll(skill,bonus,powerName){
+  _loadedSkill=skill;_loadedMod=bonus||0;_loadedPower=powerName||'';
+  // Update mobile bar
+  const msk=document.getElementById('dm-sk');if(msk){msk.value=skill;}
+  const mmod=document.getElementById('dm-mod');if(mmod)mmod.value=_loadedMod;
+  const mbar=document.getElementById('dice-bar-body');if(mbar)mbar.classList.add('open');
+  updateLoadedInfo('m');
+  // Update sidebar
+  const ssk=document.getElementById('ds-sk');if(ssk)ssk.value=skill;
+  const smod=document.getElementById('ds-mod');if(smod)smod.value=_loadedMod;
+  updateLoadedInfo('s');
 }
-function quickRollShow(){
+function updateLoadedInfo(target){
+  const sk=target==='s'?document.getElementById('ds-sk')?.value:document.getElementById('dm-sk')?.value;
+  const sv=S.char?.skills?.[sk]||0;
+  const mod=parseInt((target==='s'?document.getElementById('ds-mod'):document.getElementById('dm-mod'))?.value)||0;
+  const label=_loadedPower||sk||'';
+  const el=document.getElementById(target==='s'?'ds-loaded':'dm-loaded-info');
+  const el2=document.getElementById('dm-loaded');
+  if(el&&target==='m')el.innerHTML=label?`<div style="font-size:12px;color:var(--purple);font-weight:700;font-family:var(--font-title)">${esc(label)}</div>`:'';
+  if(el2)el2.textContent=label?' \u2022 '+label:'';
+}
+function fateOutcome(shifts){
+  if(shifts<0)return{label:'FAIL',color:'var(--red)',desc:'You don\u2019t achieve your goal.'};
+  if(shifts===0)return{label:'TIE',color:'var(--yellow)',desc:'Success at a minor cost.'};
+  if(shifts<=2)return{label:'SUCCESS',color:'var(--green)',desc:shifts+' shift'+(shifts>1?'s':'')+'.'};
+  return{label:'SUCCESS WITH STYLE',color:'var(--cyan)',desc:shifts+' shifts! Gain a Boost.'};
+}
+function renderRollResult(d,tn,target){
+  const dh=d.dice.map(v=>`<span class="fate-die ${v>0?'plus':v<0?'minus':'blank'}" style="width:${target==='s'?'36':'32'}px;height:${target==='s'?'36':'32'}px;font-size:${target==='s'?'20':'18'}px;border-radius:${target==='s'?'8':'6'}px">${v>0?'+':v<0?'\u2212':'0'}</span>`).join('');
+  const shifts=d.total-tn;
+  const out=fateOutcome(shifts);
+  const pn=d.powerName?`<div style="font-size:14px;font-weight:900;font-family:var(--font-title);color:var(--purple);margin-bottom:2px">${d.powerName}</div>`:'';
+  return`<div style="text-align:center"><div style="display:flex;gap:${target==='s'?'6':'8'}px;justify-content:center;margin-bottom:6px">${dh}</div>${pn}<div style="font-size:10px;color:var(--muted)">${d.skill?d.skill+' (+'+d.skillVal+')':'Flat roll'}${d.mod?' + bonus(+'+d.mod+')':''}${tn?' vs TN '+tn:''}</div><div style="font-size:22px;font-weight:900;font-family:var(--font-title);color:var(--accent);margin:2px 0">${d.total>=0?'+':''}${d.total} ${ladderName(d.total)}</div>${tn!==0||tn===0?`<div style="font-size:16px;font-weight:900;color:${out.color};margin:2px 0">${out.label}</div><div style="font-size:11px;color:var(--muted)">${out.desc}</div>`:''}<div style="margin-top:6px"><button class="btn btn-gold btn-xs" onclick="if(S.char&&S.char.fatePoints>0){S.char.fatePoints--;S.dice.total+=2;save();refreshRollResult('${target}');}else alert('No FP!')">Invoke +2</button> <button class="btn btn-secondary btn-xs" onclick="if(S.char&&S.char.fatePoints>0){S.char.fatePoints--;S.dice.dice=[rollFD(),rollFD(),rollFD(),rollFD()];S.dice.diceSum=S.dice.dice.reduce((a,b)=>a+b,0);S.dice.total=S.dice.diceSum+S.dice.skillVal+S.dice.mod;save();refreshRollResult('${target}');}else alert('No FP!')">Reroll</button>${target==='m'?' <button class="btn btn-xs btn-secondary" onclick="document.getElementById(\\\'quick-roll-toast\\\').innerHTML=\\\'\\\'">Dismiss</button>':''}</div></div>`;
+}
+function refreshRollResult(target){
   const d=S.dice;if(!d)return;
-  const dh=d.dice.map(v=>`<span class="fate-die ${v>0?'plus':v<0?'minus':'blank'}" style="width:32px;height:32px;font-size:18px;border-radius:6px">${v>0?'+':v<0?'\u2212':'0'}</span>`).join('');
-  const toast=document.getElementById('quick-roll-toast');
-  if(toast){
-    const pn=d.powerName?`<div style="font-size:14px;font-weight:900;font-family:var(--font-title);color:var(--purple);margin-bottom:2px">${d.powerName}</div>`:'';
-    toast.innerHTML=`<div class="card" style="border-color:var(--accent);animation:fadeIn .15s ease"><div style="display:flex;align-items:center;gap:8px;justify-content:center;margin-bottom:6px">${dh}</div><div class="tac">${pn}<span style="font-size:11px;color:var(--muted)">${d.skill} (+${d.skillVal})${d.mod?' + power(+'+d.mod+')':''}</span><div style="font-size:24px;font-weight:900;font-family:var(--font-title);color:var(--accent)">${d.total>=0?'+':''}${d.total} ${ladderName(d.total)}</div></div><div class="tac mt-1"><button class="btn btn-gold btn-xs" onclick="if(S.char.fatePoints>0){S.char.fatePoints--;S.dice.total+=2;save();quickRollShow();}else alert('No FP!')">Invoke +2</button> <button class="btn btn-secondary btn-xs" onclick="if(S.char.fatePoints>0){S.char.fatePoints--;const d=[rollFD(),rollFD(),rollFD(),rollFD()];S.dice.dice=d;S.dice.diceSum=d.reduce((a,b)=>a+b,0);S.dice.total=S.dice.diceSum+S.dice.skillVal+S.dice.mod;save();quickRollShow();}else alert('No FP!')">Reroll</button> <button class="btn btn-xs btn-secondary" onclick="document.getElementById('quick-roll-toast').innerHTML=''">Dismiss</button></div></div>`;
-    toast.scrollIntoView({behavior:'smooth',block:'nearest'});
-  }
+  const tn=d.tn||0;
+  if(target==='s'){const el=document.getElementById('ds-result');if(el)el.innerHTML=renderRollResult(d,tn,'s');renderSheet();}
+  else{const toast=document.getElementById('quick-roll-toast');if(toast)toast.innerHTML=`<div class="card" style="border-color:var(--accent);animation:fadeIn .15s ease">${renderRollResult(d,tn,'m')}</div>`;}
 }
 function doSidebarRoll(){
   const sk=document.getElementById('ds-sk')?.value||'';
   const mod=parseInt(document.getElementById('ds-mod')?.value)||0;
+  const tn=parseInt(document.getElementById('ds-tn')?.value)||0;
   const sv=getSkillVal(sk);
   const dice=[rollFD(),rollFD(),rollFD(),rollFD()];
   const ds=dice.reduce((a,b)=>a+b,0);
   const tot=ds+sv+mod;
-  S.dice={skill:getSkillLabel(sk),skillVal:sv,mod,dice,diceSum:ds,total:tot,powerName:''};
-  save();renderSidebarResult();
+  S.dice={skill:getSkillLabel(sk),skillVal:sv,mod,dice,diceSum:ds,total:tot,powerName:_loadedPower,tn};
+  save();
+  const el=document.getElementById('ds-result');if(el)el.innerHTML=renderRollResult(S.dice,tn,'s');
 }
-function renderSidebarResult(){
-  const el=document.getElementById('ds-result');if(!el)return;
-  const d=S.dice;if(!d||!d.dice){el.innerHTML='';return;}
-  const dh=d.dice.map(v=>`<span class="fate-die ${v>0?'plus':v<0?'minus':'blank'}" style="width:36px;height:36px;font-size:20px;border-radius:8px">${v>0?'+':v<0?'\u2212':'0'}</span>`).join('');
-  el.innerHTML=`<div style="text-align:center"><div style="display:flex;gap:6px;justify-content:center;margin-bottom:6px">${dh}</div><div style="font-size:10px;color:var(--muted)">${d.skill?d.skill+' (+'+d.skillVal+')':'Flat roll'}${d.mod?' +'+d.mod:''}</div><div style="font-size:22px;font-weight:900;font-family:var(--font-title);color:var(--accent)">${d.total>=0?'+':''}${d.total} ${ladderName(d.total)}</div><div style="margin-top:6px"><button class="btn btn-gold btn-xs" onclick="if(S.char&&S.char.fatePoints>0){S.char.fatePoints--;S.dice.total+=2;save();renderSidebarResult();renderSheet();}else alert('No FP!')">Invoke +2</button> <button class="btn btn-secondary btn-xs" onclick="if(S.char&&S.char.fatePoints>0){S.char.fatePoints--;S.dice.dice=[rollFD(),rollFD(),rollFD(),rollFD()];S.dice.diceSum=S.dice.dice.reduce((a,b)=>a+b,0);S.dice.total=S.dice.diceSum+S.dice.skillVal+S.dice.mod;save();renderSidebarResult();}else alert('No FP!')">Reroll</button></div></div>`;
-}
-function updateDSP(){}
 function doMobileRoll(){
   const sk=document.getElementById('dm-sk')?.value||'';
   const mod=parseInt(document.getElementById('dm-mod')?.value)||0;
-  quickRoll(sk.startsWith('team:')?sk.substring(5):sk||'',mod);
+  const tn=parseInt(document.getElementById('dm-tn')?.value)||0;
+  const sv=S.char?.skills?.[sk]||0;
+  const dice=[rollFD(),rollFD(),rollFD(),rollFD()];
+  const ds=dice.reduce((a,b)=>a+b,0);
+  const tot=ds+sv+mod;
+  S.dice={skill:sk,skillVal:sv,mod,dice,diceSum:ds,total:tot,powerName:_loadedPower,tn};
+  save();
+  const toast=document.getElementById('quick-roll-toast');
+  if(toast){toast.innerHTML=`<div class="card" style="border-color:var(--accent);animation:fadeIn .15s ease">${renderRollResult(S.dice,tn,'m')}</div>`;toast.scrollIntoView({behavior:'smooth',block:'nearest'});}
 }
+function updateDSP(){}
 function getSkillVal(sk){if(sk.startsWith('team:')){const tsk=sk.substring(5);return S.team?.expanded?.skills?.[tsk]||0;}return S.char?.skills?.[sk]||0;}
 function getSkillLabel(sk){return sk.startsWith('team:')?sk.substring(5):sk;}
 function updateDP(){const sk=document.getElementById('d-sk')?.value,mod=parseInt(document.getElementById('d-mod')?.value)||0,sv=getSkillVal(sk||'');const el=document.getElementById('d-preview');if(el)el.textContent=sk?`4dF + ${getSkillLabel(sk)}(+${sv})${mod?' + '+(mod>0?'+':'')+mod:''}`:'4dF';}

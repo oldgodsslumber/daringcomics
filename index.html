@@ -884,8 +884,8 @@ function pickSampleStunt(name){
 }
 
 // Power Browser
-let _pbPSI=0,_pbSearch='',_pbSkill='';
-function openPowerBrowser(psi){_pbPSI=psi;_pbSearch='';_pbSkill='';document.getElementById('power-modal').classList.add('open');renderPB();}
+let _pbPSI=0,_pbSearch='',_pbSkill='',_pbTarget='hero';
+function openPowerBrowser(psi,target){_pbPSI=psi;_pbTarget=target||'hero';_pbSearch='';_pbSkill='';document.getElementById('power-modal').classList.add('open');renderPB();}
 function closePB(){document.getElementById('power-modal').classList.remove('open');}
 function renderPB(){
   const q=_pbSearch.toLowerCase(),sf=_pbSkill;
@@ -920,7 +920,10 @@ function showPD(id){
 }
 function setPDLv(lv){window._pdLv=lv;const p=POWERS.find(pw=>pw.id===window._pdId);if(p)p.levels.forEach(l=>{const b=document.getElementById('pw-lv-'+l);if(b)b.className='btn btn-xs'+(l===lv?' btn-primary':' btn-secondary');});updatePDCost();}
 function updatePDCost(){const p=POWERS.find(pw=>pw.id===window._pdId);if(!p)return;let c=p.flat?parseInt(p.cost)||0:window._pdLv;document.querySelectorAll('#pw-se-list input:checked').forEach(i=>c+=parseInt(i.dataset.cost)||0);document.querySelectorAll('#pw-lim-list input:checked').forEach(i=>c+=parseInt(i.dataset.cost)||0);c=Math.max(1,c);const el=document.getElementById('pw-cost-disp');if(el)el.textContent='Total: '+c+' HP';}
-function addPD(id){const p=POWERS.find(pw=>pw.id===id);if(!p)return;const lv=window._pdLv||1;let c=p.flat?parseInt(p.cost)||0:lv;const se=[],lm=[];document.querySelectorAll('#pw-se-list input:checked').forEach(i=>{c+=parseInt(i.dataset.cost)||0;se.push(i.dataset.se);});document.querySelectorAll('#pw-lim-list input:checked').forEach(i=>{c+=parseInt(i.dataset.cost)||0;lm.push(i.dataset.lim);});c=Math.max(1,c);if(!S.creation.powerSets[_pbPSI])return;const customName=(document.getElementById('pw-custom-name')?.value||'').trim()||p.name;S.creation.powerSets[_pbPSI].powers.push({powerId:id,customName,level:lv,selectedSE:se,selectedLim:lm,totalCost:c});save();closePB();renderCreationStep();}
+function addPD(id){const p=POWERS.find(pw=>pw.id===id);if(!p)return;const lv=window._pdLv||1;let c=p.flat?parseInt(p.cost)||0:lv;const se=[],lm=[];document.querySelectorAll('#pw-se-list input:checked').forEach(i=>{c+=parseInt(i.dataset.cost)||0;se.push(i.dataset.se);});document.querySelectorAll('#pw-lim-list input:checked').forEach(i=>{c+=parseInt(i.dataset.cost)||0;lm.push(i.dataset.lim);});c=Math.max(1,c);const customName=(document.getElementById('pw-custom-name')?.value||'').trim()||p.name;
+  const powerObj={powerId:id,customName,level:lv,selectedSE:se,selectedLim:lm,totalCost:c};
+  if(_pbTarget==='npc'){if(!S._npcDraft?.powerSets?.[_pbPSI])return;S._npcDraft.powerSets[_pbPSI].powers.push(powerObj);save();closePB();renderFullNPCEditor();}
+  else{if(!S.creation.powerSets[_pbPSI])return;S.creation.powerSets[_pbPSI].powers.push(powerObj);save();closePB();renderCreationStep();}}
 
 // Step 6: Review
 function renderStepReview(){
@@ -1215,20 +1218,32 @@ function addExPower(){const n=prompt('Power Name:');if(!n)return;const d=prompt(
 // ═══════════════════════════════════════════════════════════
 // NPCs
 // ═══════════════════════════════════════════════════════════
-let _npcTab='supporting',_npcEdit=null;
+let _npcTab='supporting',_npcEdit=null,_npcFullMode=false;
 const NPC_TABS=[{id:'supporting',label:'Cast'},{id:'rogue',label:'Rogues'},{id:'nameless',label:'Nameless'},{id:'main',label:'Main'},{id:'team',label:'Team'}];
 function renderNPCs(){
   const el=document.getElementById('npcs-content');
+  if(_npcFullMode){renderFullNPCEditor();return;}
   let h=`<div class="pg-title">NPCs</div><div class="pg-sub">Characters, Villains & Team</div><div class="npc-tabs">${NPC_TABS.map(t=>`<div class="npc-tab ${_npcTab===t.id?'active':''}" onclick="_npcTab='${t.id}';renderNPCs()">${t.label}</div>`).join('')}</div>`;
   if(_npcTab==='team'){renderTeam(el);return;}
   S.npcs.filter(n=>n.type===_npcTab).forEach(npc=>{const ri=S.npcs.indexOf(npc);
-    h+=`<div class="card-sm"><div style="display:flex;justify-content:space-between;align-items:start"><div><div class="fw-700">${esc(npc.name)}</div>${npc.desc?`<div style="font-size:12px;color:var(--muted)">${esc(npc.desc)}</div>`:''}`;
-    if(npc.type==='main'||npc.type==='rogue'){if(npc.aspects?.length)h+=`<div style="font-size:11px;margin-top:2px">${npc.aspects.map(a=>`<span class="tag" style="background:var(--surface3);color:var(--text);border:1px solid var(--border)">${esc(a)}</span>`).join(' ')}</div>`;if(npc.powers)h+=`<div style="font-size:11px;color:var(--purple);margin-top:2px">${esc(npc.powers)}</div>`;}
+    h+=`<div class="card-sm"><div style="display:flex;justify-content:space-between;align-items:start"><div style="flex:1"><div class="fw-700">${esc(npc.name)}</div>${npc.desc?`<div style="font-size:12px;color:var(--muted)">${esc(npc.desc)}</div>`:''}`;
+    if(npc.type==='main'||npc.type==='rogue'){
+      if(npc.aspects?.length)h+=`<div style="font-size:11px;margin-top:2px">${npc.aspects.map(a=>`<span class="tag" style="background:var(--surface3);color:var(--text);border:1px solid var(--border)">${esc(a)}</span>`).join(' ')}</div>`;
+      if(npc.skills&&Object.keys(npc.skills).length){const sk=Object.entries(npc.skills).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]).slice(0,6);h+=`<div style="font-size:10px;color:var(--muted);margin-top:2px">${sk.map(([n,v])=>`${n} +${v}`).join(', ')}</div>`;}
+      if(npc.powerSets?.length){const pwCount=npc.powerSets.reduce((n,ps)=>n+(ps.powers?.length||0),0);h+=`<div style="font-size:11px;color:var(--purple);margin-top:2px">\u26A1 ${npc.powerSets.length} power set${npc.powerSets.length>1?'s':''}, ${pwCount} power${pwCount!==1?'s':''}</div>`;}
+      else if(npc.powers)h+=`<div style="font-size:11px;color:var(--purple);margin-top:2px">${esc(npc.powers)}</div>`;
+      if(npc.stunts?.length)h+=`<div style="font-size:10px;color:var(--gold);margin-top:2px">\u2605 ${npc.stunts.length} stunt${npc.stunts.length>1?'s':''}</div>`;
+    }
     if(npc.type==='nameless')h+=`<div style="font-size:11px;color:var(--accent);margin-top:2px">Obstacle: ${npc.obstacle||'+0'}</div>`;
     if(npc.stress?.length){h+=`<div style="display:flex;gap:4px;margin-top:4px">`;npc.stress.forEach((v,si)=>{h+=`<div class="stress-box ${v?'filled':''}" style="width:22px;height:22px;font-size:10px" onclick="S.npcs[${ri}].stress[${si}]=!S.npcs[${ri}].stress[${si}];save();renderNPCs()">${si+1}</div>`;});h+='</div>';}
-    h+=`</div><div style="display:flex;gap:4px"><button class="btn btn-secondary btn-xs" onclick="editNPC(${ri})">Edit</button><button class="btn btn-danger btn-xs" onclick="if(confirm('Delete?')){S.npcs.splice(${ri},1);save();renderNPCs();}">X</button></div></div></div>`;
+    h+=`</div><div style="display:flex;flex-direction:column;gap:4px;margin-left:8px">`;
+    if(npc.type==='main'||npc.type==='rogue')h+=`<button class="btn btn-gold btn-xs" onclick="openFullNPCBuilder(${ri})">Builder</button>`;
+    h+=`<button class="btn btn-secondary btn-xs" onclick="editNPC(${ri})">Edit</button><button class="btn btn-danger btn-xs" onclick="if(confirm('Delete?')){S.npcs.splice(${ri},1);save();renderNPCs();}">X</button></div></div></div>`;
   });
-  h+=`<button class="btn btn-primary btn-full mt-2" onclick="openAddNPC()">+ Add</button>`;el.innerHTML=h;
+  h+=`<div style="display:flex;gap:6px;margin-top:8px"><button class="btn btn-primary" style="flex:1" onclick="openAddNPC()">+ Quick Add</button>`;
+  if(_npcTab==='main'||_npcTab==='rogue')h+=`<button class="btn btn-gold" style="flex:1" onclick="openFullNPCBuilder(null)">+ Full Builder</button>`;
+  h+=`</div>`;
+  el.innerHTML=h;
 }
 function openAddNPC(){_npcEdit=null;renderNM();document.getElementById('npc-modal').classList.add('open');}
 function editNPC(i){_npcEdit=i;renderNM();document.getElementById('npc-modal').classList.add('open');}
@@ -1236,19 +1251,123 @@ function closeNM(){document.getElementById('npc-modal').classList.remove('open')
 function renderNM(){
   const npc=_npcEdit!==null?S.npcs[_npcEdit]:null,type=npc?.type||_npcTab;
   let h=`<h2 style="font-family:var(--font-title);font-size:20px;margin-bottom:12px">${npc?'Edit':'Add'} NPC</h2><div class="form-group"><label>Name</label><input id="nm-name" value="${esc(npc?.name||'')}"></div><div class="form-group"><label>Description</label><textarea id="nm-desc">${esc(npc?.desc||'')}</textarea></div>`;
-  if(type==='main'||type==='rogue')h+=`<div class="form-group"><label>Aspects (comma-sep)</label><input id="nm-asp" value="${esc((npc?.aspects||[]).join(', '))}"></div><div class="form-group"><label>Key Skills</label><input id="nm-sk" value="${esc(npc?.skillText||'')}"></div><div class="form-group"><label>Powers</label><input id="nm-pw" value="${esc(npc?.powers||'')}"></div><div class="form-group"><label>Stress Boxes</label><input type="number" id="nm-st" min="0" max="10" value="${npc?.stress?.length||4}"></div>`;
+  if(type==='main'||type==='rogue')h+=`<div class="form-group"><label>Aspects (comma-sep)</label><input id="nm-asp" value="${esc((npc?.aspects||[]).join(', '))}"></div><div class="form-group"><label>Key Skills</label><input id="nm-sk" value="${esc(npc?.skillText||'')}"></div><div class="form-group"><label>Powers Summary</label><input id="nm-pw" value="${esc(npc?.powers||'')}"></div><div class="form-group"><label>Stress Boxes</label><input type="number" id="nm-st" min="0" max="10" value="${npc?.stress?.length||4}"></div>`;
   if(type==='nameless')h+=`<div class="form-group"><label>Obstacle Rating</label><input id="nm-ob" value="${esc(npc?.obstacle||'+2')}"></div><div class="form-group"><label>Stress Boxes</label><input type="number" id="nm-st" min="0" max="6" value="${npc?.stress?.length||2}"></div>`;
   h+=`<div style="display:flex;gap:8px;margin-top:12px"><button class="btn btn-secondary" style="flex:1" onclick="closeNM()">Cancel</button><button class="btn btn-primary" style="flex:1" onclick="saveNPC()">Save</button></div>`;
+  if(type==='main'||type==='rogue')h+=`<div class="tac mt-2"><button class="btn btn-gold btn-xs" onclick="closeNM();openFullNPCBuilder(${_npcEdit})">Open Full Builder \u2192</button></div>`;
   document.getElementById('npc-modal-body').innerHTML=h;
 }
 function saveNPC(){
   const type=_npcEdit!==null?S.npcs[_npcEdit].type:_npcTab,name=document.getElementById('nm-name').value.trim();if(!name)return alert('Name required');
-  const npc={type,name,desc:document.getElementById('nm-desc').value};
-  if(type==='main'||type==='rogue'){npc.aspects=(document.getElementById('nm-asp')?.value||'').split(',').map(s=>s.trim()).filter(Boolean);npc.skillText=document.getElementById('nm-sk')?.value||'';npc.powers=document.getElementById('nm-pw')?.value||'';npc.stress=Array(parseInt(document.getElementById('nm-st')?.value)||4).fill(false);npc.consequences={mild:'',moderate:'',severe:''};}
+  const existing=_npcEdit!==null?S.npcs[_npcEdit]:{};
+  const npc={...existing,type,name,desc:document.getElementById('nm-desc').value};
+  if(type==='main'||type==='rogue'){npc.aspects=(document.getElementById('nm-asp')?.value||'').split(',').map(s=>s.trim()).filter(Boolean);npc.skillText=document.getElementById('nm-sk')?.value||'';npc.powers=document.getElementById('nm-pw')?.value||'';npc.stress=Array(parseInt(document.getElementById('nm-st')?.value)||4).fill(false);if(!npc.consequences)npc.consequences={mild:'',moderate:'',severe:''};}
   if(type==='nameless'){npc.obstacle=document.getElementById('nm-ob')?.value||'+2';npc.stress=Array(parseInt(document.getElementById('nm-st')?.value)||2).fill(false);}
-  if(type==='supporting'){npc.skills={};npc.aspects=[];}
+  if(type==='supporting'){npc.skills=npc.skills||{};npc.aspects=npc.aspects||[];}
   if(_npcEdit!==null)S.npcs[_npcEdit]=npc;else S.npcs.push(npc);save();closeNM();renderNPCs();
 }
+
+// ─── Full NPC Builder ─────────────────────────────────────
+function openFullNPCBuilder(idx){
+  _npcEdit=idx;
+  _npcFullMode=true;
+  const existing=idx!==null?S.npcs[idx]:null;
+  S._npcDraft={
+    type:existing?.type||(_npcTab==='rogue'||_npcTab==='main'?_npcTab:'rogue'),
+    name:existing?.name||'',
+    desc:existing?.desc||'',
+    aspects:existing?.aspects||[],
+    skills:existing?.skills||{},
+    powerSets:existing?.powerSets?JSON.parse(JSON.stringify(existing.powerSets)):[],
+    stunts:existing?.stunts?JSON.parse(JSON.stringify(existing.stunts)):[],
+    stress:existing?.stress||Array(4).fill(false),
+    consequences:existing?.consequences||{mild:'',moderate:'',severe:''},
+    gear:existing?.gear||''
+  };
+  renderFullNPCEditor();
+}
+function closeFullNPCBuilder(){_npcFullMode=false;S._npcDraft=null;renderNPCs();}
+function saveFullNPC(){
+  const d=S._npcDraft;if(!d.name.trim())return alert('Name required');
+  // Keep legacy fields for backwards-compat display
+  d.skillText=Object.entries(d.skills||{}).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]).map(([n,v])=>`${n} +${v}`).join(', ');
+  d.powers=(d.powerSets||[]).flatMap(ps=>(ps.powers||[]).map(pw=>pw.customName||POWERS.find(p=>p.id===pw.powerId)?.name||pw.powerId)).join(', ');
+  if(_npcEdit!==null)S.npcs[_npcEdit]=d;else S.npcs.push(d);
+  save();closeFullNPCBuilder();
+}
+function renderFullNPCEditor(){
+  const d=S._npcDraft;if(!d)return;
+  const el=document.getElementById('npcs-content');
+  let h=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div class="pg-title" style="font-size:22px">${d.type==='main'?'Main NPC':'Rogue'} Builder</div><div style="display:flex;gap:4px"><button class="btn btn-secondary btn-xs" onclick="closeFullNPCBuilder()">Cancel</button><button class="btn btn-primary btn-xs" onclick="saveFullNPC()">Save</button></div></div>`;
+
+  // Identity
+  h+=`<div class="card"><div class="label mb-1">Identity</div><div class="form-group"><label>Name</label><input value="${esc(d.name)}" oninput="S._npcDraft.name=this.value;save()" placeholder="e.g. The Joker"></div><div class="form-group"><label>Description</label><textarea oninput="S._npcDraft.desc=this.value;save()" placeholder="Concept, backstory, appearance...">${esc(d.desc)}</textarea></div></div>`;
+
+  // Aspects
+  h+=`<div class="card"><div class="label mb-1">Aspects <span class="text-muted" style="font-weight:400;text-transform:none;letter-spacing:0;font-size:9px">(high concept, trouble, flaws, etc.)</span></div>`;
+  d.aspects.forEach((a,i)=>{h+=`<div style="display:flex;gap:4px;margin-bottom:4px"><input style="flex:1" value="${esc(a)}" oninput="S._npcDraft.aspects[${i}]=this.value;save()" placeholder="Aspect phrase..."><button class="btn btn-danger btn-xs" onclick="S._npcDraft.aspects.splice(${i},1);save();renderFullNPCEditor()">X</button></div>`;});
+  h+=`<button class="btn btn-secondary btn-sm" onclick="S._npcDraft.aspects.push('');save();renderFullNPCEditor()">+ Add Aspect</button></div>`;
+
+  // Skills
+  h+=`<div class="card"><div class="label mb-1">Skills</div><div style="font-size:10px;color:var(--muted);margin-bottom:6px">Set key skills for this villain. Most villains need 3-6 skills at Good(+3) to Fantastic(+6).</div>`;
+  const assignedSkills=SKILLS.filter(sk=>(d.skills[sk]||0)>0).sort((a,b)=>(d.skills[b]||0)-(d.skills[a]||0));
+  assignedSkills.forEach(sk=>{const v=d.skills[sk];h+=`<div class="skill-row"><div class="sk-name">${sk}</div><div class="sk-label">${ladderName(v)}</div><button class="sk-btn" onclick="adjNPCSkill('${sk}',-1)" ${v<=0?'disabled':''}>−</button><div class="sk-val">+${v}</div><button class="sk-btn" onclick="adjNPCSkill('${sk}',1)" ${v>=6?'disabled':''}>+</button></div>`;});
+  // Unassigned skill picker
+  h+=`<div style="display:flex;gap:4px;margin-top:6px"><select id="npc-add-skill" style="flex:1;font-size:12px"><option value="">— Add skill —</option>${SKILLS.filter(sk=>!(d.skills[sk]>0)).map(sk=>`<option value="${sk}">${sk}</option>`).join('')}</select><button class="btn btn-secondary btn-xs" onclick="const v=document.getElementById('npc-add-skill').value;if(v){S._npcDraft.skills[v]=1;save();renderFullNPCEditor();}">Add</button></div></div>`;
+
+  // Power Sets (reusing existing power browser)
+  h+=`<div class="card"><div class="label mb-1">Power Sets</div>`;
+  (d.powerSets||[]).forEach((ps,psi)=>{
+    h+=`<div class="powerset-card"><div style="display:flex;justify-content:space-between;align-items:start"><div><input value="${esc(ps.name)}" oninput="S._npcDraft.powerSets[${psi}].name=this.value;save()" placeholder="Power Set Name" style="font-family:var(--font-title);font-size:16px;color:var(--purple);background:transparent;border:none;padding:0;width:200px"><input value="${esc(ps.aspect)}" oninput="S._npcDraft.powerSets[${psi}].aspect=this.value;save()" placeholder="Power Set Aspect" style="font-size:12px;font-style:italic;color:var(--muted);background:transparent;border:none;padding:0;width:100%;margin-top:2px"></div><button class="btn btn-danger btn-xs" onclick="S._npcDraft.powerSets.splice(${psi},1);save();renderFullNPCEditor()">X</button></div>`;
+    (ps.powers||[]).forEach((pw,pwi)=>{const pd=POWERS.find(p=>p.id===pw.powerId);h+=`<div class="card-sm mt-2" style="border-color:var(--purple)"><div style="display:flex;justify-content:space-between;align-items:center"><div><span class="fw-700">${pw.customName||pd?.name||pw.powerId}</span>${pw.level>1?` <span class="text-accent">Lv${pw.level}</span>`:''}</div><button class="btn btn-danger btn-xs" onclick="S._npcDraft.powerSets[${psi}].powers.splice(${pwi},1);save();renderFullNPCEditor()">X</button></div>${pd?.desc?`<div style="font-size:11px;color:var(--muted);margin-top:2px">${esc(pd.desc)}</div>`:''}${pw.selectedSE?.length?'<div style="margin-top:3px">'+pw.selectedSE.map(se=>`<span class="tag tag-se">${se}</span>`).join(' ')+'</div>':''}${pw.selectedLim?.length?'<div style="margin-top:2px">'+pw.selectedLim.map(l=>`<span class="tag tag-lim">${l}</span>`).join(' ')+'</div>':''}</div>`;});
+    h+=`<button class="btn btn-secondary btn-xs mt-1" onclick="openPowerBrowser(${psi},'npc')">+ Add Power</button></div>`;
+  });
+  h+=`<button class="btn btn-gold btn-sm" onclick="S._npcDraft.powerSets.push({name:'',aspect:'',powers:[]});save();renderFullNPCEditor()">+ New Power Set</button></div>`;
+
+  // Stunts
+  h+=`<div class="card"><div class="label mb-1">Stunts</div>`;
+  (d.stunts||[]).forEach((st,i)=>{h+=`<div class="card-sm" style="display:flex;gap:6px;align-items:start"><div style="flex:1"><div class="fw-700" style="font-size:13px">${esc(st.name)}</div><div style="font-size:12px;color:var(--muted)">${esc(st.desc)}</div></div><button class="btn btn-danger btn-xs" onclick="S._npcDraft.stunts.splice(${i},1);save();renderFullNPCEditor()">X</button></div>`;});
+  h+=`<div style="display:flex;gap:4px"><button class="btn btn-secondary btn-sm" onclick="openNPCStuntBrowser()" style="flex:1">+ Browse Stunts</button><button class="btn btn-secondary btn-sm" onclick="addCustomNPCStunt()">+ Custom</button></div></div>`;
+
+  // Stress & Consequences
+  h+=`<div class="card"><div class="label mb-1">Stress <span class="text-muted" style="font-weight:400;text-transform:none;letter-spacing:0;font-size:9px">(${d.stress.length} boxes)</span></div>`;
+  h+=`<div style="display:flex;gap:6px;margin-bottom:6px">`;
+  d.stress.forEach((v,i)=>{h+=`<div class="stress-box ${v?'filled':''}" onclick="S._npcDraft.stress[${i}]=!S._npcDraft.stress[${i}];save();renderFullNPCEditor()">${i+1}</div>`;});
+  h+=`</div><div style="display:flex;gap:4px;align-items:center"><span style="font-size:11px;color:var(--muted)">Boxes:</span><button class="sk-btn" style="width:22px;height:22px;font-size:14px" onclick="if(S._npcDraft.stress.length>0)S._npcDraft.stress.pop();save();renderFullNPCEditor()">−</button><button class="sk-btn" style="width:22px;height:22px;font-size:14px" onclick="if(S._npcDraft.stress.length<10)S._npcDraft.stress.push(false);save();renderFullNPCEditor()">+</button></div></div>`;
+
+  h+=`<div class="card"><div class="label mb-1">Consequences</div><div class="conseq-row"><div class="conseq-label">Mild (2)</div><div class="conseq-input"><input value="${esc(d.consequences.mild)}" oninput="S._npcDraft.consequences.mild=this.value;save()" placeholder="\u2014"></div></div><div class="conseq-row"><div class="conseq-label">Moderate (4)</div><div class="conseq-input"><input value="${esc(d.consequences.moderate)}" oninput="S._npcDraft.consequences.moderate=this.value;save()" placeholder="\u2014"></div></div><div class="conseq-row"><div class="conseq-label">Severe (6)</div><div class="conseq-input"><input value="${esc(d.consequences.severe)}" oninput="S._npcDraft.consequences.severe=this.value;save()" placeholder="\u2014"></div></div></div>`;
+
+  // Notes / Gear
+  h+=`<div class="card"><div class="label mb-1">Gear & Notes</div><textarea oninput="S._npcDraft.gear=this.value;save()" placeholder="Equipment, tactics, secrets...">${esc(d.gear||'')}</textarea></div>`;
+
+  // Bottom save/cancel
+  h+=`<div style="display:flex;gap:6px;margin-top:12px"><button class="btn btn-secondary" style="flex:1" onclick="closeFullNPCBuilder()">Cancel</button><button class="btn btn-primary" style="flex:1" onclick="saveFullNPC()">Save NPC</button></div>`;
+
+  // Stunt browser inline (if open)
+  h+=renderNPCStuntBrowser();
+
+  el.innerHTML=h;
+}
+function adjNPCSkill(sk,d){const n=S._npcDraft;const cur=n.skills[sk]||0,nv=cur+d;if(nv<0||nv>6)return;n.skills[sk]=nv;if(!nv)delete n.skills[sk];save();renderFullNPCEditor();}
+let _npcStuntBrowseOpen=false,_npcStuntSearch='',_npcStuntSkillFilter='';
+function openNPCStuntBrowser(){_npcStuntBrowseOpen=true;_npcStuntSearch='';_npcStuntSkillFilter='';renderFullNPCEditor();}
+function renderNPCStuntBrowser(){
+  if(!_npcStuntBrowseOpen)return'';
+  const q=_npcStuntSearch.toLowerCase(),sf=_npcStuntSkillFilter;
+  const filtered=SAMPLE_STUNTS.filter(s=>{if(q&&!s.name.toLowerCase().includes(q)&&!s.desc.toLowerCase().includes(q))return false;if(sf&&s.skill!==sf)return false;return true;});
+  const skillFilters=['All',...[...new Set(SAMPLE_STUNTS.map(s=>s.skill))].sort()];
+  let h=`<div class="card" style="border-color:var(--accent)"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div class="label" style="margin:0">Sample Stunts</div><button class="btn btn-secondary btn-xs" onclick="_npcStuntBrowseOpen=false;renderFullNPCEditor()">Close</button></div>`;
+  h+=`<input placeholder="Search stunts..." value="${esc(_npcStuntSearch)}" oninput="_npcStuntSearch=this.value;renderFullNPCEditor()" style="margin-bottom:6px;font-size:12px;padding:7px">`;
+  h+=`<div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:8px">${skillFilters.map(f=>`<button class="btn btn-xs ${(f==='All'&&!sf)||sf===f?'btn-primary':'btn-secondary'}" onclick="_npcStuntSkillFilter='${f==='All'?'':f}';renderFullNPCEditor()" style="font-size:10px;padding:3px 7px">${f}</button>`).join('')}</div>`;
+  h+=`<div style="max-height:40vh;overflow-y:auto">`;
+  const existing=(S._npcDraft.stunts||[]).map(s=>s.name);
+  filtered.forEach(s=>{const have=existing.includes(s.name);h+=`<div class="card-sm" style="display:flex;gap:8px;align-items:start;${have?'opacity:.5':''}"><div style="flex:1"><div class="fw-700" style="font-size:12px">${esc(s.name)} <span class="text-muted" style="font-weight:400;font-size:10px">[${s.skill}]</span></div><div style="font-size:11px;color:var(--muted)">${esc(s.desc)}</div></div>${have?'<span class="text-green" style="font-size:10px">\u2713</span>':`<button class="btn btn-primary btn-xs" onclick="pickNPCStunt('${esc(s.name)}')">Add</button>`}</div>`;});
+  if(!filtered.length)h+='<div class="tac text-muted" style="padding:12px">No matches</div>';
+  h+=`</div></div>`;
+  return h;
+}
+function pickNPCStunt(name){const s=SAMPLE_STUNTS.find(x=>x.name===name);if(!s)return;S._npcDraft.stunts=S._npcDraft.stunts||[];S._npcDraft.stunts.push({name:s.name,desc:s.desc,cost:s.cost});save();renderFullNPCEditor();}
+function addCustomNPCStunt(){const n=prompt('Stunt Name:');if(!n)return;const d=prompt('Description:')||'';S._npcDraft.stunts=S._npcDraft.stunts||[];S._npcDraft.stunts.push({name:n,desc:d,cost:1});save();renderFullNPCEditor();}
 
 // ═══════════════════════════════════════════════════════════
 // DICE

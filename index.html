@@ -336,8 +336,8 @@ const SAMPLE_COLUMNS={
 ],
 35:[
   {label:'Focused Expert',tiers:{5:2,4:2,3:2,2:3,1:5}},
-  {label:'Skilled Specialist',tiers:{5:1,4:2,3:3,2:4,1:6}},
-  {label:'Well-Rounded',tiers:{4:3,3:3,2:3,1:9}},
+  {label:'Skilled Specialist',tiers:{5:1,4:2,3:3,2:4,1:5}},
+  {label:'Well-Rounded',tiers:{4:3,3:3,2:3,1:8}},
   {label:'Broad Generalist',tiers:{4:2,3:3,2:3,1:12}}
 ],
 40:[
@@ -761,7 +761,9 @@ function renderSkillTemplate(budget,used,rem,valid){
   const baseBudget=getSeriesConfig().exp?.skillPts||25;
   const columns=SAMPLE_COLUMNS[baseBudget]||SAMPLE_COLUMNS[25];
   const c=S.creation;
-  let h='<div class="card"><div class="label mb-2">Pick a Column Shape</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px">';
+  let h='';
+  if(budget>baseBudget){h+=`<div class="card-sm" style="background:rgba(241,196,15,.08);border-color:var(--gold)"><div style="font-size:11px;color:var(--gold)"><strong>Note:</strong> You have ${budget-baseBudget} bonus skill point${budget-baseBudget>1?'s':''} from Supporting Cast. Templates fit ${baseBudget} points \u2014 switch to Advanced to spend the bonus, or add them to skills after applying a template.</div></div>`;}
+  h+='<div class="card"><div class="label mb-2">Pick a Column Shape</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px">';
   columns.forEach((col,ci)=>{
     const sel=c._selectedColumn===ci;
     let preview='';

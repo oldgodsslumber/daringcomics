@@ -923,6 +923,7 @@ function updatePDCost(){const p=POWERS.find(pw=>pw.id===window._pdId);if(!p)retu
 function addPD(id){const p=POWERS.find(pw=>pw.id===id);if(!p)return;const lv=window._pdLv||1;let c=p.flat?parseInt(p.cost)||0:lv;const se=[],lm=[];document.querySelectorAll('#pw-se-list input:checked').forEach(i=>{c+=parseInt(i.dataset.cost)||0;se.push(i.dataset.se);});document.querySelectorAll('#pw-lim-list input:checked').forEach(i=>{c+=parseInt(i.dataset.cost)||0;lm.push(i.dataset.lim);});c=Math.max(1,c);const customName=(document.getElementById('pw-custom-name')?.value||'').trim()||p.name;
   const powerObj={powerId:id,customName,level:lv,selectedSE:se,selectedLim:lm,totalCost:c};
   if(_pbTarget==='npc'){if(!S._npcDraft?.powerSets?.[_pbPSI])return;S._npcDraft.powerSets[_pbPSI].powers.push(powerObj);save();closePB();renderFullNPCEditor();}
+  else if(_pbTarget==='form'){const af=S.char?.activeForm||0;if(!S.char?.forms?.[af]?.powerSets?.[_pbPSI])return;S.char.forms[af].powerSets[_pbPSI].powers.push(powerObj);save();closePB();renderSheet();}
   else{if(!S.creation.powerSets[_pbPSI])return;S.creation.powerSets[_pbPSI].powers.push(powerObj);save();closePB();renderCreationStep();}}
 
 // Step 6: Review
@@ -947,7 +948,7 @@ function finishCreation(){
   const pb=phys>=5?2:phys>=3?1:0,wb=will>=5?2:will>=3?1:0;
   const ps=2+tb+pb,ms=2+tb+wb,hpS=getHPSpent(),tHP=getTotalHP();
   const ru=hpS>tHP?Math.min(hpS-tHP,(tone?.refresh||5)-1):0,fr=Math.max(1,(tone?.refresh||5)-ru);
-  S.char={costumedName:c.costumedName,civilianName:c.civilianName,aspects:JSON.parse(JSON.stringify(c.aspects)),supportingCast:JSON.parse(JSON.stringify(c.supportingCast)),roguesGallery:JSON.parse(JSON.stringify(c.roguesGallery)),skills:JSON.parse(JSON.stringify(c.skills)),refresh:fr,fatePoints:fr,stress:{physical:Array(ps).fill(false),mental:Array(ms).fill(false)},consequences:{mild:'',moderate:'',severe:''},stunts:JSON.parse(JSON.stringify(c.stunts||[])),powerSets:JSON.parse(JSON.stringify(c.powerSets||[])),gear:''};
+  S.char={costumedName:c.costumedName,civilianName:c.civilianName,aspects:JSON.parse(JSON.stringify(c.aspects)),supportingCast:JSON.parse(JSON.stringify(c.supportingCast)),roguesGallery:JSON.parse(JSON.stringify(c.roguesGallery)),skills:JSON.parse(JSON.stringify(c.skills)),refresh:fr,fatePoints:fr,stress:{physical:Array(ps).fill(false),mental:Array(ms).fill(false)},consequences:{mild:'',moderate:'',severe:''},stunts:JSON.parse(JSON.stringify(c.stunts||[])),forms:[{name:'Main Form',powerSets:JSON.parse(JSON.stringify(c.powerSets||[]))}],activeForm:0,gear:''};
   c.supportingCast.forEach(sc=>{if(sc.name)S.npcs.push({type:'supporting',name:sc.name,desc:sc.desc,skills:{},aspects:[]});});
   c.roguesGallery.forEach(rg=>{if(rg.name)S.npcs.push({type:'rogue',name:rg.name,desc:rg.desc,aspects:[],skills:{},powers:'',stress:Array(4).fill(false),consequences:{mild:'',moderate:'',severe:''}});});
   save();renderHero();
@@ -958,6 +959,10 @@ function finishCreation(){
 // ═══════════════════════════════════════════════════════════
 function renderSheet(){
   const ch=S.char;if(!ch)return;
+  // Migrate legacy characters: wrap existing powerSets into a single Main Form
+  if(!ch.forms){ch.forms=[{name:'Main Form',powerSets:ch.powerSets||[]}];ch.activeForm=0;delete ch.powerSets;save();}
+  if(ch.activeForm==null||ch.activeForm>=ch.forms.length)ch.activeForm=0;
+  const _af=ch.activeForm,_curForm=ch.forms[_af]||{name:'',powerSets:[]};
   let h=`<div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:4px"><div><div class="pg-title" style="font-size:28px">${esc(ch.costumedName)}</div><div style="font-size:13px;color:var(--muted)">${esc(ch.civilianName)}</div></div><div style="display:flex;gap:4px"><button class="btn btn-gold btn-xs" onclick="exportJSON()">Export</button><button class="btn btn-secondary btn-xs" onclick="openSlotModal()">Slots</button><button class="btn btn-danger btn-xs" onclick="resetChar()">New</button></div></div>`;
   // Fate Points
   h+=`<div class="card" style="display:flex;align-items:center;justify-content:space-between"><div><div class="label">Fate Points</div><div style="font-size:11px;color:var(--muted)">Refresh: ${ch.refresh}</div></div><div style="display:flex;align-items:center;gap:10px"><button class="sk-btn" onclick="adjFP(-1)">−</button><span style="font-size:28px;font-weight:900;font-family:var(--font-title);color:var(--gold)">${ch.fatePoints}</span><button class="sk-btn" onclick="adjFP(1)">+</button></div></div>`;
@@ -978,8 +983,20 @@ function renderSheet(){
   h+=`<div id="hero-dice-mobile"><div class="dice-bar-toggle" onclick="document.getElementById('dice-bar-body').classList.toggle('open')"><div style="display:flex;align-items:center;gap:6px"><span style="font-size:16px">&#127922;</span><span class="fw-700" style="font-size:13px;font-family:var(--font-label)">Dice Roller</span><span id="dm-loaded" style="font-size:10px;color:var(--accent)"></span></div><span class="text-muted" style="font-size:11px">tap to expand</span></div><div class="dice-bar-body" id="dice-bar-body"><div id="dm-loaded-info" style="margin-bottom:6px"></div><div style="display:flex;gap:6px;align-items:end"><div style="flex:1"><div class="label" style="margin-bottom:2px">Skill</div><select id="dm-sk" style="font-size:12px;padding:7px" onchange="_loadedPower='';updateLoadedInfo('m')"><option value="">— None —</option>${SKILLS.map(sk=>`<option value="${sk}">${sk} (+${ch?.skills?.[sk]||0})</option>`).join('')}</select></div><div style="width:50px"><div class="label" style="margin-bottom:2px">Mod</div><input type="number" id="dm-mod" value="0" style="font-size:12px;padding:7px"></div><div style="width:50px"><div class="label" style="margin-bottom:2px">TN</div><input type="number" id="dm-tn" value="0" style="font-size:12px;padding:7px"></div><button class="roll-btn" style="width:44px;height:44px;font-size:14px;flex-shrink:0" onclick="doMobileRoll()">ROLL</button></div></div></div>`;
   h+=`<div class="card"><div class="label mb-1">Skills <span class="text-muted" style="font-weight:400;text-transform:none;letter-spacing:0;font-size:9px">tap to load into roller</span></div>`;
   SKILLS.filter(sk=>(ch.skills[sk]||0)>0).sort((a,b)=>(ch.skills[b]||0)-(ch.skills[a]||0)).forEach(sk=>{h+=`<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;border-bottom:1px solid var(--border);cursor:pointer" onclick="loadRoll('${sk}',0)"><div><span class="fw-700">${sk}</span><div style="font-size:10px;color:var(--muted);line-height:1.2">${SKILL_DESC[sk]||''}</div></div><span class="fw-700 text-accent" style="white-space:nowrap;margin-left:8px">${ladderName(ch.skills[sk])} (+${ch.skills[sk]})</span></div>`;});h+='</div>';
-  // Power Sets
-  (ch.powerSets||[]).forEach(ps=>{h+=`<div class="powerset-card"><div class="powerset-name">${esc(ps.name||'Power Set')}</div><div class="powerset-aspect">${esc(ps.aspect)}</div>`;(ps.powers||[]).forEach(pw=>{const pd=POWERS.find(p=>p.id===pw.powerId);const pSkill=pd?.skill?.split('/')[0]||'';const rollable=pSkill&&pSkill!=='None';const rollSkill=pSkill==='Magic'||pSkill==='Mental'||pSkill==='Power'?'Controlling':pSkill;const pwName=esc(pw.customName||pd?.name||pw.powerId);h+=`<div style="padding:6px 4px;font-size:13px;border-bottom:1px solid var(--border);${rollable?'cursor:pointer':''}" ${rollable?`onclick="loadRoll('${rollSkill}',${pw.level>1?pw.level:0},'${pwName.replace(/'/g,"\\'")}')"`:''}><span class="fw-700">${pwName}</span>${rollable?' <span style="font-size:9px;color:var(--blue);vertical-align:middle">LOAD</span>':''}${pw.level>1?' <span class="text-accent">Lv'+pw.level+'</span>':''} <span class="text-muted">(${pw.totalCost} HP)</span>${pd?.desc?`<div style="font-size:11px;color:var(--muted);margin-top:1px">${esc(pd.desc)}</div>`:''}${pd?.levelDesc&&pd.levelDesc[pw.level]?`<div style="font-size:11px;color:var(--accent);margin-top:1px">${esc(pd.levelDesc[pw.level])}</div>`:''}${pw.selectedSE.length?'<div style="margin-top:3px">'+pw.selectedSE.map(se=>{const def=[...(pd?.se||[]),...GENERAL_SE].find(x=>x.name===se);return`<div style="font-size:11px;margin-bottom:2px"><span class="tag tag-se">${se}</span>${def?' <span style="color:var(--muted)">'+esc(def.desc)+'</span>':''}</div>`;}).join('')+'</div>':''}${pw.selectedLim.length?'<div style="margin-top:2px">'+pw.selectedLim.map(l=>{const def=[...(pd?.lim||[]),...GENERAL_LIMITS].find(x=>x.name===l);return`<div style="font-size:11px;margin-bottom:2px"><span class="tag tag-lim">${l}</span>${def?' <span style="color:var(--muted)">'+esc(def.desc)+'</span>':''}</div>`;}).join('')+'</div>':''}</div>`;});h+='</div>';});
+  // Forms (tabs)
+  h+=`<div class="card" style="padding:8px 10px"><div class="label mb-1">Forms</div><div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-bottom:6px">`;
+  ch.forms.forEach((f,fi)=>{h+=`<button class="btn btn-xs ${fi===_af?'btn-primary':'btn-secondary'}" onclick="switchForm(${fi})" style="font-family:var(--font-label)">${esc(f.name||'Form '+(fi+1))}</button>`;});
+  h+=`<button class="btn btn-gold btn-xs" onclick="addForm()">+ New Form</button></div>`;
+  h+=`<div style="display:flex;gap:6px;align-items:center"><input value="${esc(_curForm.name||'')}" oninput="S.char.forms[${_af}].name=this.value;save()" placeholder="Form name" style="flex:1;font-size:13px;font-family:var(--font-label);font-weight:700">`;
+  if(ch.forms.length>1)h+=`<button class="btn btn-danger btn-xs" onclick="deleteForm(${_af})">Delete Form</button>`;
+  h+=`</div><div style="font-size:10px;color:var(--muted);margin-top:4px">Forms share base stats but have their own powers (e.g. werewolf transformation, armor variants).</div></div>`;
+  // Power Sets (active form)
+  (_curForm.powerSets||[]).forEach((ps,psi)=>{
+    h+=`<div class="powerset-card"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px"><div style="flex:1"><input value="${esc(ps.name||'')}" oninput="S.char.forms[${_af}].powerSets[${psi}].name=this.value;save()" placeholder="Power Set Name" style="font-family:var(--font-title);font-size:18px;color:var(--purple);background:transparent;border:none;padding:0;width:100%"><input value="${esc(ps.aspect||'')}" oninput="S.char.forms[${_af}].powerSets[${psi}].aspect=this.value;save()" placeholder="Power Set Aspect" style="font-size:12px;font-style:italic;color:var(--muted);background:transparent;border:none;padding:0;width:100%;margin-top:2px"></div><button class="btn btn-danger btn-xs" onclick="delFormPowerSet(${psi})">X</button></div>`;
+    (ps.powers||[]).forEach((pw,pwi)=>{const pd=POWERS.find(p=>p.id===pw.powerId);const pSkill=pd?.skill?.split('/')[0]||'';const rollable=pSkill&&pSkill!=='None';const rollSkill=pSkill==='Magic'||pSkill==='Mental'||pSkill==='Power'?'Controlling':pSkill;const pwName=esc(pw.customName||pd?.name||pw.powerId);h+=`<div style="padding:6px 4px;font-size:13px;border-bottom:1px solid var(--border);display:flex;gap:6px;align-items:flex-start"><div style="flex:1;${rollable?'cursor:pointer':''}" ${rollable?`onclick="loadRoll('${rollSkill}',${pw.level>1?pw.level:0},'${pwName.replace(/'/g,"\\'")}')"`:''}><span class="fw-700">${pwName}</span>${rollable?' <span style="font-size:9px;color:var(--blue);vertical-align:middle">LOAD</span>':''}${pw.level>1?' <span class="text-accent">Lv'+pw.level+'</span>':''} <span class="text-muted">(${pw.totalCost} HP)</span>${pd?.desc?`<div style="font-size:11px;color:var(--muted);margin-top:1px">${esc(pd.desc)}</div>`:''}${pd?.levelDesc&&pd.levelDesc[pw.level]?`<div style="font-size:11px;color:var(--accent);margin-top:1px">${esc(pd.levelDesc[pw.level])}</div>`:''}${pw.selectedSE.length?'<div style="margin-top:3px">'+pw.selectedSE.map(se=>{const def=[...(pd?.se||[]),...GENERAL_SE].find(x=>x.name===se);return`<div style="font-size:11px;margin-bottom:2px"><span class="tag tag-se">${se}</span>${def?' <span style="color:var(--muted)">'+esc(def.desc)+'</span>':''}</div>`;}).join('')+'</div>':''}${pw.selectedLim.length?'<div style="margin-top:2px">'+pw.selectedLim.map(l=>{const def=[...(pd?.lim||[]),...GENERAL_LIMITS].find(x=>x.name===l);return`<div style="font-size:11px;margin-bottom:2px"><span class="tag tag-lim">${l}</span>${def?' <span style="color:var(--muted)">'+esc(def.desc)+'</span>':''}</div>`;}).join('')+'</div>':''}</div><button class="btn btn-danger btn-xs" onclick="delFormPower(${psi},${pwi})" style="align-self:center">X</button></div>`;});
+    h+=`<button class="btn btn-secondary btn-xs mt-1" onclick="openPowerBrowser(${psi},'form')">+ Add Power</button></div>`;
+  });
+  h+=`<button class="btn btn-gold btn-sm" style="width:100%" onclick="addFormPowerSet()">+ New Power Set</button>`;
   // Stunts
   if(ch.stunts?.length){h+=`<div class="card"><div class="label mb-1">Stunts</div>`;ch.stunts.forEach(st=>{h+=`<div style="padding:3px 0;font-size:13px">\u2605 <strong>${esc(st.name)}</strong> <span class="text-muted">(${st.cost} HP)</span><br><span style="font-size:12px;color:var(--muted)">${esc(st.desc)}</span></div>`;});h+='</div>';}
   // Gear
@@ -1021,6 +1038,12 @@ function buildDicePanel(){
 function toggleStress(t,i){S.char.stress[t][i]=!S.char.stress[t][i];save();renderSheet();}
 function adjFP(d){S.char.fatePoints=Math.max(0,S.char.fatePoints+d);save();renderSheet();}
 function resetChar(){if(!confirm('Delete character and start over?'))return;S.char=null;S.creation={step:0,costumedName:'',civilianName:'',aspects:{concept:'',motivation:'',contingent:[{cat:'',text:''},{cat:'',text:''},{cat:'',text:''}]},supportingCast:[],roguesGallery:[],skills:{},powerSets:[],stunts:[]};save();renderHero();}
+function switchForm(i){if(!S.char?.forms?.[i])return;S.char.activeForm=i;save();renderSheet();}
+function addForm(){if(!S.char)return;const name=(prompt('New form name:','New Form')||'').trim();if(!name)return;if(!S.char.forms)S.char.forms=[];S.char.forms.push({name,powerSets:[]});S.char.activeForm=S.char.forms.length-1;save();renderSheet();}
+function deleteForm(i){if(!S.char?.forms||S.char.forms.length<=1)return;if(!confirm('Delete "'+(S.char.forms[i].name||'this form')+'"? Its powers will be lost.'))return;S.char.forms.splice(i,1);if(S.char.activeForm>=S.char.forms.length)S.char.activeForm=S.char.forms.length-1;save();renderSheet();}
+function addFormPowerSet(){const af=S.char.activeForm||0;if(!S.char.forms[af])return;S.char.forms[af].powerSets.push({name:'',aspect:'',powers:[]});save();renderSheet();}
+function delFormPowerSet(psi){if(!confirm('Remove this power set?'))return;const af=S.char.activeForm||0;S.char.forms[af].powerSets.splice(psi,1);save();renderSheet();}
+function delFormPower(psi,pwi){const af=S.char.activeForm||0;S.char.forms[af].powerSets[psi].powers.splice(pwi,1);save();renderSheet();}
 
 function printCharSheet(){
   const ch=S.char;if(!ch)return;
@@ -1036,12 +1059,16 @@ function printCharSheet(){
   // Aspects
   let aspHtml=`<div class="asp"><span class="al">Concept:</span> ${e(ch.aspects.concept)}</div><div class="asp"><span class="al">Motivation:</span> ${e(ch.aspects.motivation)}</div>`;
   ch.aspects.contingent.forEach(ct=>{if(ct.text)aspHtml+=`<div class="asp"><span class="al">${e(ct.cat||'Aspect')}:</span> ${e(ct.text)}</div>`;});
-  // Power Sets
+  // Power Sets (across all forms; label when more than one)
   let powHtml='';
-  (ch.powerSets||[]).forEach(ps=>{
-    powHtml+=`<div class="ps-card"><div class="ps-name">${e(ps.name||'Power Set')}</div><div class="ps-asp">${e(ps.aspect)}</div>`;
-    (ps.powers||[]).forEach(pw=>{const pd=POWERS.find(p=>p.id===pw.powerId);powHtml+=`<div class="pw-item"><span class="pw-n">${e(pw.customName||pd?.name||pw.powerId)}</span>${pw.level>1?' <span class="pw-lv">Lv'+pw.level+'</span>':''} <span class="pw-c">(${pw.totalCost} HP)</span>${pd?.desc?`<div class="pw-desc">${e(pd.desc)}</div>`:''}${pd?.levelDesc&&pd.levelDesc[pw.level]?`<div class="pw-lvd">${e(pd.levelDesc[pw.level])}</div>`:''}${pw.selectedSE.length?'<div class="pw-tags">'+pw.selectedSE.map(s=>{const def=[...(pd?.se||[]),...GENERAL_SE].find(x=>x.name===s);return'<span class="tg tg-se">'+e(s)+'</span>'+(def?' <span class="tg-desc">'+e(def.desc)+'</span>':'');}).join('<br>')+'</div>':''}${pw.selectedLim.length?'<div class="pw-tags">'+pw.selectedLim.map(l=>{const def=[...(pd?.lim||[]),...GENERAL_LIMITS].find(x=>x.name===l);return'<span class="tg tg-lm">'+e(l)+'</span>'+(def?' <span class="tg-desc">'+e(def.desc)+'</span>':'');}).join('<br>')+'</div>':''}</div>`;});
-    powHtml+='</div>';
+  const _printForms=ch.forms||[{name:'',powerSets:ch.powerSets||[]}];
+  _printForms.forEach(form=>{
+    if(_printForms.length>1)powHtml+=`<div class="form-hdr">◆ ${e(form.name||'Form')}</div>`;
+    (form.powerSets||[]).forEach(ps=>{
+      powHtml+=`<div class="ps-card"><div class="ps-name">${e(ps.name||'Power Set')}</div><div class="ps-asp">${e(ps.aspect)}</div>`;
+      (ps.powers||[]).forEach(pw=>{const pd=POWERS.find(p=>p.id===pw.powerId);powHtml+=`<div class="pw-item"><span class="pw-n">${e(pw.customName||pd?.name||pw.powerId)}</span>${pw.level>1?' <span class="pw-lv">Lv'+pw.level+'</span>':''} <span class="pw-c">(${pw.totalCost} HP)</span>${pd?.desc?`<div class="pw-desc">${e(pd.desc)}</div>`:''}${pd?.levelDesc&&pd.levelDesc[pw.level]?`<div class="pw-lvd">${e(pd.levelDesc[pw.level])}</div>`:''}${pw.selectedSE.length?'<div class="pw-tags">'+pw.selectedSE.map(s=>{const def=[...(pd?.se||[]),...GENERAL_SE].find(x=>x.name===s);return'<span class="tg tg-se">'+e(s)+'</span>'+(def?' <span class="tg-desc">'+e(def.desc)+'</span>':'');}).join('<br>')+'</div>':''}${pw.selectedLim.length?'<div class="pw-tags">'+pw.selectedLim.map(l=>{const def=[...(pd?.lim||[]),...GENERAL_LIMITS].find(x=>x.name===l);return'<span class="tg tg-lm">'+e(l)+'</span>'+(def?' <span class="tg-desc">'+e(def.desc)+'</span>':'');}).join('<br>')+'</div>':''}</div>`;});
+      powHtml+='</div>';
+    });
   });
   // Stunts
   let stuntHtml='';
@@ -1077,6 +1104,7 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:10.5pt;color:#111;backgrou
 .con-v{flex:1}.con-line{display:block;border-bottom:1px solid #bbb;width:100%;height:12px}
 .ps-card{border:1.5px solid #8e44ad;border-radius:4px;padding:6px;margin-bottom:6px}
 .ps-name{font-size:11pt;font-weight:900;color:#8e44ad}.ps-asp{font-size:8.5pt;color:#888;font-style:italic;margin-bottom:3px}
+.form-hdr{font-size:10pt;font-weight:900;text-transform:uppercase;letter-spacing:.8px;color:#444;margin:8px 0 4px;padding-bottom:2px;border-bottom:1.5px solid #444}
 .pw-item{padding:2px 0;font-size:9.5pt;border-bottom:1px solid #f0f0f0}
 .pw-n{font-weight:700}.pw-lv{color:#c00;font-weight:600}.pw-c{color:#888;font-size:8.5pt}
 .pw-desc{font-size:8pt;color:#666;line-height:1.3;margin-top:1px}

@@ -849,7 +849,7 @@ function renderStepPowers(){
   h+=`<div class="card"><div class="label mb-2">Power Sets</div>`;
   (c.powerSets||[]).forEach((ps,psi)=>{
     h+=`<div class="powerset-card"><div style="display:flex;justify-content:space-between;align-items:start"><div><input value="${esc(ps.name)}" oninput="S.creation.powerSets[${psi}].name=this.value;save()" placeholder="Power Set Name" style="font-family:var(--font-title);font-size:18px;color:var(--purple);background:transparent;border:none;padding:0;width:200px"><input value="${esc(ps.aspect)}" oninput="S.creation.powerSets[${psi}].aspect=this.value;save()" placeholder="Power Set Aspect" style="font-size:12px;font-style:italic;color:var(--muted);background:transparent;border:none;padding:0;width:100%;margin-top:2px"></div><button class="btn btn-danger btn-xs" onclick="S.creation.powerSets.splice(${psi},1);save();renderCreationStep()">X</button></div>`;
-    (ps.powers||[]).forEach((pw,pwi)=>{const pd=POWERS.find(p=>p.id===pw.powerId);h+=`<div class="card-sm mt-2" style="border-color:var(--purple)"><div style="display:flex;justify-content:space-between;align-items:center"><div><span class="fw-700">${pw.customName||pd?.name||pw.powerId}</span>${pw.level>1?` <span class="text-accent">Lv${pw.level}</span>`:''} <span class="tag tag-cost">${pw.totalCost} HP</span></div><button class="btn btn-danger btn-xs" onclick="S.creation.powerSets[${psi}].powers.splice(${pwi},1);save();renderCreationStep()">X</button></div>${pw.selectedSE.length?'<div style="margin-top:4px">'+pw.selectedSE.map(se=>`<span class="tag tag-se">${se}</span>`).join(' ')+'</div>':''}${pw.selectedLim.length?'<div style="margin-top:2px">'+pw.selectedLim.map(l=>`<span class="tag tag-lim">${l}</span>`).join(' ')+'</div>':''}</div>`;});
+    (ps.powers||[]).forEach((pw,pwi)=>{const pd=POWERS.find(p=>p.id===pw.powerId);h+=`<div class="card-sm mt-2" style="border-color:var(--purple)"><div style="display:flex;justify-content:space-between;align-items:center"><div><span class="fw-700">${pw.customName||pd?.name||pw.powerId}</span>${pw.level>1?` <span class="text-accent">Lv${pw.level}</span>`:''} <span class="tag tag-cost">${pw.totalCost} HP</span></div><div style="display:flex;gap:3px"><button class="btn btn-secondary btn-xs" onclick="editPD('creation',${psi},${pwi})" title="Edit power">Edit</button><button class="btn btn-danger btn-xs" onclick="S.creation.powerSets[${psi}].powers.splice(${pwi},1);save();renderCreationStep()">X</button></div></div>${pw.selectedSE.length?'<div style="margin-top:4px">'+pw.selectedSE.map(se=>`<span class="tag tag-se">${se}</span>`).join(' ')+'</div>':''}${pw.selectedLim.length?'<div style="margin-top:2px">'+pw.selectedLim.map(l=>`<span class="tag tag-lim">${l}</span>`).join(' ')+'</div>':''}</div>`;});
     h+=`<button class="btn btn-secondary btn-xs mt-1" onclick="openPowerBrowser(${psi})">+ Add Power</button></div>`;
   });
   h+=`<button class="btn btn-gold btn-sm" onclick="S.creation.powerSets.push({name:'',aspect:'',powers:[]});save();renderCreationStep()">+ New Power Set</button></div>`;
@@ -887,9 +887,49 @@ function pickSampleStunt(name){
 function _refocus(id){requestAnimationFrame(()=>{const el=document.getElementById(id);if(el&&el!==document.activeElement){el.focus();const len=el.value.length;try{el.setSelectionRange(len,len);}catch(e){}}});}
 
 // Power Browser
-let _pbPSI=0,_pbSearch='',_pbSkill='',_pbTarget='hero';
-function openPowerBrowser(psi,target){_pbPSI=psi;_pbTarget=target||'hero';_pbSearch='';_pbSkill='';document.getElementById('power-modal').classList.add('open');renderPB();}
-function closePB(){document.getElementById('power-modal').classList.remove('open');}
+let _pbPSI=0,_pbSearch='',_pbSkill='',_pbTarget='hero',_pdEditCtx=null;
+function openPowerBrowser(psi,target){_pbPSI=psi;_pbTarget=target||'hero';_pbSearch='';_pbSkill='';_pdEditCtx=null;document.getElementById('power-modal').classList.add('open');renderPB();}
+function closePB(){_pdEditCtx=null;document.getElementById('power-modal').classList.remove('open');}
+function _getEditPower(){
+  if(!_pdEditCtx)return null;
+  const{target,psi,pwi}=_pdEditCtx;
+  if(target==='form')return S.char?.forms?.[S.char.activeForm]?.powerSets?.[psi]?.powers?.[pwi];
+  if(target==='npc')return S._npcDraft?.forms?.[S._npcDraft.activeForm]?.powerSets?.[psi]?.powers?.[pwi];
+  if(target==='creation')return S.creation?.powerSets?.[psi]?.powers?.[pwi];
+  return null;
+}
+function editPD(target,psi,pwi){
+  let power;
+  if(target==='form')power=S.char?.forms?.[S.char.activeForm]?.powerSets?.[psi]?.powers?.[pwi];
+  else if(target==='npc')power=S._npcDraft?.forms?.[S._npcDraft.activeForm]?.powerSets?.[psi]?.powers?.[pwi];
+  else if(target==='creation')power=S.creation?.powerSets?.[psi]?.powers?.[pwi];
+  if(!power)return;
+  _pbTarget=target;_pbPSI=psi;_pdEditCtx={target,psi,pwi};
+  document.getElementById('power-modal').classList.add('open');
+  showPD(power.powerId);
+}
+function cancelPDEdit(){_pdEditCtx=null;closePB();}
+function savePD(){
+  if(!_pdEditCtx)return;
+  const{target,psi,pwi}=_pdEditCtx;
+  const id=window._pdId;const p=POWERS.find(pw=>pw.id===id);if(!p)return;
+  const lv=window._pdLv||1;let c=p.flat?parseInt(p.cost)||0:lv;const se=[],lm=[];
+  document.querySelectorAll('#pw-se-list input:checked').forEach(i=>{c+=parseInt(i.dataset.cost)||0;se.push(i.dataset.se);});
+  document.querySelectorAll('#pw-lim-list input:checked').forEach(i=>{c+=parseInt(i.dataset.cost)||0;lm.push(i.dataset.lim);});
+  c=Math.max(1,c);
+  const customName=(document.getElementById('pw-custom-name')?.value||'').trim()||p.name;
+  const updated={powerId:id,customName,level:lv,selectedSE:se,selectedLim:lm,totalCost:c};
+  let arr;
+  if(target==='form')arr=S.char?.forms?.[S.char.activeForm]?.powerSets?.[psi]?.powers;
+  else if(target==='npc')arr=S._npcDraft?.forms?.[S._npcDraft.activeForm]?.powerSets?.[psi]?.powers;
+  else if(target==='creation')arr=S.creation?.powerSets?.[psi]?.powers;
+  if(!arr||!arr[pwi])return;
+  arr[pwi]=updated;
+  _pdEditCtx=null;save();closePB();
+  if(target==='form')renderSheet();
+  else if(target==='npc')renderFullNPCEditor();
+  else if(target==='creation')renderCreationStep();
+}
 function renderPB(){
   const q=_pbSearch.toLowerCase(),sf=_pbSkill;
   let filtered=POWERS.filter(p=>{if(q&&!p.name.toLowerCase().includes(q)&&!p.desc.toLowerCase().includes(q))return false;if(sf&&!p.skill.toLowerCase().includes(sf.toLowerCase()))return false;return true;});
@@ -918,7 +958,23 @@ function showPD(id){
   GENERAL_LIMITS.forEach(lm=>{h+=`<label style="display:flex;gap:6px;align-items:start;margin-bottom:4px;cursor:pointer;font-size:12px"><input type="checkbox" data-lim="${esc(lm.name)}" data-cost="${lm.cost}"><div><span>${lm.name} <span class="text-red">(${lm.cost})</span></span> <span class="text-muted">\u2014 ${lm.desc}</span></div></label>`;});
   h+=`</div><div id="pw-cost-disp" class="card-sm tac fw-700" style="font-size:16px"></div><button class="btn btn-primary btn-full mt-2" onclick="addPD('${p.id}')">Add Power</button></div>`;
   document.getElementById('power-modal-body').innerHTML=h;
-  window._pdId=p.id;window._pdLv=isVar?1:1;updatePDCost();
+  window._pdId=p.id;window._pdLv=isVar?1:1;
+  // EDIT MODE: pre-fill from existing power and swap action buttons
+  if(_pdEditCtx){
+    const ep=_getEditPower();
+    if(ep){
+      const cn=document.getElementById('pw-custom-name');if(cn)cn.value=ep.customName||p.name;
+      if(ep.level>1)setPDLv(ep.level);
+      document.querySelectorAll('#pw-se-list input').forEach(inp=>{if((ep.selectedSE||[]).includes(inp.dataset.se))inp.checked=true;});
+      document.querySelectorAll('#pw-lim-list input').forEach(inp=>{if((ep.selectedLim||[]).includes(inp.dataset.lim))inp.checked=true;});
+    }
+    document.querySelectorAll('#power-modal-body button').forEach(b=>{
+      const t=b.textContent.trim();
+      if(t==='Add Power'){b.textContent='Save Changes';b.setAttribute('onclick','savePD()');}
+      else if(t.indexOf('Back')>=0){b.textContent='← Cancel';b.setAttribute('onclick','cancelPDEdit()');}
+    });
+  }
+  updatePDCost();
   document.querySelectorAll('#pw-se-list input,#pw-lim-list input').forEach(inp=>inp.addEventListener('change',updatePDCost));
 }
 function setPDLv(lv){window._pdLv=lv;const p=POWERS.find(pw=>pw.id===window._pdId);if(p)p.levels.forEach(l=>{const b=document.getElementById('pw-lv-'+l);if(b)b.className='btn btn-xs'+(l===lv?' btn-primary':' btn-secondary');});updatePDCost();}
@@ -996,7 +1052,7 @@ function renderSheet(){
   // Power Sets (active form)
   (_curForm.powerSets||[]).forEach((ps,psi)=>{
     h+=`<div class="powerset-card"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px"><div style="flex:1"><input value="${esc(ps.name||'')}" oninput="S.char.forms[${_af}].powerSets[${psi}].name=this.value;save()" placeholder="Power Set Name" style="font-family:var(--font-title);font-size:18px;color:var(--purple);background:transparent;border:none;padding:0;width:100%"><input value="${esc(ps.aspect||'')}" oninput="S.char.forms[${_af}].powerSets[${psi}].aspect=this.value;save()" placeholder="Power Set Aspect" style="font-size:12px;font-style:italic;color:var(--muted);background:transparent;border:none;padding:0;width:100%;margin-top:2px"></div><button class="btn btn-danger btn-xs" onclick="delFormPowerSet(${psi})">X</button></div>`;
-    (ps.powers||[]).forEach((pw,pwi)=>{const pd=POWERS.find(p=>p.id===pw.powerId);const pSkill=pd?.skill?.split('/')[0]||'';const rollable=pSkill&&pSkill!=='None';const rollSkill=pSkill==='Magic'||pSkill==='Mental'||pSkill==='Power'?'Controlling':pSkill;const pwName=esc(pw.customName||pd?.name||pw.powerId);h+=`<div style="padding:6px 4px;font-size:13px;border-bottom:1px solid var(--border);display:flex;gap:6px;align-items:flex-start"><div style="flex:1;${rollable?'cursor:pointer':''}" ${rollable?`onclick="loadRoll('${rollSkill}',${pw.level>1?pw.level:0},'${pwName.replace(/'/g,"\\'")}')"`:''}><span class="fw-700">${pwName}</span>${rollable?' <span style="font-size:9px;color:var(--blue);vertical-align:middle">LOAD</span>':''}${pw.level>1?' <span class="text-accent">Lv'+pw.level+'</span>':''} <span class="text-muted">(${pw.totalCost} HP)</span>${pd?.desc?`<div style="font-size:11px;color:var(--muted);margin-top:1px">${esc(pd.desc)}</div>`:''}${pd?.levelDesc&&pd.levelDesc[pw.level]?`<div style="font-size:11px;color:var(--accent);margin-top:1px">${esc(pd.levelDesc[pw.level])}</div>`:''}${pw.selectedSE.length?'<div style="margin-top:3px">'+pw.selectedSE.map(se=>{const def=[...(pd?.se||[]),...GENERAL_SE].find(x=>x.name===se);return`<div style="font-size:11px;margin-bottom:2px"><span class="tag tag-se">${se}</span>${def?' <span style="color:var(--muted)">'+esc(def.desc)+'</span>':''}</div>`;}).join('')+'</div>':''}${pw.selectedLim.length?'<div style="margin-top:2px">'+pw.selectedLim.map(l=>{const def=[...(pd?.lim||[]),...GENERAL_LIMITS].find(x=>x.name===l);return`<div style="font-size:11px;margin-bottom:2px"><span class="tag tag-lim">${l}</span>${def?' <span style="color:var(--muted)">'+esc(def.desc)+'</span>':''}</div>`;}).join('')+'</div>':''}</div><button class="btn btn-danger btn-xs" onclick="delFormPower(${psi},${pwi})" style="align-self:center">X</button></div>`;});
+    (ps.powers||[]).forEach((pw,pwi)=>{const pd=POWERS.find(p=>p.id===pw.powerId);const pSkill=pd?.skill?.split('/')[0]||'';const rollable=pSkill&&pSkill!=='None';const rollSkill=pSkill==='Magic'||pSkill==='Mental'||pSkill==='Power'?'Controlling':pSkill;const pwName=esc(pw.customName||pd?.name||pw.powerId);h+=`<div style="padding:6px 4px;font-size:13px;border-bottom:1px solid var(--border);display:flex;gap:6px;align-items:flex-start"><div style="flex:1;${rollable?'cursor:pointer':''}" ${rollable?`onclick="loadRoll('${rollSkill}',${pw.level>1?pw.level:0},'${pwName.replace(/'/g,"\\'")}')"`:''}><span class="fw-700">${pwName}</span>${rollable?' <span style="font-size:9px;color:var(--blue);vertical-align:middle">LOAD</span>':''}${pw.level>1?' <span class="text-accent">Lv'+pw.level+'</span>':''} <span class="text-muted">(${pw.totalCost} HP)</span>${pd?.desc?`<div style="font-size:11px;color:var(--muted);margin-top:1px">${esc(pd.desc)}</div>`:''}${pd?.levelDesc&&pd.levelDesc[pw.level]?`<div style="font-size:11px;color:var(--accent);margin-top:1px">${esc(pd.levelDesc[pw.level])}</div>`:''}${pw.selectedSE.length?'<div style="margin-top:3px">'+pw.selectedSE.map(se=>{const def=[...(pd?.se||[]),...GENERAL_SE].find(x=>x.name===se);return`<div style="font-size:11px;margin-bottom:2px"><span class="tag tag-se">${se}</span>${def?' <span style="color:var(--muted)">'+esc(def.desc)+'</span>':''}</div>`;}).join('')+'</div>':''}${pw.selectedLim.length?'<div style="margin-top:2px">'+pw.selectedLim.map(l=>{const def=[...(pd?.lim||[]),...GENERAL_LIMITS].find(x=>x.name===l);return`<div style="font-size:11px;margin-bottom:2px"><span class="tag tag-lim">${l}</span>${def?' <span style="color:var(--muted)">'+esc(def.desc)+'</span>':''}</div>`;}).join('')+'</div>':''}</div><div style="display:flex;flex-direction:column;gap:3px;align-self:center"><button class="btn btn-secondary btn-xs" onclick="editPD('form',${psi},${pwi})" title="Edit power">Edit</button><button class="btn btn-danger btn-xs" onclick="delFormPower(${psi},${pwi})">X</button></div></div>`;});
     h+=`<button class="btn btn-secondary btn-xs mt-1" onclick="openPowerBrowser(${psi},'form')">+ Add Power</button></div>`;
   });
   h+=`<button class="btn btn-gold btn-sm" style="width:100%" onclick="addFormPowerSet()">+ New Power Set</button>`;
@@ -1042,14 +1098,14 @@ function toggleStress(t,i){S.char.stress[t][i]=!S.char.stress[t][i];save();rende
 function adjFP(d){S.char.fatePoints=Math.max(0,S.char.fatePoints+d);save();renderSheet();}
 function resetChar(){if(!confirm('Delete character and start over?'))return;S.char=null;S.creation={step:0,costumedName:'',civilianName:'',aspects:{concept:'',motivation:'',contingent:[{cat:'',text:''},{cat:'',text:''},{cat:'',text:''}]},supportingCast:[],roguesGallery:[],skills:{},powerSets:[],stunts:[]};save();renderHero();}
 function switchForm(i){if(!S.char?.forms?.[i])return;S.char.activeForm=i;save();renderSheet();}
-function addForm(){if(!S.char)return;const name=(prompt('New form name:','New Form')||'').trim();if(!name)return;if(!S.char.forms)S.char.forms=[];S.char.forms.push({name,powerSets:[]});S.char.activeForm=S.char.forms.length-1;save();renderSheet();}
+function addForm(){if(!S.char)return;const name=(prompt('New form name:','New Form')||'').trim();if(!name)return;if(!S.char.forms)S.char.forms=[];const basePS=S.char.forms[0]?.powerSets?JSON.parse(JSON.stringify(S.char.forms[0].powerSets)):[];S.char.forms.push({name,powerSets:basePS});S.char.activeForm=S.char.forms.length-1;save();renderSheet();}
 function deleteForm(i){if(!S.char?.forms||S.char.forms.length<=1)return;if(!confirm('Delete "'+(S.char.forms[i].name||'this form')+'"? Its powers will be lost.'))return;S.char.forms.splice(i,1);if(S.char.activeForm>=S.char.forms.length)S.char.activeForm=S.char.forms.length-1;save();renderSheet();}
 function addFormPowerSet(){const af=S.char.activeForm||0;if(!S.char.forms[af])return;S.char.forms[af].powerSets.push({name:'',aspect:'',powers:[]});save();renderSheet();}
 function delFormPowerSet(psi){if(!confirm('Remove this power set?'))return;const af=S.char.activeForm||0;S.char.forms[af].powerSets.splice(psi,1);save();renderSheet();}
 function delFormPower(psi,pwi){const af=S.char.activeForm||0;S.char.forms[af].powerSets[psi].powers.splice(pwi,1);save();renderSheet();}
 // NPC form helpers (mirror of hero form helpers, operating on _npcDraft)
 function switchNPCForm(i){if(!S._npcDraft?.forms?.[i])return;S._npcDraft.activeForm=i;save();renderFullNPCEditor();}
-function addNPCForm(){if(!S._npcDraft)return;const name=(prompt('New form name:','New Form')||'').trim();if(!name)return;if(!S._npcDraft.forms)S._npcDraft.forms=[];S._npcDraft.forms.push({name,powerSets:[]});S._npcDraft.activeForm=S._npcDraft.forms.length-1;save();renderFullNPCEditor();}
+function addNPCForm(){if(!S._npcDraft)return;const name=(prompt('New form name:','New Form')||'').trim();if(!name)return;if(!S._npcDraft.forms)S._npcDraft.forms=[];const basePS=S._npcDraft.forms[0]?.powerSets?JSON.parse(JSON.stringify(S._npcDraft.forms[0].powerSets)):[];S._npcDraft.forms.push({name,powerSets:basePS});S._npcDraft.activeForm=S._npcDraft.forms.length-1;save();renderFullNPCEditor();}
 function deleteNPCForm(i){if(!S._npcDraft?.forms||S._npcDraft.forms.length<=1)return;if(!confirm('Delete "'+(S._npcDraft.forms[i].name||'this form')+'"? Its powers will be lost.'))return;S._npcDraft.forms.splice(i,1);if(S._npcDraft.activeForm>=S._npcDraft.forms.length)S._npcDraft.activeForm=S._npcDraft.forms.length-1;save();renderFullNPCEditor();}
 function addNPCPowerSet(){const af=S._npcDraft.activeForm||0;if(!S._npcDraft.forms[af])return;S._npcDraft.forms[af].powerSets.push({name:'',aspect:'',powers:[]});save();renderFullNPCEditor();}
 function delNPCPowerSet(psi){if(!confirm('Remove this power set?'))return;const af=S._npcDraft.activeForm||0;S._npcDraft.forms[af].powerSets.splice(psi,1);save();renderFullNPCEditor();}
@@ -1421,7 +1477,7 @@ function renderFullNPCEditor(){
   h+=`<div class="card"><div class="label mb-1">Power Sets</div>`;
   (_ncForm.powerSets||[]).forEach((ps,psi)=>{
     h+=`<div class="powerset-card"><div style="display:flex;justify-content:space-between;align-items:start"><div><input value="${esc(ps.name)}" oninput="S._npcDraft.forms[${_naf}].powerSets[${psi}].name=this.value;save()" placeholder="Power Set Name" style="font-family:var(--font-title);font-size:16px;color:var(--purple);background:transparent;border:none;padding:0;width:200px"><input value="${esc(ps.aspect)}" oninput="S._npcDraft.forms[${_naf}].powerSets[${psi}].aspect=this.value;save()" placeholder="Power Set Aspect" style="font-size:12px;font-style:italic;color:var(--muted);background:transparent;border:none;padding:0;width:100%;margin-top:2px"></div><button class="btn btn-danger btn-xs" onclick="delNPCPowerSet(${psi})">X</button></div>`;
-    (ps.powers||[]).forEach((pw,pwi)=>{const pd=POWERS.find(p=>p.id===pw.powerId);h+=`<div class="card-sm mt-2" style="border-color:var(--purple)"><div style="display:flex;justify-content:space-between;align-items:center"><div><span class="fw-700">${pw.customName||pd?.name||pw.powerId}</span>${pw.level>1?` <span class="text-accent">Lv${pw.level}</span>`:''}</div><button class="btn btn-danger btn-xs" onclick="delNPCPower(${psi},${pwi})">X</button></div>${pd?.desc?`<div style="font-size:11px;color:var(--muted);margin-top:2px">${esc(pd.desc)}</div>`:''}${pw.selectedSE?.length?'<div style="margin-top:3px">'+pw.selectedSE.map(se=>`<span class="tag tag-se">${se}</span>`).join(' ')+'</div>':''}${pw.selectedLim?.length?'<div style="margin-top:2px">'+pw.selectedLim.map(l=>`<span class="tag tag-lim">${l}</span>`).join(' ')+'</div>':''}</div>`;});
+    (ps.powers||[]).forEach((pw,pwi)=>{const pd=POWERS.find(p=>p.id===pw.powerId);h+=`<div class="card-sm mt-2" style="border-color:var(--purple)"><div style="display:flex;justify-content:space-between;align-items:center"><div><span class="fw-700">${pw.customName||pd?.name||pw.powerId}</span>${pw.level>1?` <span class="text-accent">Lv${pw.level}</span>`:''}</div><div style="display:flex;gap:3px"><button class="btn btn-secondary btn-xs" onclick="editPD('npc',${psi},${pwi})" title="Edit power">Edit</button><button class="btn btn-danger btn-xs" onclick="delNPCPower(${psi},${pwi})">X</button></div></div>${pd?.desc?`<div style="font-size:11px;color:var(--muted);margin-top:2px">${esc(pd.desc)}</div>`:''}${pw.selectedSE?.length?'<div style="margin-top:3px">'+pw.selectedSE.map(se=>`<span class="tag tag-se">${se}</span>`).join(' ')+'</div>':''}${pw.selectedLim?.length?'<div style="margin-top:2px">'+pw.selectedLim.map(l=>`<span class="tag tag-lim">${l}</span>`).join(' ')+'</div>':''}</div>`;});
     h+=`<button class="btn btn-secondary btn-xs mt-1" onclick="openPowerBrowser(${psi},'npc')">+ Add Power</button></div>`;
   });
   h+=`<button class="btn btn-gold btn-sm" onclick="addNPCPowerSet()">+ New Power Set</button></div>`;

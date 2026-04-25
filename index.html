@@ -269,6 +269,7 @@ select{cursor:pointer;-webkit-appearance:none;appearance:none;background-image:u
 <div class="page" id="page-notes"><div id="notes-content"></div></div>
 <div class="modal-overlay" id="slot-modal"><div class="modal-inner"><div class="card" id="slot-modal-body"></div></div></div>
 <div class="modal-overlay" id="power-modal"><div class="modal-inner"><div id="power-modal-body"></div></div></div>
+<div class="modal-overlay" id="gear-modal"><div class="modal-inner"><div id="gear-modal-body"></div></div></div>
 <div class="modal-overlay" id="npc-modal"><div class="modal-inner"><div class="card" id="npc-modal-body"></div></div></div>
 
 <script>
@@ -294,14 +295,17 @@ const EXP_LEVELS=[
   {id:'around',name:'Been Around the Block',skillPts:40,bonusHP:10},
   {id:'highly',name:'Highly Experienced',skillPts:45,bonusHP:15}
 ];
-const SKILLS=['Accuracy','Arcanum','Artificing','Athletics','Contacts','Controlling','Deceive','Empathy','Fight','Investigate','Knowledge','Leadership','Notice','Physique','Provoke','Rapport','Resources','Stealth','Technology','Thief','Treatment','Vehicles','Weapons','Will'];
+const SKILLS=['Accuracy','Arcanum','Artificing','Athletics','Contacts','Deceive','Empathy','Fight','Investigate','Knowledge','Leadership','Magic','Mental','Notice','Physique','Power','Provoke','Rapport','Resources','Stealth','Technology','Thief','Treatment','Vehicles','Weapons','Will'];
+const CONTROLLING_SKILLS=['Magic','Mental','Power'];
 const SKILL_DESC={
 Accuracy:'Ranged attacks, throwing, and hitting your mark at a distance.',
 Arcanum:'Knowledge of the mystical, extradimensional entities, and ancient rituals.',
 Artificing:'Creating and destroying mystical artifacts and enchanted objects.',
 Athletics:'General physical fitness, running, jumping, climbing, and dodging.',
 Contacts:'Knowing the right people in the right places for information.',
-Controlling:'Activating and directing super-powers (Magic, Mental, or Power source).',
+Magic:'Controlling skill for arcane / mystical powers.',
+Mental:'Controlling skill for psychic / mental powers.',
+Power:'Controlling skill for traditional powers (mutation, accident of birth, technology).',
 Deceive:'Lying, misdirection, disguises, and creating false impressions.',
 Empathy:'Reading emotions, spotting mood changes, and understanding people.',
 Fight:'All forms of unarmed and close-quarters melee combat.',
@@ -605,6 +609,50 @@ const POWERS=[
 {id:'weather_control',name:'Weather Control',cost:'5',flat:true,levels:[1],skill:'Magic/Mental/Power',desc:'Control weather patterns; create storms.',se:[],lim:[]}
 ];
 
+// GEAR — mundane items from Chapter 10. Free to carry; not Hero Point cost.
+// Devices (super-science) are still built as Power Sets.
+const GEAR=[
+// Melee weapons
+{id:'baton',name:'Baton',cat:'Melee',rating:1,desc:'Basic blunt weapon.'},
+{id:'knife',name:'Knife',cat:'Melee',rating:1,desc:'Concealable blade.'},
+{id:'rapier',name:'Rapier',cat:'Melee',rating:1,desc:'Light thrusting sword.'},
+{id:'short_sword',name:'Short Sword',cat:'Melee',rating:2,desc:'One-handed blade.'},
+{id:'long_sword',name:'Long Sword',cat:'Melee',rating:2,desc:'Heavy blade.'},
+// Ranged weapons
+{id:'pistol_9mm',name:'9mm Pistol',cat:'Ranged',rating:2,range:2,special:['+2 to cover fire']},
+{id:'pistol_50',name:'.50 Caliber Pistol',cat:'Ranged',rating:3,range:2,special:[]},
+{id:'shotgun',name:'Shotgun',cat:'Ranged',rating:2,range:2,special:[]},
+{id:'submachine_gun',name:'Submachine Gun',cat:'Ranged',rating:2,range:1,special:['+2 to cover fire']},
+{id:'assault_rifle',name:'Assault Rifle',cat:'Ranged',rating:3,range:2,special:['Armor Penetrating','Dangerous','Long Range (1)']},
+{id:'sniper_rifle',name:'Sniper Rifle',cat:'Ranged',rating:4,range:'Far',special:['+1 Aim','Long Range (3)']},
+{id:'rocket_launcher',name:'Rocket Launcher',cat:'Ranged',rating:8,range:'Far',special:['Area Effect','Armor Pen (2)','Demolishing','Lethal','Long Range']},
+{id:'crossbow',name:'Crossbow',cat:'Ranged',rating:1,range:1,special:[]},
+{id:'flamethrower',name:'Flamethrower',cat:'Ranged',rating:2,range:1,special:['Continuous','Potent']},
+{id:'net_gun',name:'Net Gun',cat:'Ranged',rating:1,range:1,special:['Entangling']},
+// Thrown / explosives
+{id:'grenade',name:'Grenade',cat:'Thrown',rating:2,range:'Thrown 2',special:['Area Effect','Dangerous']},
+{id:'flashbang',name:'Flashbang',cat:'Thrown',rating:0,range:'Thrown 2',special:['Area Effect','Aspect: Blinded & Deafened']},
+{id:'smoke_grenade',name:'Smoke Grenade',cat:'Thrown',rating:0,range:'Thrown 2',special:['Area Effect','Aspect: Choking & Blinded']},
+// Armor
+{id:'leather_armor',name:'Leather',cat:'Armor',armor:1,desc:'Leather or layered clothing.'},
+{id:'kevlar',name:'Kevlar',cat:'Armor',armor:2,desc:'Bulletproof vest.'},
+{id:'reinforced_kevlar',name:'Reinforced Kevlar',cat:'Armor',armor:3,special:['Tough'],desc:'Absorb a Moderate consequence (1/scene).'},
+{id:'experimental_kevlar',name:'Experimental Kevlar',cat:'Armor',armor:3,special:['Camouflage','Tough'],desc:'Bleeding-edge tactical armor.'},
+{id:'platemail',name:'Platemail',cat:'Armor',armor:2,special:['Durable'],desc:'Absorb a Mild consequence (1/scene).'},
+// Utility / everyday
+{id:'binoculars',name:'Binoculars',cat:'Utility',special:['Telescopic Vision']},
+{id:'commlink',name:'Comm-Link',cat:'Utility',special:['Signal-based Telepathy']},
+{id:'flashlight',name:'Flashlight',cat:'Utility',special:['Ignores 1 darkness aspect']},
+{id:'laptop',name:'Laptop',cat:'Utility',special:['Internet access']},
+{id:'lockpicks',name:'Lockpicks',cat:'Utility',special:['+2 to overcome locks']},
+{id:'medkit',name:'Medkit',cat:'Utility',special:['+1 to medical treatment']},
+{id:'nv_goggles',name:'Night Vision Goggles',cat:'Utility',special:['Darkvision']},
+{id:'smartphone',name:'Smartphone',cat:'Utility',special:['Internet','GPS']},
+{id:'utility_belt',name:'Utility Belt',cat:'Utility',desc:'Common gadgets — define contents per scene.',special:[]},
+{id:'grappling_hook',name:'Grappling Hook',cat:'Utility',desc:'Climb or swing across one zone.',special:[]},
+{id:'rebreather',name:'Rebreather',cat:'Utility',special:['Resist drowning / gas']}
+];
+
 const LOG_TYPES=[
   {key:'main',label:'Issue Log',emoji:'\ud83d\udcd6',placeholder:'Issue log entry...',desc:'The primary session record \u2014 scene, stakes, and status.'},
   {key:'supplemental',label:'Supplemental',emoji:'\ud83d\udcdd',placeholder:'Additional details...',desc:'An update or addendum. What has changed?'},
@@ -886,6 +934,29 @@ function pickSampleStunt(name){
 // Restore focus + caret position to an input after a re-render replaces it
 function _refocus(id){requestAnimationFrame(()=>{const el=document.getElementById(id);if(el&&el!==document.activeElement){el.focus();const len=el.value.length;try{el.setSelectionRange(len,len);}catch(e){}}});}
 
+// Resolve which skill to roll for a power. Multi-skill controlling powers
+// (e.g. "Magic/Mental/Power") use the player's chosen pw.controllingSkill,
+// or fall back to the first option the character actually owns.
+function getPowerRollSkill(pd,pw,charSkills){
+  if(!pd||!pd.skill||pd.skill==='None')return null;
+  if(pw&&pw.controllingSkill)return pw.controllingSkill;
+  const opts=pd.skill.split('/');
+  if(opts.every(o=>CONTROLLING_SKILLS.includes(o))){
+    const s=charSkills||S.char?.skills||{};
+    const owned=opts.find(o=>(s[o]||0)>0);
+    return owned||opts[0];
+  }
+  return opts[0];
+}
+
+// Migrate legacy 'Controlling' skill on a skills object to 'Power' (closest default per book)
+function migrateControllingSkill(skills){
+  if(!skills||!skills.Controlling)return false;
+  if(!skills.Power||skills.Power<skills.Controlling)skills.Power=skills.Controlling;
+  delete skills.Controlling;
+  return true;
+}
+
 // Power Browser
 let _pbPSI=0,_pbSearch='',_pbSkill='',_pbTarget='hero',_pdEditCtx=null;
 function openPowerBrowser(psi,target){_pbPSI=psi;_pbTarget=target||'hero';_pbSearch='';_pbSkill='';_pdEditCtx=null;document.getElementById('power-modal').classList.add('open');renderPB();}
@@ -918,7 +989,9 @@ function savePD(){
   document.querySelectorAll('#pw-lim-list input:checked').forEach(i=>{c+=parseInt(i.dataset.cost)||0;lm.push(i.dataset.lim);});
   c=Math.max(1,c);
   const customName=(document.getElementById('pw-custom-name')?.value||'').trim()||p.name;
+  const sp=document.getElementById('pw-skill-pick');const controllingSkill=sp?sp.value:undefined;
   const updated={powerId:id,customName,level:lv,selectedSE:se,selectedLim:lm,totalCost:c};
+  if(controllingSkill)updated.controllingSkill=controllingSkill;
   let arr;
   if(target==='form')arr=S.char?.forms?.[S.char.activeForm]?.powerSets?.[psi]?.powers;
   else if(target==='npc')arr=S._npcDraft?.forms?.[S._npcDraft.activeForm]?.powerSets?.[psi]?.powers;
@@ -942,7 +1015,14 @@ function renderPB(){
 function showPD(id){
   const p=POWERS.find(pw=>pw.id===id);if(!p)return;
   const isVar=!p.flat,allSE=[...p.se,...GENERAL_SE],allLim=[...p.lim,...GENERAL_LIMITS];
+  const skillOpts=p.skill.split('/').filter(s=>s&&s!=='None');
+  const isMultiSkill=skillOpts.length>1;
   let h=`<div class="card"><button class="btn btn-secondary btn-xs" onclick="renderPB()" style="margin-bottom:8px">\u2190 Back</button><div class="pg-title" style="font-size:20px">${p.name}</div><div style="font-size:12px;color:var(--muted);margin-bottom:6px">Skill: ${p.skill} | Cost: ${p.cost}</div><div style="font-size:13px;margin-bottom:10px">${p.desc}</div><div class="form-group"><label>Display Name <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:10px">(rename if desired)</span></label><input id="pw-custom-name" value="${esc(p.name)}" placeholder="${esc(p.name)}"></div>`;
+  if(isMultiSkill){
+    h+=`<div class="form-group"><label>Roll With <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:10px">(pick the skill that fits this power\'s source)</span></label><select id="pw-skill-pick" style="width:100%">`;
+    skillOpts.forEach(s=>{h+=`<option value="${esc(s)}">${esc(s)}</option>`;});
+    h+=`</select></div>`;
+  }
   if(isVar){h+=`<div class="label mb-1">Power Level</div><div style="display:flex;gap:4px;margin-bottom:6px">`;p.levels.forEach(lv=>{h+=`<button class="btn btn-xs ${lv===1?'btn-primary':'btn-secondary'}" id="pw-lv-${lv}" onclick="setPDLv(${lv})">${lv}</button>`;});h+='</div>';
     if(p.levelDesc){h+=`<div class="card-sm" style="margin-bottom:10px;border-color:var(--accent)">`;p.levels.forEach(lv=>{if(p.levelDesc[lv])h+=`<div style="font-size:11px;padding:2px 0;display:flex;gap:6px;border-bottom:1px solid var(--border)"><span class="fw-700 text-accent" style="min-width:22px">Lv${lv}</span><span style="color:var(--text)">${esc(p.levelDesc[lv])}</span></div>`;});h+=`</div>`;}}
   const hasPowerSE=p.se.length>0,hasPowerLim=p.lim.length>0;
@@ -967,6 +1047,7 @@ function showPD(id){
       if(ep.level>1)setPDLv(ep.level);
       document.querySelectorAll('#pw-se-list input').forEach(inp=>{if((ep.selectedSE||[]).includes(inp.dataset.se))inp.checked=true;});
       document.querySelectorAll('#pw-lim-list input').forEach(inp=>{if((ep.selectedLim||[]).includes(inp.dataset.lim))inp.checked=true;});
+      const sp=document.getElementById('pw-skill-pick');if(sp&&ep.controllingSkill)sp.value=ep.controllingSkill;
     }
     document.querySelectorAll('#power-modal-body button').forEach(b=>{
       const t=b.textContent.trim();
@@ -980,7 +1061,9 @@ function showPD(id){
 function setPDLv(lv){window._pdLv=lv;const p=POWERS.find(pw=>pw.id===window._pdId);if(p)p.levels.forEach(l=>{const b=document.getElementById('pw-lv-'+l);if(b)b.className='btn btn-xs'+(l===lv?' btn-primary':' btn-secondary');});updatePDCost();}
 function updatePDCost(){const p=POWERS.find(pw=>pw.id===window._pdId);if(!p)return;let c=p.flat?parseInt(p.cost)||0:window._pdLv;document.querySelectorAll('#pw-se-list input:checked').forEach(i=>c+=parseInt(i.dataset.cost)||0);document.querySelectorAll('#pw-lim-list input:checked').forEach(i=>c+=parseInt(i.dataset.cost)||0);c=Math.max(1,c);const el=document.getElementById('pw-cost-disp');if(el)el.textContent='Total: '+c+' HP';}
 function addPD(id){const p=POWERS.find(pw=>pw.id===id);if(!p)return;const lv=window._pdLv||1;let c=p.flat?parseInt(p.cost)||0:lv;const se=[],lm=[];document.querySelectorAll('#pw-se-list input:checked').forEach(i=>{c+=parseInt(i.dataset.cost)||0;se.push(i.dataset.se);});document.querySelectorAll('#pw-lim-list input:checked').forEach(i=>{c+=parseInt(i.dataset.cost)||0;lm.push(i.dataset.lim);});c=Math.max(1,c);const customName=(document.getElementById('pw-custom-name')?.value||'').trim()||p.name;
+  const sp=document.getElementById('pw-skill-pick');const controllingSkill=sp?sp.value:undefined;
   const powerObj={powerId:id,customName,level:lv,selectedSE:se,selectedLim:lm,totalCost:c};
+  if(controllingSkill)powerObj.controllingSkill=controllingSkill;
   if(_pbTarget==='npc'){const af=S._npcDraft?.activeForm||0;if(!S._npcDraft?.forms?.[af]?.powerSets?.[_pbPSI])return;S._npcDraft.forms[af].powerSets[_pbPSI].powers.push(powerObj);save();closePB();renderFullNPCEditor();}
   else if(_pbTarget==='form'){const af=S.char?.activeForm||0;if(!S.char?.forms?.[af]?.powerSets?.[_pbPSI])return;S.char.forms[af].powerSets[_pbPSI].powers.push(powerObj);save();closePB();renderSheet();}
   else{if(!S.creation.powerSets[_pbPSI])return;S.creation.powerSets[_pbPSI].powers.push(powerObj);save();closePB();renderCreationStep();}}
@@ -1020,6 +1103,10 @@ function renderSheet(){
   const ch=S.char;if(!ch)return;
   // Migrate legacy characters: wrap existing powerSets into a single Main Form
   if(!ch.forms){ch.forms=[{name:'Main Form',powerSets:ch.powerSets||[]}];ch.activeForm=0;delete ch.powerSets;save();}
+  // Migrate legacy 'Controlling' skill into 'Power'
+  if(migrateControllingSkill(ch.skills))save();
+  // Also migrate any NPCs in this slot
+  let npcMig=false;(S.npcs||[]).forEach(n=>{if(migrateControllingSkill(n.skills))npcMig=true;});if(npcMig)save();
   if(ch.activeForm==null||ch.activeForm>=ch.forms.length)ch.activeForm=0;
   const _af=ch.activeForm,_curForm=ch.forms[_af]||{name:'',powerSets:[]};
   let h=`<div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:4px"><div><div class="pg-title" style="font-size:28px">${esc(ch.costumedName)}</div><div style="font-size:13px;color:var(--muted)">${esc(ch.civilianName)}</div></div><div style="display:flex;gap:4px"><button class="btn btn-gold btn-xs" onclick="exportJSON()">Export</button><button class="btn btn-secondary btn-xs" onclick="openSlotModal()">Slots</button><button class="btn btn-danger btn-xs" onclick="resetChar()">New</button></div></div>`;
@@ -1052,10 +1139,12 @@ function renderSheet(){
   // Power Sets (active form)
   (_curForm.powerSets||[]).forEach((ps,psi)=>{
     h+=`<div class="powerset-card"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px"><div style="flex:1"><input value="${esc(ps.name||'')}" oninput="S.char.forms[${_af}].powerSets[${psi}].name=this.value;save()" placeholder="Power Set Name" style="font-family:var(--font-title);font-size:18px;color:var(--purple);background:transparent;border:none;padding:0;width:100%"><input value="${esc(ps.aspect||'')}" oninput="S.char.forms[${_af}].powerSets[${psi}].aspect=this.value;save()" placeholder="Power Set Aspect" style="font-size:12px;font-style:italic;color:var(--muted);background:transparent;border:none;padding:0;width:100%;margin-top:2px"></div><button class="btn btn-danger btn-xs" onclick="delFormPowerSet(${psi})">X</button></div>`;
-    (ps.powers||[]).forEach((pw,pwi)=>{const pd=POWERS.find(p=>p.id===pw.powerId);const pSkill=pd?.skill?.split('/')[0]||'';const rollable=pSkill&&pSkill!=='None';const rollSkill=pSkill==='Magic'||pSkill==='Mental'||pSkill==='Power'?'Controlling':pSkill;const pwName=esc(pw.customName||pd?.name||pw.powerId);h+=`<div style="padding:6px 4px;font-size:13px;border-bottom:1px solid var(--border);display:flex;gap:6px;align-items:flex-start"><div style="flex:1;${rollable?'cursor:pointer':''}" ${rollable?`onclick="loadRoll('${rollSkill}',${pw.level>1?pw.level:0},'${pwName.replace(/'/g,"\\'")}')"`:''}><span class="fw-700">${pwName}</span>${rollable?' <span style="font-size:9px;color:var(--blue);vertical-align:middle">LOAD</span>':''}${pw.level>1?' <span class="text-accent">Lv'+pw.level+'</span>':''} <span class="text-muted">(${pw.totalCost} HP)</span>${pd?.desc?`<div style="font-size:11px;color:var(--muted);margin-top:1px">${esc(pd.desc)}</div>`:''}${pd?.levelDesc&&pd.levelDesc[pw.level]?`<div style="font-size:11px;color:var(--accent);margin-top:1px">${esc(pd.levelDesc[pw.level])}</div>`:''}${pw.selectedSE.length?'<div style="margin-top:3px">'+pw.selectedSE.map(se=>{const def=[...(pd?.se||[]),...GENERAL_SE].find(x=>x.name===se);return`<div style="font-size:11px;margin-bottom:2px"><span class="tag tag-se">${se}</span>${def?' <span style="color:var(--muted)">'+esc(def.desc)+'</span>':''}</div>`;}).join('')+'</div>':''}${pw.selectedLim.length?'<div style="margin-top:2px">'+pw.selectedLim.map(l=>{const def=[...(pd?.lim||[]),...GENERAL_LIMITS].find(x=>x.name===l);return`<div style="font-size:11px;margin-bottom:2px"><span class="tag tag-lim">${l}</span>${def?' <span style="color:var(--muted)">'+esc(def.desc)+'</span>':''}</div>`;}).join('')+'</div>':''}</div><div style="display:flex;flex-direction:column;gap:3px;align-self:center"><button class="btn btn-secondary btn-xs" onclick="editPD('form',${psi},${pwi})" title="Edit power">Edit</button><button class="btn btn-danger btn-xs" onclick="delFormPower(${psi},${pwi})">X</button></div></div>`;});
+    (ps.powers||[]).forEach((pw,pwi)=>{const pd=POWERS.find(p=>p.id===pw.powerId);const rollSkill=getPowerRollSkill(pd,pw,ch.skills);const rollable=!!rollSkill;const pwName=esc(pw.customName||pd?.name||pw.powerId);h+=`<div style="padding:6px 4px;font-size:13px;border-bottom:1px solid var(--border);display:flex;gap:6px;align-items:flex-start"><div style="flex:1;${rollable?'cursor:pointer':''}" ${rollable?`onclick="loadRoll('${rollSkill}',${pw.level>1?pw.level:0},'${pwName.replace(/'/g,"\\'")}')"`:''}><span class="fw-700">${pwName}</span>${rollable?' <span style="font-size:9px;color:var(--blue);vertical-align:middle">LOAD</span>':''}${pw.level>1?' <span class="text-accent">Lv'+pw.level+'</span>':''} <span class="text-muted">(${pw.totalCost} HP)</span>${pd?.desc?`<div style="font-size:11px;color:var(--muted);margin-top:1px">${esc(pd.desc)}</div>`:''}${pd?.levelDesc&&pd.levelDesc[pw.level]?`<div style="font-size:11px;color:var(--accent);margin-top:1px">${esc(pd.levelDesc[pw.level])}</div>`:''}${pw.selectedSE.length?'<div style="margin-top:3px">'+pw.selectedSE.map(se=>{const def=[...(pd?.se||[]),...GENERAL_SE].find(x=>x.name===se);return`<div style="font-size:11px;margin-bottom:2px"><span class="tag tag-se">${se}</span>${def?' <span style="color:var(--muted)">'+esc(def.desc)+'</span>':''}</div>`;}).join('')+'</div>':''}${pw.selectedLim.length?'<div style="margin-top:2px">'+pw.selectedLim.map(l=>{const def=[...(pd?.lim||[]),...GENERAL_LIMITS].find(x=>x.name===l);return`<div style="font-size:11px;margin-bottom:2px"><span class="tag tag-lim">${l}</span>${def?' <span style="color:var(--muted)">'+esc(def.desc)+'</span>':''}</div>`;}).join('')+'</div>':''}</div><div style="display:flex;flex-direction:column;gap:3px;align-self:center"><button class="btn btn-secondary btn-xs" onclick="editPD('form',${psi},${pwi})" title="Edit power">Edit</button><button class="btn btn-danger btn-xs" onclick="delFormPower(${psi},${pwi})">X</button></div></div>`;});
     h+=`<button class="btn btn-secondary btn-xs mt-1" onclick="openPowerBrowser(${psi},'form')">+ Add Power</button></div>`;
   });
   h+=`<button class="btn btn-gold btn-sm" style="width:100%" onclick="addFormPowerSet()">+ New Power Set</button>`;
+  // Gear (per form)
+  h+=renderGearList(_curForm,'form');
   // Stunts
   if(ch.stunts?.length){h+=`<div class="card"><div class="label mb-1">Stunts</div>`;ch.stunts.forEach(st=>{h+=`<div style="padding:3px 0;font-size:13px">\u2605 <strong>${esc(st.name)}</strong> <span class="text-muted">(${st.cost} HP)</span><br><span style="font-size:12px;color:var(--muted)">${esc(st.desc)}</span></div>`;});h+='</div>';}
   // Gear
@@ -1103,6 +1192,65 @@ function deleteForm(i){if(!S.char?.forms||S.char.forms.length<=1)return;if(!conf
 function addFormPowerSet(){const af=S.char.activeForm||0;if(!S.char.forms[af])return;S.char.forms[af].powerSets.push({name:'',aspect:'',powers:[]});save();renderSheet();}
 function delFormPowerSet(psi){if(!confirm('Remove this power set?'))return;const af=S.char.activeForm||0;S.char.forms[af].powerSets.splice(psi,1);save();renderSheet();}
 function delFormPower(psi,pwi){const af=S.char.activeForm||0;S.char.forms[af].powerSets[psi].powers.splice(pwi,1);save();renderSheet();}
+
+// Gear (per-form). Browser modal can target hero forms or NPC draft forms.
+let _gbTarget='form',_gbSearch='',_gbCat='';
+function _ensureFormGear(form){if(form&&!Array.isArray(form.gear))form.gear=[];}
+function openGearBrowser(target){_gbTarget=target||'form';_gbSearch='';_gbCat='';document.getElementById('gear-modal').classList.add('open');renderGB();}
+function closeGB(){document.getElementById('gear-modal').classList.remove('open');}
+function renderGB(){
+  const q=_gbSearch.toLowerCase(),cf=_gbCat;
+  const cats=['All','Melee','Ranged','Thrown','Armor','Utility'];
+  const filtered=GEAR.filter(g=>{if(cf&&g.cat!==cf)return false;if(q&&!g.name.toLowerCase().includes(q)&&!(g.desc||'').toLowerCase().includes(q))return false;return true;});
+  let h=`<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div class="pg-title" style="font-size:20px">Gear</div><button class="btn btn-secondary btn-xs" onclick="closeGB()">Close</button></div>`;
+  h+=`<input id="gb-search" placeholder="Search gear..." value="${esc(_gbSearch)}" oninput="_gbSearch=this.value;renderGB();_refocus('gb-search')" style="margin-bottom:8px">`;
+  h+=`<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px">${cats.map(c=>`<button class="btn btn-xs ${(c==='All'&&!cf)||cf===c?'btn-primary':'btn-secondary'}" onclick="_gbCat='${c==='All'?'':c}';renderGB()">${c}</button>`).join('')}</div>`;
+  h+=`<div style="max-height:55vh;overflow-y:auto">`;
+  filtered.forEach(g=>{
+    const stat=g.cat==='Armor'?`Armor ${g.armor}`:(g.rating!==undefined?`Weapon ${g.rating}${g.range!==undefined?' · Range '+g.range:''}`:'');
+    h+=`<div class="card-sm" style="display:flex;gap:8px;align-items:flex-start"><div style="flex:1"><div class="fw-700" style="font-size:13px">${esc(g.name)} <span class="text-muted" style="font-weight:400;font-size:10px">[${g.cat}]</span></div>${stat?`<div style="font-size:11px;color:var(--accent)">${stat}</div>`:''}${g.desc?`<div style="font-size:11px;color:var(--muted)">${esc(g.desc)}</div>`:''}${g.special&&g.special.length?`<div style="margin-top:3px">${g.special.map(s=>`<span class="tag tag-se">${esc(s)}</span>`).join(' ')}</div>`:''}</div><button class="btn btn-primary btn-xs" onclick="pickGear('${g.id}')">Add</button></div>`;
+  });
+  if(!filtered.length)h+='<div class="tac text-muted" style="padding:20px">No matches</div>';
+  h+=`</div><div class="divider"></div><button class="btn btn-secondary btn-sm btn-full" onclick="addCustomGear()">Create Custom Gear</button></div>`;
+  document.getElementById('gear-modal-body').innerHTML=h;
+}
+function pickGear(gearId){
+  const g=GEAR.find(x=>x.id===gearId);if(!g)return;
+  _addGearToTarget({gearId,customName:''});
+}
+function addCustomGear(){
+  const n=(prompt('Gear name:')||'').trim();if(!n)return;
+  const d=prompt('Description (optional):')||'';
+  _addGearToTarget({custom:true,name:n,desc:d,cat:'Utility',special:[]});
+}
+function _addGearToTarget(item){
+  if(_gbTarget==='form'){
+    const af=S.char.activeForm||0,form=S.char.forms[af];
+    _ensureFormGear(form);form.gear.push(item);save();closeGB();renderSheet();
+  } else if(_gbTarget==='npc'){
+    const af=S._npcDraft.activeForm||0,form=S._npcDraft.forms[af];
+    _ensureFormGear(form);form.gear.push(item);save();closeGB();renderFullNPCEditor();
+  }
+}
+function delFormGear(gi){const af=S.char.activeForm||0,form=S.char.forms[af];_ensureFormGear(form);form.gear.splice(gi,1);save();renderSheet();}
+function delNPCGear(gi){const af=S._npcDraft.activeForm||0,form=S._npcDraft.forms[af];_ensureFormGear(form);form.gear.splice(gi,1);save();renderFullNPCEditor();}
+function renderGearList(form,target){
+  _ensureFormGear(form);
+  let h=`<div class="card"><div style="display:flex;justify-content:space-between;align-items:center"><div class="label" style="margin:0">Gear</div><button class="btn btn-gold btn-xs" onclick="openGearBrowser('${target}')">+ Add Gear</button></div>`;
+  if(!form.gear.length){h+=`<div style="font-size:11px;color:var(--muted);margin-top:6px">No gear yet. Add weapons, armor, and utility items appropriate for this form.</div>`;}
+  form.gear.forEach((it,gi)=>{
+    const g=it.custom?null:GEAR.find(x=>x.id===it.gearId);
+    const name=it.customName||(g?g.name:(it.name||'Item'));
+    const cat=g?g.cat:(it.cat||'Item');
+    const stat=g?(g.cat==='Armor'?`Armor ${g.armor}`:(g.rating!==undefined?`Weapon ${g.rating}${g.range!==undefined?' · Range '+g.range:''}`:'')):'';
+    const desc=g?g.desc:(it.desc||'');
+    const special=g?g.special:(it.special||[]);
+    const delFn=target==='form'?`delFormGear(${gi})`:`delNPCGear(${gi})`;
+    h+=`<div class="card-sm mt-2" style="display:flex;gap:8px;align-items:flex-start"><div style="flex:1"><div class="fw-700" style="font-size:13px">${esc(name)} <span class="text-muted" style="font-weight:400;font-size:10px">[${esc(cat)}]</span></div>${stat?`<div style="font-size:11px;color:var(--accent)">${stat}</div>`:''}${desc?`<div style="font-size:11px;color:var(--muted)">${esc(desc)}</div>`:''}${special&&special.length?`<div style="margin-top:3px">${special.map(s=>`<span class="tag tag-se">${esc(s)}</span>`).join(' ')}</div>`:''}</div><button class="btn btn-danger btn-xs" onclick="${delFn}">X</button></div>`;
+  });
+  h+=`</div>`;
+  return h;
+}
 // NPC form helpers (mirror of hero form helpers, operating on _npcDraft)
 function switchNPCForm(i){if(!S._npcDraft?.forms?.[i])return;S._npcDraft.activeForm=i;save();renderFullNPCEditor();}
 function addNPCForm(){if(!S._npcDraft)return;const name=(prompt('New form name:','New Form')||'').trim();if(!name)return;if(!S._npcDraft.forms)S._npcDraft.forms=[];const basePS=S._npcDraft.forms[0]?.powerSets?JSON.parse(JSON.stringify(S._npcDraft.forms[0].powerSets)):[];S._npcDraft.forms.push({name,powerSets:basePS});S._npcDraft.activeForm=S._npcDraft.forms.length-1;save();renderFullNPCEditor();}
@@ -1175,7 +1323,7 @@ function printCharSheet(){
   // Aspects
   let aspHtml=`<div class="asp"><span class="al">Concept:</span> ${e(ch.aspects.concept)}</div><div class="asp"><span class="al">Motivation:</span> ${e(ch.aspects.motivation)}</div>`;
   ch.aspects.contingent.forEach(ct=>{if(ct.text)aspHtml+=`<div class="asp"><span class="al">${e(ct.cat||'Aspect')}:</span> ${e(ct.text)}</div>`;});
-  // Power Sets (across all forms; label when more than one)
+  // Power Sets + Gear (across all forms; label when more than one)
   let powHtml='';
   const _printForms=ch.forms||[{name:'',powerSets:ch.powerSets||[]}];
   _printForms.forEach(form=>{
@@ -1185,6 +1333,18 @@ function printCharSheet(){
       (ps.powers||[]).forEach(pw=>{const pd=POWERS.find(p=>p.id===pw.powerId);powHtml+=`<div class="pw-item"><span class="pw-n">${e(pw.customName||pd?.name||pw.powerId)}</span>${pw.level>1?' <span class="pw-lv">Lv'+pw.level+'</span>':''} <span class="pw-c">(${pw.totalCost} HP)</span>${pd?.desc?`<div class="pw-desc">${e(pd.desc)}</div>`:''}${pd?.levelDesc&&pd.levelDesc[pw.level]?`<div class="pw-lvd">${e(pd.levelDesc[pw.level])}</div>`:''}${pw.selectedSE.length?'<div class="pw-tags">'+pw.selectedSE.map(s=>{const def=[...(pd?.se||[]),...GENERAL_SE].find(x=>x.name===s);return'<span class="tg tg-se">'+e(s)+'</span>'+(def?' <span class="tg-desc">'+e(def.desc)+'</span>':'');}).join('<br>')+'</div>':''}${pw.selectedLim.length?'<div class="pw-tags">'+pw.selectedLim.map(l=>{const def=[...(pd?.lim||[]),...GENERAL_LIMITS].find(x=>x.name===l);return'<span class="tg tg-lm">'+e(l)+'</span>'+(def?' <span class="tg-desc">'+e(def.desc)+'</span>':'');}).join('<br>')+'</div>':''}</div>`;});
       powHtml+='</div>';
     });
+    if(form.gear&&form.gear.length){
+      powHtml+=`<div class="gear-block"><div class="gear-h">Gear</div>`;
+      form.gear.forEach(it=>{
+        const g=it.custom?null:GEAR.find(x=>x.id===it.gearId);
+        const name=it.customName||(g?g.name:(it.name||'Item'));
+        const cat=g?g.cat:(it.cat||'');
+        const stat=g?(g.cat==='Armor'?`Armor ${g.armor}`:(g.rating!==undefined?`Weapon ${g.rating}${g.range!==undefined?' · Range '+g.range:''}`:'')):'';
+        const special=g?g.special:(it.special||[]);
+        powHtml+=`<div class="gear-item"><span class="gear-n">${e(name)}</span> <span class="gear-c">[${e(cat)}]</span>${stat?` <span class="gear-stat">${e(stat)}</span>`:''}${special&&special.length?` <span class="gear-special">${e(special.join(', '))}</span>`:''}</div>`;
+      });
+      powHtml+=`</div>`;
+    }
   });
   // Stunts
   let stuntHtml='';
@@ -1221,6 +1381,10 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:10.5pt;color:#111;backgrou
 .ps-card{border:1.5px solid #8e44ad;border-radius:4px;padding:6px;margin-bottom:6px}
 .ps-name{font-size:11pt;font-weight:900;color:#8e44ad}.ps-asp{font-size:8.5pt;color:#888;font-style:italic;margin-bottom:3px}
 .form-hdr{font-size:10pt;font-weight:900;text-transform:uppercase;letter-spacing:.8px;color:#444;margin:8px 0 4px;padding-bottom:2px;border-bottom:1.5px solid #444}
+.gear-block{border:1px solid #777;border-radius:4px;padding:5px;margin-bottom:6px}
+.gear-h{font-size:9pt;font-weight:700;text-transform:uppercase;color:#555;margin-bottom:3px;letter-spacing:.5px}
+.gear-item{font-size:9pt;padding:1px 0;border-bottom:1px dotted #ddd}
+.gear-n{font-weight:700}.gear-c{color:#888;font-size:8pt}.gear-stat{color:#c00;font-weight:600;font-size:8.5pt}.gear-special{color:#666;font-size:8pt;font-style:italic}
 .pw-item{padding:2px 0;font-size:9.5pt;border-bottom:1px solid #f0f0f0}
 .pw-n{font-weight:700}.pw-lv{color:#c00;font-weight:600}.pw-c{color:#888;font-size:8.5pt}
 .pw-desc{font-size:8pt;color:#666;line-height:1.3;margin-top:1px}
@@ -1420,12 +1584,14 @@ function openFullNPCBuilder(idx){
   // Migrate legacy powerSets into forms structure
   const forms = existing?.forms ? JSON.parse(JSON.stringify(existing.forms))
     : [{name:'Main Form', powerSets: existing?.powerSets ? JSON.parse(JSON.stringify(existing.powerSets)) : []}];
+  const draftSkills = existing?.skills ? JSON.parse(JSON.stringify(existing.skills)) : {};
+  migrateControllingSkill(draftSkills);
   S._npcDraft={
     type:existing?.type||(_npcTab==='rogue'||_npcTab==='main'?_npcTab:'rogue'),
     name:existing?.name||'',
     desc:existing?.desc||'',
     aspects:existing?.aspects||[],
-    skills:existing?.skills||{},
+    skills:draftSkills,
     forms,
     activeForm: existing?.activeForm||0,
     stunts:existing?.stunts?JSON.parse(JSON.stringify(existing.stunts)):[],
@@ -1481,6 +1647,9 @@ function renderFullNPCEditor(){
     h+=`<button class="btn btn-secondary btn-xs mt-1" onclick="openPowerBrowser(${psi},'npc')">+ Add Power</button></div>`;
   });
   h+=`<button class="btn btn-gold btn-sm" onclick="addNPCPowerSet()">+ New Power Set</button></div>`;
+
+  // Gear (per form)
+  h+=renderGearList(_ncForm,'npc');
 
   // Stunts
   h+=`<div class="card"><div class="label mb-1">Stunts</div>`;

@@ -922,7 +922,7 @@ function setPDLv(lv){window._pdLv=lv;const p=POWERS.find(pw=>pw.id===window._pdI
 function updatePDCost(){const p=POWERS.find(pw=>pw.id===window._pdId);if(!p)return;let c=p.flat?parseInt(p.cost)||0:window._pdLv;document.querySelectorAll('#pw-se-list input:checked').forEach(i=>c+=parseInt(i.dataset.cost)||0);document.querySelectorAll('#pw-lim-list input:checked').forEach(i=>c+=parseInt(i.dataset.cost)||0);c=Math.max(1,c);const el=document.getElementById('pw-cost-disp');if(el)el.textContent='Total: '+c+' HP';}
 function addPD(id){const p=POWERS.find(pw=>pw.id===id);if(!p)return;const lv=window._pdLv||1;let c=p.flat?parseInt(p.cost)||0:lv;const se=[],lm=[];document.querySelectorAll('#pw-se-list input:checked').forEach(i=>{c+=parseInt(i.dataset.cost)||0;se.push(i.dataset.se);});document.querySelectorAll('#pw-lim-list input:checked').forEach(i=>{c+=parseInt(i.dataset.cost)||0;lm.push(i.dataset.lim);});c=Math.max(1,c);const customName=(document.getElementById('pw-custom-name')?.value||'').trim()||p.name;
   const powerObj={powerId:id,customName,level:lv,selectedSE:se,selectedLim:lm,totalCost:c};
-  if(_pbTarget==='npc'){if(!S._npcDraft?.powerSets?.[_pbPSI])return;S._npcDraft.powerSets[_pbPSI].powers.push(powerObj);save();closePB();renderFullNPCEditor();}
+  if(_pbTarget==='npc'){const af=S._npcDraft?.activeForm||0;if(!S._npcDraft?.forms?.[af]?.powerSets?.[_pbPSI])return;S._npcDraft.forms[af].powerSets[_pbPSI].powers.push(powerObj);save();closePB();renderFullNPCEditor();}
   else if(_pbTarget==='form'){const af=S.char?.activeForm||0;if(!S.char?.forms?.[af]?.powerSets?.[_pbPSI])return;S.char.forms[af].powerSets[_pbPSI].powers.push(powerObj);save();closePB();renderSheet();}
   else{if(!S.creation.powerSets[_pbPSI])return;S.creation.powerSets[_pbPSI].powers.push(powerObj);save();closePB();renderCreationStep();}}
 
@@ -1044,6 +1044,63 @@ function deleteForm(i){if(!S.char?.forms||S.char.forms.length<=1)return;if(!conf
 function addFormPowerSet(){const af=S.char.activeForm||0;if(!S.char.forms[af])return;S.char.forms[af].powerSets.push({name:'',aspect:'',powers:[]});save();renderSheet();}
 function delFormPowerSet(psi){if(!confirm('Remove this power set?'))return;const af=S.char.activeForm||0;S.char.forms[af].powerSets.splice(psi,1);save();renderSheet();}
 function delFormPower(psi,pwi){const af=S.char.activeForm||0;S.char.forms[af].powerSets[psi].powers.splice(pwi,1);save();renderSheet();}
+// NPC form helpers (mirror of hero form helpers, operating on _npcDraft)
+function switchNPCForm(i){if(!S._npcDraft?.forms?.[i])return;S._npcDraft.activeForm=i;save();renderFullNPCEditor();}
+function addNPCForm(){if(!S._npcDraft)return;const name=(prompt('New form name:','New Form')||'').trim();if(!name)return;if(!S._npcDraft.forms)S._npcDraft.forms=[];S._npcDraft.forms.push({name,powerSets:[]});S._npcDraft.activeForm=S._npcDraft.forms.length-1;save();renderFullNPCEditor();}
+function deleteNPCForm(i){if(!S._npcDraft?.forms||S._npcDraft.forms.length<=1)return;if(!confirm('Delete "'+(S._npcDraft.forms[i].name||'this form')+'"? Its powers will be lost.'))return;S._npcDraft.forms.splice(i,1);if(S._npcDraft.activeForm>=S._npcDraft.forms.length)S._npcDraft.activeForm=S._npcDraft.forms.length-1;save();renderFullNPCEditor();}
+function addNPCPowerSet(){const af=S._npcDraft.activeForm||0;if(!S._npcDraft.forms[af])return;S._npcDraft.forms[af].powerSets.push({name:'',aspect:'',powers:[]});save();renderFullNPCEditor();}
+function delNPCPowerSet(psi){if(!confirm('Remove this power set?'))return;const af=S._npcDraft.activeForm||0;S._npcDraft.forms[af].powerSets.splice(psi,1);save();renderFullNPCEditor();}
+function delNPCPower(psi,pwi){const af=S._npcDraft.activeForm||0;S._npcDraft.forms[af].powerSets[psi].powers.splice(pwi,1);save();renderFullNPCEditor();}
+
+// Export an NPC (Main or Rogue) into a save slot as a playable character
+function npcToCharacter(npc){
+  const tone=SERIES_TONES.find(t=>t.id===S.series.tone);
+  const refresh=tone?.refresh||5;
+  const phys=npc.skills?.['Physique']||0,will=npc.skills?.['Will']||0;
+  const tb=tone?.stressBonus||0;
+  const pb=phys>=5?2:phys>=3?1:0,wb=will>=5?2:will>=3?1:0;
+  const ps=2+tb+pb,ms=2+tb+wb;
+  const aspects=npc.aspects||[];
+  const forms=npc.forms?JSON.parse(JSON.stringify(npc.forms))
+    :[{name:'Main Form',powerSets:JSON.parse(JSON.stringify(npc.powerSets||[]))}];
+  return{
+    costumedName:npc.name,civilianName:'',
+    aspects:{
+      concept:aspects[0]||npc.desc||'',
+      motivation:aspects[1]||'',
+      contingent:[
+        {cat:aspects[2]?'Aspect':'',text:aspects[2]||''},
+        {cat:aspects[3]?'Aspect':'',text:aspects[3]||''},
+        {cat:aspects[4]?'Aspect':'',text:aspects[4]||''}
+      ]
+    },
+    supportingCast:[],roguesGallery:[],
+    skills:JSON.parse(JSON.stringify(npc.skills||{})),
+    refresh,fatePoints:refresh,
+    stress:{physical:Array(ps).fill(false),mental:Array(ms).fill(false)},
+    consequences:JSON.parse(JSON.stringify(npc.consequences||{mild:'',moderate:'',severe:''})),
+    stunts:JSON.parse(JSON.stringify(npc.stunts||[])),
+    forms,activeForm:0,
+    gear:npc.gear||''
+  };
+}
+function exportNPCToSlot(npcIdx){
+  const npc=S.npcs[npcIdx];if(!npc)return;
+  // Build slot list label for the prompt
+  const slotInfo=[];
+  for(let i=0;i<10;i++){const d=getSlotData(i);const nm=d?.char?.costumedName||d?.creation?.costumedName||(d?'In Progress':'Empty');slotInfo.push((i+1)+': '+nm);}
+  const ans=prompt('Export "'+npc.name+'" as a playable character. Enter slot 1-10:\n\n'+slotInfo.join('\n'),'');
+  if(!ans)return;
+  const n=parseInt(ans)-1;
+  if(isNaN(n)||n<0||n>9)return alert('Slot must be 1-10');
+  const existing=getSlotData(n);
+  if(existing&&existing.char){if(!confirm('Slot '+(n+1)+' already has "'+(existing.char.costumedName||'a character')+'". Overwrite?'))return;}
+  const newState=defaultState();
+  newState.series=JSON.parse(JSON.stringify(S.series));
+  newState.char=npcToCharacter(npc);
+  try{localStorage.setItem(slotKey(n),JSON.stringify(newState));}catch(e){return alert('Save failed: '+e.message);}
+  alert('Exported "'+npc.name+'" to slot '+(n+1)+'.');
+}
 
 function printCharSheet(){
   const ch=S.char;if(!ch)return;
@@ -1258,14 +1315,15 @@ function renderNPCs(){
     if(npc.type==='main'||npc.type==='rogue'){
       if(npc.aspects?.length)h+=`<div style="font-size:11px;margin-top:2px">${npc.aspects.map(a=>`<span class="tag" style="background:var(--surface3);color:var(--text);border:1px solid var(--border)">${esc(a)}</span>`).join(' ')}</div>`;
       if(npc.skills&&Object.keys(npc.skills).length){const sk=Object.entries(npc.skills).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]).slice(0,6);h+=`<div style="font-size:10px;color:var(--muted);margin-top:2px">${sk.map(([n,v])=>`${n} +${v}`).join(', ')}</div>`;}
-      if(npc.powerSets?.length){const pwCount=npc.powerSets.reduce((n,ps)=>n+(ps.powers?.length||0),0);h+=`<div style="font-size:11px;color:var(--purple);margin-top:2px">\u26A1 ${npc.powerSets.length} power set${npc.powerSets.length>1?'s':''}, ${pwCount} power${pwCount!==1?'s':''}</div>`;}
+      const _npcPS=npc.forms?npc.forms.flatMap(f=>f.powerSets||[]):(npc.powerSets||[]);
+      if(_npcPS.length){const pwCount=_npcPS.reduce((n,ps)=>n+(ps.powers?.length||0),0);const fc=npc.forms?.length||0;h+=`<div style="font-size:11px;color:var(--purple);margin-top:2px">\u26A1 ${_npcPS.length} power set${_npcPS.length>1?'s':''}, ${pwCount} power${pwCount!==1?'s':''}${fc>1?' \u2022 '+fc+' forms':''}</div>`;}
       else if(npc.powers)h+=`<div style="font-size:11px;color:var(--purple);margin-top:2px">${esc(npc.powers)}</div>`;
       if(npc.stunts?.length)h+=`<div style="font-size:10px;color:var(--gold);margin-top:2px">\u2605 ${npc.stunts.length} stunt${npc.stunts.length>1?'s':''}</div>`;
     }
     if(npc.type==='nameless')h+=`<div style="font-size:11px;color:var(--accent);margin-top:2px">Obstacle: ${npc.obstacle||'+0'}</div>`;
     if(npc.stress?.length){h+=`<div style="display:flex;gap:4px;margin-top:4px">`;npc.stress.forEach((v,si)=>{h+=`<div class="stress-box ${v?'filled':''}" style="width:22px;height:22px;font-size:10px" onclick="S.npcs[${ri}].stress[${si}]=!S.npcs[${ri}].stress[${si}];save();renderNPCs()">${si+1}</div>`;});h+='</div>';}
     h+=`</div><div style="display:flex;flex-direction:column;gap:4px;margin-left:8px">`;
-    if(npc.type==='main'||npc.type==='rogue')h+=`<button class="btn btn-gold btn-xs" onclick="openFullNPCBuilder(${ri})">Builder</button>`;
+    if(npc.type==='main'||npc.type==='rogue'){h+=`<button class="btn btn-gold btn-xs" onclick="openFullNPCBuilder(${ri})">Builder</button>`;h+=`<button class="btn btn-secondary btn-xs" onclick="exportNPCToSlot(${ri})" title="Save this NPC as a playable character in a save slot">→ Slot</button>`;}
     h+=`<button class="btn btn-secondary btn-xs" onclick="editNPC(${ri})">Edit</button><button class="btn btn-danger btn-xs" onclick="if(confirm('Delete?')){S.npcs.splice(${ri},1);save();renderNPCs();}">X</button></div></div></div>`;
   });
   h+=`<div style="display:flex;gap:6px;margin-top:8px"><button class="btn btn-primary" style="flex:1" onclick="openAddNPC()">+ Quick Add</button>`;
@@ -1300,13 +1358,17 @@ function openFullNPCBuilder(idx){
   _npcEdit=idx;
   _npcFullMode=true;
   const existing=idx!==null?S.npcs[idx]:null;
+  // Migrate legacy powerSets into forms structure
+  const forms = existing?.forms ? JSON.parse(JSON.stringify(existing.forms))
+    : [{name:'Main Form', powerSets: existing?.powerSets ? JSON.parse(JSON.stringify(existing.powerSets)) : []}];
   S._npcDraft={
     type:existing?.type||(_npcTab==='rogue'||_npcTab==='main'?_npcTab:'rogue'),
     name:existing?.name||'',
     desc:existing?.desc||'',
     aspects:existing?.aspects||[],
     skills:existing?.skills||{},
-    powerSets:existing?.powerSets?JSON.parse(JSON.stringify(existing.powerSets)):[],
+    forms,
+    activeForm: existing?.activeForm||0,
     stunts:existing?.stunts?JSON.parse(JSON.stringify(existing.stunts)):[],
     stress:existing?.stress||Array(4).fill(false),
     consequences:existing?.consequences||{mild:'',moderate:'',severe:''},
@@ -1319,14 +1381,15 @@ function saveFullNPC(){
   const d=S._npcDraft;if(!d.name.trim())return alert('Name required');
   // Keep legacy fields for backwards-compat display
   d.skillText=Object.entries(d.skills||{}).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]).map(([n,v])=>`${n} +${v}`).join(', ');
-  d.powers=(d.powerSets||[]).flatMap(ps=>(ps.powers||[]).map(pw=>pw.customName||POWERS.find(p=>p.id===pw.powerId)?.name||pw.powerId)).join(', ');
+  d.powers=(d.forms||[]).flatMap(f=>(f.powerSets||[]).flatMap(ps=>(ps.powers||[]).map(pw=>pw.customName||POWERS.find(p=>p.id===pw.powerId)?.name||pw.powerId))).join(', ');
+  delete d.powerSets; // forms supersedes legacy powerSets
   if(_npcEdit!==null)S.npcs[_npcEdit]=d;else S.npcs.push(d);
   save();closeFullNPCBuilder();
 }
 function renderFullNPCEditor(){
   const d=S._npcDraft;if(!d)return;
   const el=document.getElementById('npcs-content');
-  let h=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div class="pg-title" style="font-size:22px">${d.type==='main'?'Main NPC':'Rogue'} Builder</div><div style="display:flex;gap:4px"><button class="btn btn-secondary btn-xs" onclick="closeFullNPCBuilder()">Cancel</button><button class="btn btn-primary btn-xs" onclick="saveFullNPC()">Save</button></div></div>`;
+  let h=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div class="pg-title" style="font-size:22px">${d.type==='main'?'Main NPC':'Rogue'} Builder</div><div style="display:flex;gap:4px">${_npcEdit!==null?`<button class="btn btn-secondary btn-xs" onclick="exportNPCToSlot(${_npcEdit})" title="Save as playable character in a save slot">→ Slot</button>`:''}<button class="btn btn-secondary btn-xs" onclick="closeFullNPCBuilder()">Cancel</button><button class="btn btn-primary btn-xs" onclick="saveFullNPC()">Save</button></div></div>`;
 
   // Identity
   h+=`<div class="card"><div class="label mb-1">Identity</div><div class="form-group"><label>Name</label><input value="${esc(d.name)}" oninput="S._npcDraft.name=this.value;save()" placeholder="e.g. The Joker"></div><div class="form-group"><label>Description</label><textarea oninput="S._npcDraft.desc=this.value;save()" placeholder="Concept, backstory, appearance...">${esc(d.desc)}</textarea></div></div>`;
@@ -1343,14 +1406,22 @@ function renderFullNPCEditor(){
   // Unassigned skill picker
   h+=`<div style="display:flex;gap:4px;margin-top:6px"><select id="npc-add-skill" style="flex:1;font-size:12px"><option value="">— Add skill —</option>${SKILLS.filter(sk=>!(d.skills[sk]>0)).map(sk=>`<option value="${sk}">${sk}</option>`).join('')}</select><button class="btn btn-secondary btn-xs" onclick="const v=document.getElementById('npc-add-skill').value;if(v){S._npcDraft.skills[v]=1;save();renderFullNPCEditor();}">Add</button></div></div>`;
 
-  // Power Sets (reusing existing power browser)
+  // Forms (tabs) + Power Sets for the active form
+  if(d.activeForm==null||d.activeForm>=d.forms.length)d.activeForm=0;
+  const _naf=d.activeForm,_ncForm=d.forms[_naf]||{name:'',powerSets:[]};
+  h+=`<div class="card"><div class="label mb-1">Forms <span class="text-muted" style="font-weight:400;text-transform:none;letter-spacing:0;font-size:9px">(alternate states, transformations, armor variants)</span></div><div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-bottom:6px">`;
+  d.forms.forEach((f,fi)=>{h+=`<button class="btn btn-xs ${fi===_naf?'btn-primary':'btn-secondary'}" onclick="switchNPCForm(${fi})" style="font-family:var(--font-label)">${esc(f.name||'Form '+(fi+1))}</button>`;});
+  h+=`<button class="btn btn-gold btn-xs" onclick="addNPCForm()">+ New Form</button></div>`;
+  h+=`<div style="display:flex;gap:6px;align-items:center"><input value="${esc(_ncForm.name||'')}" oninput="S._npcDraft.forms[${_naf}].name=this.value;save()" placeholder="Form name" style="flex:1;font-size:13px;font-family:var(--font-label);font-weight:700">`;
+  if(d.forms.length>1)h+=`<button class="btn btn-danger btn-xs" onclick="deleteNPCForm(${_naf})">Delete Form</button>`;
+  h+=`</div></div>`;
   h+=`<div class="card"><div class="label mb-1">Power Sets</div>`;
-  (d.powerSets||[]).forEach((ps,psi)=>{
-    h+=`<div class="powerset-card"><div style="display:flex;justify-content:space-between;align-items:start"><div><input value="${esc(ps.name)}" oninput="S._npcDraft.powerSets[${psi}].name=this.value;save()" placeholder="Power Set Name" style="font-family:var(--font-title);font-size:16px;color:var(--purple);background:transparent;border:none;padding:0;width:200px"><input value="${esc(ps.aspect)}" oninput="S._npcDraft.powerSets[${psi}].aspect=this.value;save()" placeholder="Power Set Aspect" style="font-size:12px;font-style:italic;color:var(--muted);background:transparent;border:none;padding:0;width:100%;margin-top:2px"></div><button class="btn btn-danger btn-xs" onclick="S._npcDraft.powerSets.splice(${psi},1);save();renderFullNPCEditor()">X</button></div>`;
-    (ps.powers||[]).forEach((pw,pwi)=>{const pd=POWERS.find(p=>p.id===pw.powerId);h+=`<div class="card-sm mt-2" style="border-color:var(--purple)"><div style="display:flex;justify-content:space-between;align-items:center"><div><span class="fw-700">${pw.customName||pd?.name||pw.powerId}</span>${pw.level>1?` <span class="text-accent">Lv${pw.level}</span>`:''}</div><button class="btn btn-danger btn-xs" onclick="S._npcDraft.powerSets[${psi}].powers.splice(${pwi},1);save();renderFullNPCEditor()">X</button></div>${pd?.desc?`<div style="font-size:11px;color:var(--muted);margin-top:2px">${esc(pd.desc)}</div>`:''}${pw.selectedSE?.length?'<div style="margin-top:3px">'+pw.selectedSE.map(se=>`<span class="tag tag-se">${se}</span>`).join(' ')+'</div>':''}${pw.selectedLim?.length?'<div style="margin-top:2px">'+pw.selectedLim.map(l=>`<span class="tag tag-lim">${l}</span>`).join(' ')+'</div>':''}</div>`;});
+  (_ncForm.powerSets||[]).forEach((ps,psi)=>{
+    h+=`<div class="powerset-card"><div style="display:flex;justify-content:space-between;align-items:start"><div><input value="${esc(ps.name)}" oninput="S._npcDraft.forms[${_naf}].powerSets[${psi}].name=this.value;save()" placeholder="Power Set Name" style="font-family:var(--font-title);font-size:16px;color:var(--purple);background:transparent;border:none;padding:0;width:200px"><input value="${esc(ps.aspect)}" oninput="S._npcDraft.forms[${_naf}].powerSets[${psi}].aspect=this.value;save()" placeholder="Power Set Aspect" style="font-size:12px;font-style:italic;color:var(--muted);background:transparent;border:none;padding:0;width:100%;margin-top:2px"></div><button class="btn btn-danger btn-xs" onclick="delNPCPowerSet(${psi})">X</button></div>`;
+    (ps.powers||[]).forEach((pw,pwi)=>{const pd=POWERS.find(p=>p.id===pw.powerId);h+=`<div class="card-sm mt-2" style="border-color:var(--purple)"><div style="display:flex;justify-content:space-between;align-items:center"><div><span class="fw-700">${pw.customName||pd?.name||pw.powerId}</span>${pw.level>1?` <span class="text-accent">Lv${pw.level}</span>`:''}</div><button class="btn btn-danger btn-xs" onclick="delNPCPower(${psi},${pwi})">X</button></div>${pd?.desc?`<div style="font-size:11px;color:var(--muted);margin-top:2px">${esc(pd.desc)}</div>`:''}${pw.selectedSE?.length?'<div style="margin-top:3px">'+pw.selectedSE.map(se=>`<span class="tag tag-se">${se}</span>`).join(' ')+'</div>':''}${pw.selectedLim?.length?'<div style="margin-top:2px">'+pw.selectedLim.map(l=>`<span class="tag tag-lim">${l}</span>`).join(' ')+'</div>':''}</div>`;});
     h+=`<button class="btn btn-secondary btn-xs mt-1" onclick="openPowerBrowser(${psi},'npc')">+ Add Power</button></div>`;
   });
-  h+=`<button class="btn btn-gold btn-sm" onclick="S._npcDraft.powerSets.push({name:'',aspect:'',powers:[]});save();renderFullNPCEditor()">+ New Power Set</button></div>`;
+  h+=`<button class="btn btn-gold btn-sm" onclick="addNPCPowerSet()">+ New Power Set</button></div>`;
 
   // Stunts
   h+=`<div class="card"><div class="label mb-1">Stunts</div>`;

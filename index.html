@@ -864,7 +864,7 @@ function renderStuntBrowser(){
   const filtered=SAMPLE_STUNTS.filter(s=>{if(q&&!s.name.toLowerCase().includes(q)&&!s.desc.toLowerCase().includes(q))return false;if(sf&&s.skill!==sf)return false;return true;});
   const skillFilters=['All',...[...new Set(SAMPLE_STUNTS.map(s=>s.skill))].sort()];
   let h=`<div class="card" style="border-color:var(--accent)"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div class="label" style="margin:0">Sample Stunts</div><button class="btn btn-secondary btn-xs" onclick="_stuntBrowseOpen=false;renderCreationStep()">Close</button></div>`;
-  h+=`<input placeholder="Search stunts..." value="${esc(_stuntSearch)}" oninput="_stuntSearch=this.value;renderCreationStep()" style="margin-bottom:6px;font-size:12px;padding:7px">`;
+  h+=`<input id="stunt-search" placeholder="Search stunts..." value="${esc(_stuntSearch)}" oninput="_stuntSearch=this.value;renderCreationStep();_refocus('stunt-search')" style="margin-bottom:6px;font-size:12px;padding:7px">`;
   h+=`<div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:8px">${skillFilters.map(f=>`<button class="btn btn-xs ${(f==='All'&&!sf)||sf===f?'btn-primary':'btn-secondary'}" onclick="_stuntSkillFilter='${f==='All'?'':f}';renderCreationStep()" style="font-size:10px;padding:3px 7px">${f}</button>`).join('')}</div>`;
   h+=`<div style="max-height:40vh;overflow-y:auto">`;
   const existing=(S.creation.stunts||[]).map(s=>s.name);
@@ -883,6 +883,9 @@ function pickSampleStunt(name){
   save();renderCreationStep();
 }
 
+// Restore focus + caret position to an input after a re-render replaces it
+function _refocus(id){requestAnimationFrame(()=>{const el=document.getElementById(id);if(el&&el!==document.activeElement){el.focus();const len=el.value.length;try{el.setSelectionRange(len,len);}catch(e){}}});}
+
 // Power Browser
 let _pbPSI=0,_pbSearch='',_pbSkill='',_pbTarget='hero';
 function openPowerBrowser(psi,target){_pbPSI=psi;_pbTarget=target||'hero';_pbSearch='';_pbSkill='';document.getElementById('power-modal').classList.add('open');renderPB();}
@@ -891,7 +894,7 @@ function renderPB(){
   const q=_pbSearch.toLowerCase(),sf=_pbSkill;
   let filtered=POWERS.filter(p=>{if(q&&!p.name.toLowerCase().includes(q)&&!p.desc.toLowerCase().includes(q))return false;if(sf&&!p.skill.toLowerCase().includes(sf.toLowerCase()))return false;return true;});
   const filters=['All','Accuracy','Fight','Weapons','Athletics','Physique','Will','Arcanum','Magic/Mental/Power','None'];
-  let h=`<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div class="pg-title" style="font-size:20px">Powers</div><button class="btn btn-secondary btn-xs" onclick="closePB()">Close</button></div><input placeholder="Search..." value="${esc(_pbSearch)}" oninput="_pbSearch=this.value;renderPB()" style="margin-bottom:8px"><div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px">${filters.map(f=>`<button class="btn btn-xs ${(f==='All'&&!sf)||sf===f?'btn-primary':'btn-secondary'}" onclick="_pbSkill='${f==='All'?'':f}';renderPB()">${f}</button>`).join('')}</div><div style="max-height:50vh;overflow-y:auto">`;
+  let h=`<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div class="pg-title" style="font-size:20px">Powers</div><button class="btn btn-secondary btn-xs" onclick="closePB()">Close</button></div><input id="pb-search" placeholder="Search..." value="${esc(_pbSearch)}" oninput="_pbSearch=this.value;renderPB();_refocus('pb-search')" style="margin-bottom:8px"><div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px">${filters.map(f=>`<button class="btn btn-xs ${(f==='All'&&!sf)||sf===f?'btn-primary':'btn-secondary'}" onclick="_pbSkill='${f==='All'?'':f}';renderPB()">${f}</button>`).join('')}</div><div style="max-height:50vh;overflow-y:auto">`;
   filtered.forEach(p=>{h+=`<div class="power-card" onclick="showPD('${p.id}')"><div style="display:flex;justify-content:space-between"><div class="pw-name">${p.name}</div><div class="pw-cost">${p.cost}</div></div><div class="pw-desc">${p.desc}</div><div class="pw-skill">${p.skill}</div></div>`;});
   if(!filtered.length)h+='<div class="tac text-muted" style="padding:20px">No matches</div>';
   h+='</div></div>';document.getElementById('power-modal-body').innerHTML=h;
@@ -1456,7 +1459,7 @@ function renderNPCStuntBrowser(){
   const filtered=SAMPLE_STUNTS.filter(s=>{if(q&&!s.name.toLowerCase().includes(q)&&!s.desc.toLowerCase().includes(q))return false;if(sf&&s.skill!==sf)return false;return true;});
   const skillFilters=['All',...[...new Set(SAMPLE_STUNTS.map(s=>s.skill))].sort()];
   let h=`<div class="card" style="border-color:var(--accent)"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div class="label" style="margin:0">Sample Stunts</div><button class="btn btn-secondary btn-xs" onclick="_npcStuntBrowseOpen=false;renderFullNPCEditor()">Close</button></div>`;
-  h+=`<input placeholder="Search stunts..." value="${esc(_npcStuntSearch)}" oninput="_npcStuntSearch=this.value;renderFullNPCEditor()" style="margin-bottom:6px;font-size:12px;padding:7px">`;
+  h+=`<input id="npc-stunt-search" placeholder="Search stunts..." value="${esc(_npcStuntSearch)}" oninput="_npcStuntSearch=this.value;renderFullNPCEditor();_refocus('npc-stunt-search')" style="margin-bottom:6px;font-size:12px;padding:7px">`;
   h+=`<div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:8px">${skillFilters.map(f=>`<button class="btn btn-xs ${(f==='All'&&!sf)||sf===f?'btn-primary':'btn-secondary'}" onclick="_npcStuntSkillFilter='${f==='All'?'':f}';renderFullNPCEditor()" style="font-size:10px;padding:3px 7px">${f}</button>`).join('')}</div>`;
   h+=`<div style="max-height:40vh;overflow-y:auto">`;
   const existing=(S._npcDraft.stunts||[]).map(s=>s.name);

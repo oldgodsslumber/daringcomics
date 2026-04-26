@@ -900,7 +900,7 @@ function renderStepPowers(){
   h+=`<div class="card"><div class="label mb-2">Power Sets</div>`;
   (c.powerSets||[]).forEach((ps,psi)=>{
     h+=`<div class="powerset-card"><div style="display:flex;justify-content:space-between;align-items:start"><div><input value="${esc(ps.name)}" oninput="S.creation.powerSets[${psi}].name=this.value;save()" placeholder="Power Set Name" style="font-family:var(--font-title);font-size:18px;color:var(--purple);background:transparent;border:none;padding:0;width:200px"><input value="${esc(ps.aspect)}" oninput="S.creation.powerSets[${psi}].aspect=this.value;save()" placeholder="Power Set Aspect" style="font-size:12px;font-style:italic;color:var(--muted);background:transparent;border:none;padding:0;width:100%;margin-top:2px"></div><button class="btn btn-danger btn-xs" onclick="S.creation.powerSets.splice(${psi},1);save();renderCreationStep()">X</button></div>`;
-    (ps.powers||[]).forEach((pw,pwi)=>{const pd=POWERS.find(p=>p.id===pw.powerId);h+=`<div class="card-sm mt-2" style="border-color:var(--purple)"><div style="display:flex;justify-content:space-between;align-items:center"><div><span class="fw-700">${pw.customName||pd?.name||pw.powerId}</span>${pw.level>1?` <span class="text-accent">Lv${pw.level}</span>`:''} <span class="tag tag-cost">${pw.totalCost} HP</span></div><div style="display:flex;gap:3px"><button class="btn btn-secondary btn-xs" onclick="editPD('creation',${psi},${pwi})" title="Edit power">Edit</button><button class="btn btn-danger btn-xs" onclick="S.creation.powerSets[${psi}].powers.splice(${pwi},1);save();renderCreationStep()">X</button></div></div>${pw.selectedSE.length?'<div style="margin-top:4px">'+pw.selectedSE.map(se=>`<span class="tag tag-se">${se}</span>`).join(' ')+'</div>':''}${pw.selectedLim.length?'<div style="margin-top:2px">'+pw.selectedLim.map(l=>`<span class="tag tag-lim">${l}</span>`).join(' ')+'</div>':''}</div>`;});
+    (ps.powers||[]).forEach((pw,pwi)=>{const pd=POWERS.find(p=>p.id===pw.powerId);h+=`<div class="card-sm mt-2" style="border-color:var(--purple)"><div style="display:flex;justify-content:space-between;align-items:center"><div><span class="fw-700">${pw.customName||pd?.name||pw.powerId}</span>${pw.level>1?` <span class="text-accent">Lv${pw.level}</span>`:''} <span class="tag tag-cost">${pw.totalCost} HP</span></div><div style="display:flex;gap:3px"><button class="btn btn-secondary btn-xs" onclick="editPD('creation',${psi},${pwi})" title="Edit power">Edit</button><button class="btn btn-danger btn-xs" onclick="S.creation.powerSets[${psi}].powers.splice(${pwi},1);save();renderCreationStep()">X</button></div></div>${pw.selectedSE.length?'<div style="margin-top:4px">'+pw.selectedSE.map(se=>`<span class="tag tag-se">${se}</span>`).join(' ')+'</div>':''}${pw.selectedLim.length?'<div style="margin-top:2px">'+pw.selectedLim.map(l=>`<span class="tag tag-lim">${l}</span>`).join(' ')+'</div>':''}${pw.flavor?'<div style="font-style:italic;font-size:11px;color:var(--blue);margin-top:6px;padding:5px 7px;background:rgba(52,152,219,.06);border-left:2px solid var(--blue);border-radius:3px">'+esc(pw.flavor)+'</div>':''}</div>`;});
     h+=`<button class="btn btn-secondary btn-xs mt-1" onclick="openPowerBrowser(${psi})">+ Add Power</button></div>`;
   });
   h+=`<button class="btn btn-gold btn-sm" onclick="S.creation.powerSets.push({name:'',aspect:'',powers:[]});save();renderCreationStep()">+ New Power Set</button></div>`;
@@ -969,6 +969,7 @@ function _getEditPower(){
   const{target,psi,pwi}=_pdEditCtx;
   if(target==='form')return S.char?.forms?.[S.char.activeForm]?.powerSets?.[psi]?.powers?.[pwi];
   if(target==='npc')return S._npcDraft?.forms?.[S._npcDraft.activeForm]?.powerSets?.[psi]?.powers?.[pwi];
+  if(target==='team')return S.team?.expanded?.powers?.[pwi];
   if(target==='creation')return S.creation?.powerSets?.[psi]?.powers?.[pwi];
   return null;
 }
@@ -976,8 +977,9 @@ function editPD(target,psi,pwi){
   let power;
   if(target==='form')power=S.char?.forms?.[S.char.activeForm]?.powerSets?.[psi]?.powers?.[pwi];
   else if(target==='npc')power=S._npcDraft?.forms?.[S._npcDraft.activeForm]?.powerSets?.[psi]?.powers?.[pwi];
+  else if(target==='team')power=S.team?.expanded?.powers?.[pwi];
   else if(target==='creation')power=S.creation?.powerSets?.[psi]?.powers?.[pwi];
-  if(!power)return;
+  if(!power||!power.powerId)return; // legacy team powers (no powerId) can't be edited via the browser
   _pbTarget=target;_pbPSI=psi;_pdEditCtx={target,psi,pwi};
   document.getElementById('power-modal').classList.add('open');
   showPD(power.powerId);
@@ -993,17 +995,21 @@ function savePD(){
   c=Math.max(1,c);
   const customName=(document.getElementById('pw-custom-name')?.value||'').trim()||p.name;
   const sp=document.getElementById('pw-skill-pick');const controllingSkill=sp?sp.value:undefined;
+  const flavor=(document.getElementById('pw-flavor')?.value||'').trim();
   const updated={powerId:id,customName,level:lv,selectedSE:se,selectedLim:lm,totalCost:c};
   if(controllingSkill)updated.controllingSkill=controllingSkill;
+  if(flavor)updated.flavor=flavor;
   let arr;
   if(target==='form')arr=S.char?.forms?.[S.char.activeForm]?.powerSets?.[psi]?.powers;
   else if(target==='npc')arr=S._npcDraft?.forms?.[S._npcDraft.activeForm]?.powerSets?.[psi]?.powers;
+  else if(target==='team')arr=S.team?.expanded?.powers;
   else if(target==='creation')arr=S.creation?.powerSets?.[psi]?.powers;
   if(!arr||!arr[pwi])return;
   arr[pwi]=updated;
   _pdEditCtx=null;save();closePB();
   if(target==='form')renderSheet();
   else if(target==='npc')renderFullNPCEditor();
+  else if(target==='team')renderNPCs();
   else if(target==='creation')renderCreationStep();
 }
 function renderPB(){
@@ -1026,6 +1032,7 @@ function showPD(id){
     skillOpts.forEach(s=>{h+=`<option value="${esc(s)}">${esc(s)}</option>`;});
     h+=`</select></div>`;
   }
+  h+=`<div class="form-group"><label>Flavor / Notes <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:10px">(your own description — italicized, not part of the rules)</span></label><textarea id="pw-flavor" rows="2" placeholder="e.g. His chrono-armor projects a translucent shimmer when active." style="font-style:italic;width:100%"></textarea></div>`;
   if(isVar){h+=`<div class="label mb-1">Power Level</div><div style="display:flex;gap:4px;margin-bottom:6px">`;p.levels.forEach(lv=>{h+=`<button class="btn btn-xs ${lv===1?'btn-primary':'btn-secondary'}" id="pw-lv-${lv}" onclick="setPDLv(${lv})">${lv}</button>`;});h+='</div>';
     if(p.levelDesc){h+=`<div class="card-sm" style="margin-bottom:10px;border-color:var(--accent)">`;p.levels.forEach(lv=>{if(p.levelDesc[lv])h+=`<div style="font-size:11px;padding:2px 0;display:flex;gap:6px;border-bottom:1px solid var(--border)"><span class="fw-700 text-accent" style="min-width:22px">Lv${lv}</span><span style="color:var(--text)">${esc(p.levelDesc[lv])}</span></div>`;});h+=`</div>`;}}
   const hasPowerSE=p.se.length>0,hasPowerLim=p.lim.length>0;
@@ -1051,6 +1058,7 @@ function showPD(id){
       document.querySelectorAll('#pw-se-list input').forEach(inp=>{if((ep.selectedSE||[]).includes(inp.dataset.se))inp.checked=true;});
       document.querySelectorAll('#pw-lim-list input').forEach(inp=>{if((ep.selectedLim||[]).includes(inp.dataset.lim))inp.checked=true;});
       const sp=document.getElementById('pw-skill-pick');if(sp&&ep.controllingSkill)sp.value=ep.controllingSkill;
+      const fl=document.getElementById('pw-flavor');if(fl&&ep.flavor)fl.value=ep.flavor;
     }
     document.querySelectorAll('#power-modal-body button').forEach(b=>{
       const t=b.textContent.trim();
@@ -1065,10 +1073,13 @@ function setPDLv(lv){window._pdLv=lv;const p=POWERS.find(pw=>pw.id===window._pdI
 function updatePDCost(){const p=POWERS.find(pw=>pw.id===window._pdId);if(!p)return;let c=p.flat?parseInt(p.cost)||0:window._pdLv;document.querySelectorAll('#pw-se-list input:checked').forEach(i=>c+=parseInt(i.dataset.cost)||0);document.querySelectorAll('#pw-lim-list input:checked').forEach(i=>c+=parseInt(i.dataset.cost)||0);c=Math.max(1,c);const el=document.getElementById('pw-cost-disp');if(el)el.textContent='Total: '+c+' HP';}
 function addPD(id){const p=POWERS.find(pw=>pw.id===id);if(!p)return;const lv=window._pdLv||1;let c=p.flat?parseInt(p.cost)||0:lv;const se=[],lm=[];document.querySelectorAll('#pw-se-list input:checked').forEach(i=>{c+=parseInt(i.dataset.cost)||0;se.push(i.dataset.se);});document.querySelectorAll('#pw-lim-list input:checked').forEach(i=>{c+=parseInt(i.dataset.cost)||0;lm.push(i.dataset.lim);});c=Math.max(1,c);const customName=(document.getElementById('pw-custom-name')?.value||'').trim()||p.name;
   const sp=document.getElementById('pw-skill-pick');const controllingSkill=sp?sp.value:undefined;
+  const flavor=(document.getElementById('pw-flavor')?.value||'').trim();
   const powerObj={powerId:id,customName,level:lv,selectedSE:se,selectedLim:lm,totalCost:c};
   if(controllingSkill)powerObj.controllingSkill=controllingSkill;
+  if(flavor)powerObj.flavor=flavor;
   if(_pbTarget==='npc'){const af=S._npcDraft?.activeForm||0;if(!S._npcDraft?.forms?.[af]?.powerSets?.[_pbPSI])return;S._npcDraft.forms[af].powerSets[_pbPSI].powers.push(powerObj);save();closePB();renderFullNPCEditor();}
   else if(_pbTarget==='form'){const af=S.char?.activeForm||0;if(!S.char?.forms?.[af]?.powerSets?.[_pbPSI])return;S.char.forms[af].powerSets[_pbPSI].powers.push(powerObj);save();closePB();renderSheet();}
+  else if(_pbTarget==='team'){if(!S.team?.expanded)return;if(!S.team.expanded.powers)S.team.expanded.powers=[];S.team.expanded.powers.push(powerObj);save();closePB();renderNPCs();}
   else{if(!S.creation.powerSets[_pbPSI])return;S.creation.powerSets[_pbPSI].powers.push(powerObj);save();closePB();renderCreationStep();}}
 
 // Step 6: Review
@@ -1142,7 +1153,7 @@ function renderSheet(){
   // Power Sets (active form)
   (_curForm.powerSets||[]).forEach((ps,psi)=>{
     h+=`<div class="powerset-card"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px"><div style="flex:1"><input value="${esc(ps.name||'')}" oninput="S.char.forms[${_af}].powerSets[${psi}].name=this.value;save()" placeholder="Power Set Name" style="font-family:var(--font-title);font-size:18px;color:var(--purple);background:transparent;border:none;padding:0;width:100%"><input value="${esc(ps.aspect||'')}" oninput="S.char.forms[${_af}].powerSets[${psi}].aspect=this.value;save()" placeholder="Power Set Aspect" style="font-size:12px;font-style:italic;color:var(--muted);background:transparent;border:none;padding:0;width:100%;margin-top:2px"></div><button class="btn btn-danger btn-xs" onclick="delFormPowerSet(${psi})">X</button></div>`;
-    (ps.powers||[]).forEach((pw,pwi)=>{const pd=POWERS.find(p=>p.id===pw.powerId);const rollSkill=getPowerRollSkill(pd,pw,ch.skills);const rollable=!!rollSkill;const pwName=esc(pw.customName||pd?.name||pw.powerId);h+=`<div style="padding:6px 4px;font-size:13px;border-bottom:1px solid var(--border);display:flex;gap:6px;align-items:flex-start"><div style="flex:1;${rollable?'cursor:pointer':''}" ${rollable?`onclick="loadRoll('${rollSkill}',${pw.level>1?pw.level:0},'${pwName.replace(/'/g,"\\'")}')"`:''}><span class="fw-700">${pwName}</span>${rollable?' <span style="font-size:9px;color:var(--blue);vertical-align:middle">LOAD</span>':''}${pw.level>1?' <span class="text-accent">Lv'+pw.level+'</span>':''} <span class="text-muted">(${pw.totalCost} HP)</span>${pd?.desc?`<div style="font-size:11px;color:var(--muted);margin-top:1px">${esc(pd.desc)}</div>`:''}${pd?.levelDesc&&pd.levelDesc[pw.level]?`<div style="font-size:11px;color:var(--accent);margin-top:1px">${esc(pd.levelDesc[pw.level])}</div>`:''}${pw.selectedSE.length?'<div style="margin-top:3px">'+pw.selectedSE.map(se=>{const def=[...(pd?.se||[]),...GENERAL_SE].find(x=>x.name===se);return`<div style="font-size:11px;margin-bottom:2px"><span class="tag tag-se">${se}</span>${def?' <span style="color:var(--muted)">'+esc(def.desc)+'</span>':''}</div>`;}).join('')+'</div>':''}${pw.selectedLim.length?'<div style="margin-top:2px">'+pw.selectedLim.map(l=>{const def=[...(pd?.lim||[]),...GENERAL_LIMITS].find(x=>x.name===l);return`<div style="font-size:11px;margin-bottom:2px"><span class="tag tag-lim">${l}</span>${def?' <span style="color:var(--muted)">'+esc(def.desc)+'</span>':''}</div>`;}).join('')+'</div>':''}</div><div style="display:flex;flex-direction:column;gap:3px;align-self:center"><button class="btn btn-secondary btn-xs" onclick="editPD('form',${psi},${pwi})" title="Edit power">Edit</button><button class="btn btn-danger btn-xs" onclick="delFormPower(${psi},${pwi})">X</button></div></div>`;});
+    (ps.powers||[]).forEach((pw,pwi)=>{const pd=POWERS.find(p=>p.id===pw.powerId);const rollSkill=getPowerRollSkill(pd,pw,ch.skills);const rollable=!!rollSkill;const pwName=esc(pw.customName||pd?.name||pw.powerId);h+=`<div style="padding:6px 4px;font-size:13px;border-bottom:1px solid var(--border);display:flex;gap:6px;align-items:flex-start"><div style="flex:1;${rollable?'cursor:pointer':''}" ${rollable?`onclick="loadRoll('${rollSkill}',${pw.level>1?pw.level:0},'${pwName.replace(/'/g,"\\'")}')"`:''}><span class="fw-700">${pwName}</span>${rollable?' <span style="font-size:9px;color:var(--blue);vertical-align:middle">LOAD</span>':''}${pw.level>1?' <span class="text-accent">Lv'+pw.level+'</span>':''} <span class="text-muted">(${pw.totalCost} HP)</span>${pd?.desc?`<div style="font-size:11px;color:var(--muted);margin-top:1px">${esc(pd.desc)}</div>`:''}${pd?.levelDesc&&pd.levelDesc[pw.level]?`<div style="font-size:11px;color:var(--accent);margin-top:1px">${esc(pd.levelDesc[pw.level])}</div>`:''}${pw.selectedSE.length?'<div style="margin-top:3px">'+pw.selectedSE.map(se=>{const def=[...(pd?.se||[]),...GENERAL_SE].find(x=>x.name===se);return`<div style="font-size:11px;margin-bottom:2px"><span class="tag tag-se">${se}</span>${def?' <span style="color:var(--muted)">'+esc(def.desc)+'</span>':''}</div>`;}).join('')+'</div>':''}${pw.selectedLim.length?'<div style="margin-top:2px">'+pw.selectedLim.map(l=>{const def=[...(pd?.lim||[]),...GENERAL_LIMITS].find(x=>x.name===l);return`<div style="font-size:11px;margin-bottom:2px"><span class="tag tag-lim">${l}</span>${def?' <span style="color:var(--muted)">'+esc(def.desc)+'</span>':''}</div>`;}).join('')+'</div>':''}${pw.flavor?'<div style="font-style:italic;font-size:11px;color:var(--blue);margin-top:6px;padding:5px 7px;background:rgba(52,152,219,.06);border-left:2px solid var(--blue);border-radius:3px">'+esc(pw.flavor)+'</div>':''}</div><div style="display:flex;flex-direction:column;gap:3px;align-self:center"><button class="btn btn-secondary btn-xs" onclick="editPD('form',${psi},${pwi})" title="Edit power">Edit</button><button class="btn btn-danger btn-xs" onclick="delFormPower(${psi},${pwi})">X</button></div></div>`;});
     h+=`<button class="btn btn-secondary btn-xs mt-1" onclick="openPowerBrowser(${psi},'form')">+ Add Power</button></div>`;
   });
   h+=`<button class="btn btn-gold btn-sm" style="width:100%" onclick="addFormPowerSet()">+ New Power Set</button>`;
@@ -1333,7 +1344,7 @@ function printCharSheet(){
     if(_printForms.length>1)powHtml+=`<div class="form-hdr">◆ ${e(form.name||'Form')}</div>`;
     (form.powerSets||[]).forEach(ps=>{
       powHtml+=`<div class="ps-card"><div class="ps-name">${e(ps.name||'Power Set')}</div><div class="ps-asp">${e(ps.aspect)}</div>`;
-      (ps.powers||[]).forEach(pw=>{const pd=POWERS.find(p=>p.id===pw.powerId);powHtml+=`<div class="pw-item"><span class="pw-n">${e(pw.customName||pd?.name||pw.powerId)}</span>${pw.level>1?' <span class="pw-lv">Lv'+pw.level+'</span>':''} <span class="pw-c">(${pw.totalCost} HP)</span>${pd?.desc?`<div class="pw-desc">${e(pd.desc)}</div>`:''}${pd?.levelDesc&&pd.levelDesc[pw.level]?`<div class="pw-lvd">${e(pd.levelDesc[pw.level])}</div>`:''}${pw.selectedSE.length?'<div class="pw-tags">'+pw.selectedSE.map(s=>{const def=[...(pd?.se||[]),...GENERAL_SE].find(x=>x.name===s);return'<span class="tg tg-se">'+e(s)+'</span>'+(def?' <span class="tg-desc">'+e(def.desc)+'</span>':'');}).join('<br>')+'</div>':''}${pw.selectedLim.length?'<div class="pw-tags">'+pw.selectedLim.map(l=>{const def=[...(pd?.lim||[]),...GENERAL_LIMITS].find(x=>x.name===l);return'<span class="tg tg-lm">'+e(l)+'</span>'+(def?' <span class="tg-desc">'+e(def.desc)+'</span>':'');}).join('<br>')+'</div>':''}</div>`;});
+      (ps.powers||[]).forEach(pw=>{const pd=POWERS.find(p=>p.id===pw.powerId);powHtml+=`<div class="pw-item"><span class="pw-n">${e(pw.customName||pd?.name||pw.powerId)}</span>${pw.level>1?' <span class="pw-lv">Lv'+pw.level+'</span>':''} <span class="pw-c">(${pw.totalCost} HP)</span>${pd?.desc?`<div class="pw-desc">${e(pd.desc)}</div>`:''}${pd?.levelDesc&&pd.levelDesc[pw.level]?`<div class="pw-lvd">${e(pd.levelDesc[pw.level])}</div>`:''}${pw.selectedSE.length?'<div class="pw-tags">'+pw.selectedSE.map(s=>{const def=[...(pd?.se||[]),...GENERAL_SE].find(x=>x.name===s);return'<span class="tg tg-se">'+e(s)+'</span>'+(def?' <span class="tg-desc">'+e(def.desc)+'</span>':'');}).join('<br>')+'</div>':''}${pw.selectedLim.length?'<div class="pw-tags">'+pw.selectedLim.map(l=>{const def=[...(pd?.lim||[]),...GENERAL_LIMITS].find(x=>x.name===l);return'<span class="tg tg-lm">'+e(l)+'</span>'+(def?' <span class="tg-desc">'+e(def.desc)+'</span>':'');}).join('<br>')+'</div>':''}${pw.flavor?'<div class="pw-flavor">'+e(pw.flavor)+'</div>':''}</div>`;});
       powHtml+='</div>';
     });
     if(form.gear&&form.gear.length){
@@ -1392,6 +1403,7 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:10.5pt;color:#111;backgrou
 .pw-n{font-weight:700}.pw-lv{color:#c00;font-weight:600}.pw-c{color:#888;font-size:8.5pt}
 .pw-desc{font-size:8pt;color:#666;line-height:1.3;margin-top:1px}
 .pw-lvd{font-size:8pt;color:#c00;font-weight:600;margin-top:1px}
+.pw-flavor{font-size:8.5pt;color:#3a6791;font-style:italic;margin-top:3px;padding:3px 5px;background:#eef4f9;border-left:2px solid #3a6791;border-radius:2px}
 .pw-tags{margin-top:1px}.tg{display:inline-block;padding:0 4px;border-radius:6px;font-size:7.5pt;font-weight:700;margin-right:2px}
 .tg-se{background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7}.tg-lm{background:#ffebee;color:#c62828;border:1px solid #ef9a9a}
 .tg-desc{font-size:7pt;color:#888;font-weight:400}
@@ -1481,14 +1493,23 @@ function renderTeamSheet(el){
     const exRem=3-exUsed;
     exSkills.forEach(sk=>{const v=ex.skills[sk]||0;h+=`<div class="skill-row"><div class="sk-name">${sk}<div style="font-size:9px;color:var(--muted);font-weight:400;font-family:var(--font-body)">${exSkillDesc[sk]}</div></div><div class="sk-label">${ladderName(v)}</div><button class="sk-btn" onclick="adjExSkill('${sk}',-1)" ${v<=0?'disabled':''}>−</button><div class="sk-val">+${v}</div><button class="sk-btn" onclick="adjExSkill('${sk}',1)" ${v>=3||exRem<=0?'disabled':''}>+</button></div>`;});
     h+=`<div style="font-size:11px;color:var(--muted);margin-top:4px">${exUsed}/3 points used</div>`;
-    // Hero Points / Stunts & Powers
-    const exHPSpent=(ex.stunts||[]).reduce((s,st)=>s+st.cost,0)+(ex.powers||[]).reduce((s,p)=>s+p.cost,0);
+    // Hero Points / Stunts & Powers — supports both legacy {name,desc,cost} and rich {powerId,...} entries
+    const exStuntCost=(ex.stunts||[]).reduce((s,st)=>s+(st.cost||0),0);
+    const exPowerCost=(ex.powers||[]).reduce((s,p)=>s+(p.totalCost||p.cost||0),0);
+    const exHPSpent=exStuntCost+exPowerCost;
     const exHPRem=10-exHPSpent;
     h+=`<div class="divider"></div><div class="label mb-1">Team Stunts & Powers <span class="text-muted" style="font-weight:400">(${exHPSpent}/10 HP)</span></div>`;
-    (ex.stunts||[]).forEach((st,i)=>{h+=`<div class="card-sm" style="display:flex;gap:6px;align-items:start"><div style="flex:1"><div class="fw-700" style="font-size:12px">${esc(st.name)} <span class="tag tag-cost">${st.cost} HP</span></div><div style="font-size:11px;color:var(--muted)">${esc(st.desc)}</div></div><button class="btn btn-danger btn-xs" onclick="S.team.expanded.stunts.splice(${i},1);save();renderNPCs()">X</button></div>`;});
-    (ex.powers||[]).forEach((pw,i)=>{h+=`<div class="card-sm" style="display:flex;gap:6px;align-items:start;border-color:var(--purple)"><div style="flex:1"><div class="fw-700" style="font-size:12px">${esc(pw.name)} <span class="tag tag-cost">${pw.cost} HP</span></div><div style="font-size:11px;color:var(--muted)">${esc(pw.desc||'')}</div></div><button class="btn btn-danger btn-xs" onclick="S.team.expanded.powers.splice(${i},1);save();renderNPCs()">X</button></div>`;});
+    (ex.stunts||[]).forEach((st,i)=>{h+=`<div class="card-sm" style="display:flex;gap:6px;align-items:start"><div style="flex:1"><div class="fw-700" style="font-size:12px">${esc(st.name)} <span class="tag tag-cost">${st.cost} HP</span></div><div style="font-size:11px;color:var(--muted)">${esc(st.desc||'')}</div></div><button class="btn btn-danger btn-xs" onclick="S.team.expanded.stunts.splice(${i},1);save();renderNPCs()">X</button></div>`;});
+    (ex.powers||[]).forEach((pw,i)=>{
+      const pd=pw.powerId?POWERS.find(p=>p.id===pw.powerId):null;
+      const pwName=pw.customName||pd?.name||pw.name||'Power';
+      const pwCost=pw.totalCost||pw.cost||0;
+      const isRich=!!pw.powerId;
+      h+=`<div class="card-sm" style="display:flex;gap:6px;align-items:start;border-color:var(--purple)"><div style="flex:1"><div class="fw-700" style="font-size:12px">${esc(pwName)}${pw.level>1?` <span class="text-accent">Lv${pw.level}</span>`:''} <span class="tag tag-cost">${pwCost} HP</span></div>${pd?.desc?`<div style="font-size:11px;color:var(--muted);margin-top:1px">${esc(pd.desc)}</div>`:(pw.desc?`<div style="font-size:11px;color:var(--muted);margin-top:1px">${esc(pw.desc)}</div>`:'')}${pd?.levelDesc&&pd.levelDesc[pw.level]?`<div style="font-size:11px;color:var(--accent);margin-top:1px">${esc(pd.levelDesc[pw.level])}</div>`:''}${pw.selectedSE?.length?'<div style="margin-top:3px">'+pw.selectedSE.map(se=>`<span class="tag tag-se">${esc(se)}</span>`).join(' ')+'</div>':''}${pw.selectedLim?.length?'<div style="margin-top:2px">'+pw.selectedLim.map(l=>`<span class="tag tag-lim">${esc(l)}</span>`).join(' ')+'</div>':''}${pw.flavor?`<div style="font-style:italic;font-size:11px;color:var(--blue);margin-top:6px;padding:5px 7px;background:rgba(52,152,219,.06);border-left:2px solid var(--blue);border-radius:3px">${esc(pw.flavor)}</div>`:''}</div><div style="display:flex;flex-direction:column;gap:3px;align-self:center">${isRich?`<button class="btn btn-secondary btn-xs" onclick="editPD('team',0,${i})" title="Edit power">Edit</button>`:''}<button class="btn btn-danger btn-xs" onclick="S.team.expanded.powers.splice(${i},1);save();renderNPCs()">X</button></div></div>`;
+    });
     if(exHPRem>0){
-      h+=`<div style="display:flex;gap:4px"><button class="btn btn-secondary btn-xs" onclick="addExStunt()">+ Stunt</button><button class="btn btn-gold btn-xs" onclick="addExPower()">+ Power</button></div>`;
+      h+=`<div style="display:flex;gap:4px;flex-wrap:wrap"><button class="btn btn-secondary btn-xs" onclick="openTeamStuntBrowser()">+ Sample Stunt</button><button class="btn btn-secondary btn-xs" onclick="addExStunt()">+ Custom Stunt</button><button class="btn btn-gold btn-xs" onclick="openPowerBrowser(0,'team')">+ Power (Browser)</button><button class="btn btn-gold btn-xs" onclick="addExPower()">+ Custom Power</button></div>`;
+      h+=renderTeamStuntBrowser();
     }
     // Stress
     h+=`<div class="divider"></div><div class="label mb-1">Team Stress</div>`;
@@ -1525,6 +1546,26 @@ function adjExSkill(sk,d){const ex=S.team.expanded,cur=ex.skills[sk]||0,nv=cur+d
 function toggleExStress(track,i){const ex=S.team.expanded;if(!ex.stress[track])ex.stress[track]=[];ex.stress[track][i]=!ex.stress[track][i];save();renderNPCs();}
 function addExStunt(){const n=prompt('Team Stunt Name:');if(!n)return;const d=prompt('Description:')||'';const c=Math.max(1,Math.min(3,parseInt(prompt('HP Cost (1-3):','1'))||1));S.team.expanded.stunts.push({name:n,desc:d,cost:c});save();renderNPCs();}
 function addExPower(){const n=prompt('Power Name:');if(!n)return;const d=prompt('Description:')||'';const c=Math.max(1,Math.min(6,parseInt(prompt('HP Cost (1-6):','1'))||1));S.team.expanded.powers.push({name:n,desc:d,cost:c});save();renderNPCs();}
+
+// Team-targeted Sample Stunts browser (mirrors the NPC stunt browser but pushes to team.expanded.stunts)
+let _teamStuntBrowseOpen=false,_teamStuntSearch='',_teamStuntSkillFilter='';
+function openTeamStuntBrowser(){_teamStuntBrowseOpen=true;_teamStuntSearch='';_teamStuntSkillFilter='';renderNPCs();}
+function pickTeamStunt(name){const s=SAMPLE_STUNTS.find(x=>x.name===name);if(!s)return;if(!S.team.expanded.stunts)S.team.expanded.stunts=[];S.team.expanded.stunts.push({name:s.name,desc:s.desc,cost:s.cost});save();renderNPCs();}
+function renderTeamStuntBrowser(){
+  if(!_teamStuntBrowseOpen)return'';
+  const q=_teamStuntSearch.toLowerCase(),sf=_teamStuntSkillFilter;
+  const filtered=SAMPLE_STUNTS.filter(s=>{if(q&&!s.name.toLowerCase().includes(q)&&!s.desc.toLowerCase().includes(q))return false;if(sf&&s.skill!==sf)return false;return true;});
+  const skillFilters=['All',...[...new Set(SAMPLE_STUNTS.map(s=>s.skill))].sort()];
+  let h=`<div class="card" style="border-color:var(--accent)"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div class="label" style="margin:0">Sample Stunts</div><button class="btn btn-secondary btn-xs" onclick="_teamStuntBrowseOpen=false;renderNPCs()">Close</button></div>`;
+  h+=`<input id="team-stunt-search" placeholder="Search stunts..." value="${esc(_teamStuntSearch)}" oninput="_teamStuntSearch=this.value;renderNPCs();_refocus('team-stunt-search')" style="margin-bottom:6px;font-size:12px;padding:7px">`;
+  h+=`<div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:8px">${skillFilters.map(f=>`<button class="btn btn-xs ${(f==='All'&&!sf)||sf===f?'btn-primary':'btn-secondary'}" onclick="_teamStuntSkillFilter='${f==='All'?'':f}';renderNPCs()" style="font-size:10px;padding:3px 7px">${f}</button>`).join('')}</div>`;
+  h+=`<div style="max-height:40vh;overflow-y:auto">`;
+  const existing=(S.team.expanded.stunts||[]).map(s=>s.name);
+  filtered.forEach(s=>{const have=existing.includes(s.name);h+=`<div class="card-sm" style="display:flex;gap:8px;align-items:start;${have?'opacity:.5':''}"><div style="flex:1"><div class="fw-700" style="font-size:12px">${esc(s.name)} <span class="text-muted" style="font-weight:400;font-size:10px">[${s.skill}]</span></div><div style="font-size:11px;color:var(--muted)">${esc(s.desc)}</div></div>${have?'<span class="text-green" style="font-size:10px">✓</span>':`<button class="btn btn-primary btn-xs" onclick="pickTeamStunt('${esc(s.name)}')">Add</button>`}</div>`;});
+  if(!filtered.length)h+='<div class="tac text-muted" style="padding:12px">No matches</div>';
+  h+=`</div></div>`;
+  return h;
+}
 
 // ═══════════════════════════════════════════════════════════
 // NPCs
@@ -1646,7 +1687,7 @@ function renderFullNPCEditor(){
   h+=`<div class="card"><div class="label mb-1">Power Sets</div>`;
   (_ncForm.powerSets||[]).forEach((ps,psi)=>{
     h+=`<div class="powerset-card"><div style="display:flex;justify-content:space-between;align-items:start"><div><input value="${esc(ps.name)}" oninput="S._npcDraft.forms[${_naf}].powerSets[${psi}].name=this.value;save()" placeholder="Power Set Name" style="font-family:var(--font-title);font-size:16px;color:var(--purple);background:transparent;border:none;padding:0;width:200px"><input value="${esc(ps.aspect)}" oninput="S._npcDraft.forms[${_naf}].powerSets[${psi}].aspect=this.value;save()" placeholder="Power Set Aspect" style="font-size:12px;font-style:italic;color:var(--muted);background:transparent;border:none;padding:0;width:100%;margin-top:2px"></div><button class="btn btn-danger btn-xs" onclick="delNPCPowerSet(${psi})">X</button></div>`;
-    (ps.powers||[]).forEach((pw,pwi)=>{const pd=POWERS.find(p=>p.id===pw.powerId);h+=`<div class="card-sm mt-2" style="border-color:var(--purple)"><div style="display:flex;justify-content:space-between;align-items:center"><div><span class="fw-700">${pw.customName||pd?.name||pw.powerId}</span>${pw.level>1?` <span class="text-accent">Lv${pw.level}</span>`:''}</div><div style="display:flex;gap:3px"><button class="btn btn-secondary btn-xs" onclick="editPD('npc',${psi},${pwi})" title="Edit power">Edit</button><button class="btn btn-danger btn-xs" onclick="delNPCPower(${psi},${pwi})">X</button></div></div>${pd?.desc?`<div style="font-size:11px;color:var(--muted);margin-top:2px">${esc(pd.desc)}</div>`:''}${pw.selectedSE?.length?'<div style="margin-top:3px">'+pw.selectedSE.map(se=>`<span class="tag tag-se">${se}</span>`).join(' ')+'</div>':''}${pw.selectedLim?.length?'<div style="margin-top:2px">'+pw.selectedLim.map(l=>`<span class="tag tag-lim">${l}</span>`).join(' ')+'</div>':''}</div>`;});
+    (ps.powers||[]).forEach((pw,pwi)=>{const pd=POWERS.find(p=>p.id===pw.powerId);h+=`<div class="card-sm mt-2" style="border-color:var(--purple)"><div style="display:flex;justify-content:space-between;align-items:center"><div><span class="fw-700">${pw.customName||pd?.name||pw.powerId}</span>${pw.level>1?` <span class="text-accent">Lv${pw.level}</span>`:''}</div><div style="display:flex;gap:3px"><button class="btn btn-secondary btn-xs" onclick="editPD('npc',${psi},${pwi})" title="Edit power">Edit</button><button class="btn btn-danger btn-xs" onclick="delNPCPower(${psi},${pwi})">X</button></div></div>${pd?.desc?`<div style="font-size:11px;color:var(--muted);margin-top:2px">${esc(pd.desc)}</div>`:''}${pw.selectedSE?.length?'<div style="margin-top:3px">'+pw.selectedSE.map(se=>`<span class="tag tag-se">${se}</span>`).join(' ')+'</div>':''}${pw.selectedLim?.length?'<div style="margin-top:2px">'+pw.selectedLim.map(l=>`<span class="tag tag-lim">${l}</span>`).join(' ')+'</div>':''}${pw.flavor?'<div style="font-style:italic;font-size:11px;color:var(--blue);margin-top:6px;padding:5px 7px;background:rgba(52,152,219,.06);border-left:2px solid var(--blue);border-radius:3px">'+esc(pw.flavor)+'</div>':''}</div>`;});
     h+=`<button class="btn btn-secondary btn-xs mt-1" onclick="openPowerBrowser(${psi},'npc')">+ Add Power</button></div>`;
   });
   h+=`<button class="btn btn-gold btn-sm" onclick="addNPCPowerSet()">+ New Power Set</button></div>`;

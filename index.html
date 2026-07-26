@@ -258,6 +258,8 @@ html[data-theme="dark"] .pg-title,html[data-theme="street"] .pg-title{text-shado
 .btn-xs{padding:7px 12px;font-size:12px}
 .stress-box{width:32px;height:32px}
 .stress-box.filled{box-shadow:inset 0 0 0 2px rgba(255,255,255,.25)}
+.stress-box.hard{border-color:var(--purple)}
+.stress-box.hard.filled{background:var(--purple);border-color:var(--purple);color:#fff}
 @keyframes popIn{0%{transform:scale(.55);opacity:0}60%{transform:scale(1.12)}100%{transform:scale(1);opacity:1}}
 .fate-die{animation:popIn .3s cubic-bezier(.34,1.56,.64,1)}
 /* power icons (game-icons.net via mask, inherits theme color) */
@@ -1171,7 +1173,7 @@ function finishCreation(){
   const pb=phys>=5?2:phys>=3?1:0,wb=will>=5?2:will>=3?1:0;
   const ps=2+tb+pb,ms=2+tb+wb,hpS=getHPSpent(),tHP=getTotalHP();
   const ru=hpS>tHP?Math.min(hpS-tHP,(tone?.refresh||5)-1):0,fr=Math.max(1,(tone?.refresh||5)-ru);
-  S.char={costumedName:c.costumedName,civilianName:c.civilianName,aspects:JSON.parse(JSON.stringify(c.aspects)),supportingCast:JSON.parse(JSON.stringify(c.supportingCast)),roguesGallery:JSON.parse(JSON.stringify(c.roguesGallery)),skills:JSON.parse(JSON.stringify(c.skills)),refresh:fr,fatePoints:fr,stress:{physical:Array(ps).fill(false),mental:Array(ms).fill(false)},consequences:{mild:'',moderate:'',severe:''},stunts:JSON.parse(JSON.stringify(c.stunts||[])),forms:[{name:'Main Form',powerSets:JSON.parse(JSON.stringify(c.powerSets||[]))}],activeForm:0,gear:''};
+  S.char={costumedName:c.costumedName,civilianName:c.civilianName,aspects:JSON.parse(JSON.stringify(c.aspects)),supportingCast:JSON.parse(JSON.stringify(c.supportingCast)),roguesGallery:JSON.parse(JSON.stringify(c.roguesGallery)),skills:JSON.parse(JSON.stringify(c.skills)),refresh:fr,fatePoints:fr,stress:{physical:Array(ps).fill(false),mental:Array(ms).fill(false)},consequences:{mild:'',moderate:'',severe:''},stunts:JSON.parse(JSON.stringify(c.stunts||[])),forms:[{name:'Main Form',powerSets:JSON.parse(JSON.stringify(c.powerSets||[]))}],activeForm:0,gear:'',hardStress:[],hardCons:{mild:[],moderate:[],severe:[]}};
   c.supportingCast.forEach(sc=>{if(sc.name)S.npcs.push({type:'supporting',name:sc.name,desc:sc.desc,skills:{},aspects:[]});});
   c.roguesGallery.forEach(rg=>{if(rg.name)S.npcs.push({type:'rogue',name:rg.name,desc:rg.desc,aspects:[],skills:{},powers:'',stress:Array(4).fill(false),consequences:{mild:'',moderate:'',severe:''}});});
   save();renderHero();
@@ -1189,6 +1191,7 @@ function renderSheet(){
   // Also migrate any NPCs in this slot
   let npcMig=false;(S.npcs||[]).forEach(n=>{if(migrateControllingSkill(n.skills))npcMig=true;});if(npcMig)save();
   if(ch.activeForm==null||ch.activeForm>=ch.forms.length)ch.activeForm=0;
+  const _hb=syncHardiness(ch);
   const _af=ch.activeForm,_curForm=ch.forms[_af]||{name:'',powerSets:[]};
   let h=`<div class="${_heroEditMode?'':'no-edit'}">`;
   h+=`<div style="display:flex;justify-content:space-between;align-items:start;gap:8px;margin-bottom:8px;flex-wrap:wrap"><div style="flex:1;min-width:160px"><div class="pg-title" style="font-size:28px">${esc(ch.costumedName)}</div><div style="font-size:13px;color:var(--muted)">${esc(ch.civilianName)}</div></div><div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end">${editToggleBtn(_heroEditMode,'toggleHeroEdit')}<button class="btn btn-gold btn-xs" onclick="exportJSON()">Export</button><button class="btn btn-secondary btn-xs" onclick="openSlotModal()">Slots</button><button class="btn btn-danger btn-xs edit-only" onclick="resetChar()">New</button></div></div>`;
@@ -1200,11 +1203,11 @@ function renderSheet(){
   ch.aspects.contingent.forEach(ct=>{if(ct.text)h+=`<div style="font-size:12px"><span class="text-muted">${ct.cat||'Aspect'}:</span> ${esc(ct.text)}</div>`;});h+='</div>';
   // Stress
   h+=`<div class="card"><div class="label mb-1">Stress</div><div style="margin-bottom:8px"><span style="font-size:12px;font-weight:700;color:var(--muted)">Physical</span><div style="display:flex;gap:6px;margin-top:4px">`;
-  ch.stress.physical.forEach((v,i)=>{h+=`<div class="stress-box ${v?'filled':''}" onclick="toggleStress('physical',${i})">${i+1}</div>`;});
+  ch.stress.physical.forEach((v,i)=>{h+=`<div class="stress-box ${v?'filled':''}" onclick="toggleStress('physical',${i})">${i+1}</div>`;});(ch.hardStress||[]).forEach((v,i)=>{h+=`<div class="stress-box hard ${v?'filled':''}" onclick="toggleHardStress(${i})" title="Bonus stress box from Hardiness">${ch.stress.physical.length+i+1}</div>`;});
   h+=`</div></div><div><span style="font-size:12px;font-weight:700;color:var(--muted)">Mental</span><div style="display:flex;gap:6px;margin-top:4px">`;
-  ch.stress.mental.forEach((v,i)=>{h+=`<div class="stress-box ${v?'filled':''}" onclick="toggleStress('mental',${i})">${i+1}</div>`;});h+='</div></div></div>';
+  ch.stress.mental.forEach((v,i)=>{h+=`<div class="stress-box ${v?'filled':''}" onclick="toggleStress('mental',${i})">${i+1}</div>`;});h+='</div></div>'+((_hb&&(_hb.box||_hb.mild||_hb.moderate||_hb.severe))?'<div style="font-size:10px;color:var(--purple);margin-top:8px">\u2726 Purple boxes and consequence slots are bonuses from the Hardiness power.</div>':'')+'</div>';
   // Consequences
-  h+=`<div class="card"><div class="label mb-1">Consequences</div><div class="conseq-row"><div class="conseq-label">Mild (2)</div><div class="conseq-input"><input value="${esc(ch.consequences.mild)}" oninput="S.char.consequences.mild=this.value;save()" placeholder="\u2014"></div></div><div class="conseq-row"><div class="conseq-label">Moderate (4)</div><div class="conseq-input"><input value="${esc(ch.consequences.moderate)}" oninput="S.char.consequences.moderate=this.value;save()" placeholder="\u2014"></div></div><div class="conseq-row"><div class="conseq-label">Severe (6)</div><div class="conseq-input"><input value="${esc(ch.consequences.severe)}" oninput="S.char.consequences.severe=this.value;save()" placeholder="\u2014"></div></div></div>`;
+  h+=`<div class="card"><div class="label mb-1">Consequences</div><div class="conseq-row"><div class="conseq-label">Mild (2)</div><div class="conseq-input"><input value="${esc(ch.consequences.mild)}" oninput="S.char.consequences.mild=this.value;save()" placeholder="\u2014"></div></div><div class="conseq-row"><div class="conseq-label">Moderate (4)</div><div class="conseq-input"><input value="${esc(ch.consequences.moderate)}" oninput="S.char.consequences.moderate=this.value;save()" placeholder="\u2014"></div></div><div class="conseq-row"><div class="conseq-label">Severe (6)</div><div class="conseq-input"><input value="${esc(ch.consequences.severe)}" oninput="S.char.consequences.severe=this.value;save()" placeholder="\u2014"></div></div>${_hcExtra(ch)}</div>`;
   // Skills
   // Quick roll toast area
   h+=`<div id="quick-roll-toast" style="position:sticky;top:0;z-index:50"></div>`;
@@ -1399,6 +1402,7 @@ function printCharSheet(){
   const ch=S.char;if(!ch)return;
   const{tone,level,exp}=getSeriesConfig();
   function e(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+  syncHardiness(ch);
   // Stress boxes
   function stressBoxes(arr){return arr.map((_,i)=>`<span class="sb">${i+1}</span>`).join('');}
   // Skills sorted
@@ -1416,7 +1420,7 @@ function printCharSheet(){
     if(_printForms.length>1)powHtml+=`<div class="form-hdr">◆ ${e(form.name||'Form')}</div>`;
     (form.powerSets||[]).forEach(ps=>{
       powHtml+=`<div class="ps-card"><div class="ps-name">${e(ps.name||'Power Set')}</div><div class="ps-asp">${e(ps.aspect)}</div>`;
-      (ps.powers||[]).forEach(pw=>{const pd=POWERS.find(p=>p.id===pw.powerId);powHtml+=`<div class="pw-item">${pw.icon?'<img src="https://api.iconify.design/'+encodeURIComponent(pw.icon)+'.svg" width="11" height="11" style="vertical-align:middle;margin-right:3px">':''}<span class="pw-n">${e(pw.customName||pd?.name||pw.powerId)}</span>${pw.level>1?' <span class="pw-lv">Lv'+pw.level+'</span>':''} <span class="pw-c">(${pw.totalCost} HP)</span>${pd?.desc?`<div class="pw-desc">${e(pd.desc)}</div>`:''}${pd?.levelDesc&&pd.levelDesc[pw.level]?`<div class="pw-lvd">${e(pd.levelDesc[pw.level])}</div>`:''}${pw.selectedSE.length?'<div class="pw-tags">'+pw.selectedSE.map(s=>{const def=[...(pd?.se||[]),...GENERAL_SE].find(x=>x.name===s);return'<span class="tg tg-se">'+e(s)+'</span>'+(def?' <span class="tg-desc">'+e(def.desc)+'</span>':'');}).join('<br>')+'</div>':''}${pw.selectedLim.length?'<div class="pw-tags">'+pw.selectedLim.map(l=>{const def=[...(pd?.lim||[]),...GENERAL_LIMITS].find(x=>x.name===l);return'<span class="tg tg-lm">'+e(l)+'</span>'+(def?' <span class="tg-desc">'+e(def.desc)+'</span>':'');}).join('<br>')+'</div>':''}${pw.flavor?'<div class="pw-flavor">'+e(pw.flavor)+'</div>':''}</div>`;});
+      (ps.powers||[]).forEach(pw=>{const pd=POWERS.find(p=>p.id===pw.powerId);powHtml+=`<div class="pw-item">${pw.icon?'<img src="https://api.iconify.design/'+encodeURIComponent(pw.icon)+'.svg" width="24" height="24" style="vertical-align:middle;margin-right:5px">':''}<span class="pw-n">${e(pw.customName||pd?.name||pw.powerId)}</span>${pw.level>1?' <span class="pw-lv">Lv'+pw.level+'</span>':''} <span class="pw-c">(${pw.totalCost} HP)</span>${pd?.desc?`<div class="pw-desc">${e(pd.desc)}</div>`:''}${pd?.levelDesc&&pd.levelDesc[pw.level]?`<div class="pw-lvd">${e(pd.levelDesc[pw.level])}</div>`:''}${pw.selectedSE.length?'<div class="pw-tags">'+pw.selectedSE.map(s=>{const def=[...(pd?.se||[]),...GENERAL_SE].find(x=>x.name===s);return'<span class="tg tg-se">'+e(s)+'</span>'+(def?' <span class="tg-desc">'+e(def.desc)+'</span>':'');}).join('<br>')+'</div>':''}${pw.selectedLim.length?'<div class="pw-tags">'+pw.selectedLim.map(l=>{const def=[...(pd?.lim||[]),...GENERAL_LIMITS].find(x=>x.name===l);return'<span class="tg tg-lm">'+e(l)+'</span>'+(def?' <span class="tg-desc">'+e(def.desc)+'</span>':'');}).join('<br>')+'</div>':''}${pw.flavor?'<div class="pw-flavor">'+e(pw.flavor)+'</div>':''}</div>`;});
       powHtml+='</div>';
     });
     if(form.gear&&form.gear.length){
@@ -1436,7 +1440,7 @@ function printCharSheet(){
   let stuntHtml='';
   (ch.stunts||[]).forEach(st=>{stuntHtml+=`<div class="st-item"><span class="st-n">${e(st.name)}</span> <span class="pw-c">(${st.cost} HP)</span><div class="st-d">${e(st.desc)}</div></div>`;});
   // Consequences
-  const consHtml=`<div class="con-row"><span class="con-l">Mild (2):</span><span class="con-v">${e(ch.consequences.mild)||'<span class="con-line"></span>'}</span></div><div class="con-row"><span class="con-l">Moderate (4):</span><span class="con-v">${e(ch.consequences.moderate)||'<span class="con-line"></span>'}</span></div><div class="con-row"><span class="con-l">Severe (6):</span><span class="con-v">${e(ch.consequences.severe)||'<span class="con-line"></span>'}</span></div>`;
+  const consHtml=`<div class="con-row"><span class="con-l">Mild (2):</span><span class="con-v">${e(ch.consequences.mild)||'<span class="con-line"></span>'}</span></div><div class="con-row"><span class="con-l">Moderate (4):</span><span class="con-v">${e(ch.consequences.moderate)||'<span class="con-line"></span>'}</span></div><div class="con-row"><span class="con-l">Severe (6):</span><span class="con-v">${e(ch.consequences.severe)||'<span class="con-line"></span>'}</span></div>${(function(){var o='';var hc=ch.hardCons||{};[['mild','Mild (2)'],['moderate','Moderate (4)'],['severe','Severe (6)']].forEach(function(p){(hc[p[0]]||[]).forEach(function(v){o+='<div class="con-row"><span class="con-l">'+p[1]+' +:</span><span class="con-v">'+(e(v)||'<span class="con-line"></span>')+'</span></div>';});});return o;})()}`;
   // Supporting cast & rogues
   let castHtml='';
   (ch.supportingCast||[]).forEach(sc=>{if(sc.name)castHtml+=`<div class="cast-item"><span class="cast-n">${e(sc.name)}</span><span class="cast-d">${e(sc.desc)}</span></div>`;});
@@ -1501,7 +1505,7 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:10.5pt;color:#111;backgrou
     <div class="sec"><div class="sec-t">Aspects</div>${aspHtml}</div>
     <div class="sec"><div class="sec-t">Skills</div>${skillsHtml}</div>
     <div class="sec"><div class="sec-t">Stress</div>
-      <div class="stress-row"><div class="stress-l">Physical</div>${stressBoxes(ch.stress.physical)}</div>
+      <div class="stress-row"><div class="stress-l">Physical</div>${stressBoxes((ch.stress.physical||[]).concat(ch.hardStress||[]))}</div>
       <div class="stress-row"><div class="stress-l">Mental</div>${stressBoxes(ch.stress.mental)}</div>
     </div>
     <div class="sec"><div class="sec-t">Consequences</div>${consHtml}</div>
@@ -2335,6 +2339,10 @@ function importJSON(){
   });
   inp.click();
 }
+function hardinessBonus(ch){var b={box:0,mild:0,moderate:0,severe:0};if(!ch||!ch.forms)return b;var f=ch.forms[ch.activeForm||0]||ch.forms[0];if(!f)return b;(f.powerSets||[]).forEach(function(ps){(ps.powers||[]).forEach(function(pw){if(pw.powerId!=='hardiness')return;var L=pw.level||1;b.box+=(L>=1?1:0)+(L>=3?1:0)+(L>=5?1:0);if(L>=2)b.mild++;if(L>=4)b.moderate++;if(L>=6)b.severe++;});});return b;}
+function syncHardiness(ch){var b=hardinessBonus(ch);if(!Array.isArray(ch.hardStress))ch.hardStress=[];while(ch.hardStress.length<b.box)ch.hardStress.push(false);if(ch.hardStress.length>b.box)ch.hardStress.length=b.box;if(!ch.hardCons)ch.hardCons={mild:[],moderate:[],severe:[]};['mild','moderate','severe'].forEach(function(k){if(!Array.isArray(ch.hardCons[k]))ch.hardCons[k]=[];while(ch.hardCons[k].length<b[k])ch.hardCons[k].push('');if(ch.hardCons[k].length>b[k])ch.hardCons[k].length=b[k];});return b;}
+function toggleHardStress(i){if(!S.char||!S.char.hardStress)return;S.char.hardStress[i]=!S.char.hardStress[i];save();renderSheet();}
+function _hcExtra(ch){var o='';var hc=ch.hardCons||{};[['mild','Mild (2)'],['moderate','Moderate (4)'],['severe','Severe (6)']].forEach(function(p){(hc[p[0]]||[]).forEach(function(v,i){o+='<div class="conseq-row"><div class="conseq-label" style="color:var(--purple)">'+p[1]+' \u2726</div><div class="conseq-input"><input value="'+esc(v)+'" oninput="S.char.hardCons.'+p[0]+'['+i+']=this.value;save()" placeholder="\u2014 Hardiness bonus"></div></div>';});});return o;}
 // ===== power icons (game-icons.net), save flash, modal UX =====
 function clearRollToast(){var t=document.getElementById('quick-roll-toast');if(t)t.innerHTML='';}
 function addTeamToConflict(){if(!S.team||!S.conflict)return;S.conflict.turnOrder.push({name:S.team.name+' (Team)',type:'Team'});S.conflict.log.push(S.team.name+' joined');save();renderConflict();}

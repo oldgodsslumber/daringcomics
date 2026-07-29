@@ -187,9 +187,10 @@ select{cursor:pointer;-webkit-appearance:none;appearance:none;background-image:u
 .map-cell.void{background:var(--bg);border:2px dashed var(--border);cursor:default;opacity:.3}
 .map-cell.void:hover{border-color:var(--border)}
 .cell-num{color:var(--muted);font-size:8px;position:absolute;top:2px;left:4px;font-family:var(--font-label)}
-.cell-icon{font-size:20px}
+.cell-icon{font-size:20px;display:flex;align-items:center;justify-content:center}
+.cell-gi{width:34px;height:34px}
 .cell-name{font-size:8px;color:var(--accent);text-align:center;padding:0 2px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--font-label);letter-spacing:.3px}
-@media(min-width:481px){.cell-icon{font-size:28px}.cell-name{font-size:10px}.cell-num{font-size:9px}}
+@media(min-width:481px){.cell-icon{font-size:28px}.cell-gi{width:46px;height:46px}.cell-name{font-size:10px}.cell-num{font-size:9px}}
 #theme-wrap{display:none}
 #nb-theme{display:flex}
 #theme-popup{display:none}
@@ -2207,6 +2208,18 @@ function defaultRegion(name){
 window._mapZoom=null;window._selMapCell=null;
 function heroMarker(){return S.char?esc(S.char.costumedName.charAt(0)):'H';}
 function isAdj(a,b){const ar=Math.floor(a/5),ac=a%5,br=Math.floor(b/5),bc=b%5;return Math.abs(ar-br)+Math.abs(ac-bc)===1;}
+// A game-icons id ("game-icons:city") or bare slug ("city", "fire-ray"). Emoji/free
+// text won't match, so legacy emoji icons still render as text.
+function isGiSlug(v){return /^(game-icons:)?[a-z0-9]+(?:-[a-z0-9]+)*$/i.test(String(v||''));}
+// Render a cell's stored icon big — a game-icon mask (same technique as power icons)
+// when the value is a slug, the legacy emoji/text otherwise, or the hero/dot fallback.
+function cellIco(c,cur){
+  if(c.icon){
+    if(isGiSlug(c.icon)){var u=pdIconUrl(c.icon.indexOf(':')>=0?c.icon:'game-icons:'+c.icon);return '<span class="pw-icon cell-gi" style="color:'+(cur?'var(--accent)':'var(--text)')+';-webkit-mask-image:url(\''+u+'\');mask-image:url(\''+u+'\')"></span>';}
+    return c.icon;
+  }
+  return cur?`<span style="color:var(--accent);font-weight:900;font-family:var(--font-title);font-size:22px">${heroMarker()}</span>`:'<span style="color:var(--muted)">·</span>';
+}
 
 function renderMap(){
   if(!S.regions)S.regions=[defaultRegion()];
@@ -2224,13 +2237,13 @@ function renderMapContent(){
     let g='<div id="map-grid">';
     for(let i=0;i<25;i++){const c=sz.cells[i],cur=sz.currentCell===i,adj=isAdj(sz.currentCell,i)&&!c.isVoid;
       let cls='map-cell';if(c.isVoid)cls+=' void';else if(cur)cls+=' current';else if(adj)cls+=' adjacent';else if(c.type==='explored')cls+=' explored';else cls+=' unexplored';
-      const ico=c.icon||(cur?`<span style="color:var(--accent);font-weight:900;font-family:var(--font-title);font-size:22px">${heroMarker()}</span>`:'<span style="color:var(--muted)">\u00b7</span>');
+      const ico=cellIco(c,cur);
       g+=`<div class="${cls}" onclick="clickSZCell(${i})"><span class="cell-num">${i+1}</span><span class="cell-icon">${ico}</span>${c.name?`<span class="cell-name">${esc(c.name)}</span>`:''}</div>`;}
     g+='</div>';
     const si=window._selMapCell??sz.currentCell,sc=sz.cells[si];
     let det='';
     if(sc&&!sc.isVoid){const cur=si===sz.currentCell,adj=isAdj(sz.currentCell,si);
-      det=`<div class="card"><div class="fw-700" style="font-size:14px;font-family:var(--font-title);color:var(--accent);margin-bottom:6px">Area ${si+1}: ${esc(sc.name)||'Unknown'}</div><div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px">${!cur&&adj?`<button class="btn btn-primary btn-xs" onclick="travelSZ(${si})">Travel Here</button>`:''}<button class="btn btn-secondary btn-xs" onclick="toggleSZVoid(${si})">${sc.isVoid?'Clear Void':'Mark Void'}</button></div><div class="form-group"><label>Name</label><input value="${esc(sc.name)}" onchange="setSZProp(${si},'name',this.value)" placeholder="e.g. Rooftop, Lab, Alley..."></div><div class="form-group"><label>Icon (emoji)</label><input value="${esc(sc.icon)}" onchange="setSZProp(${si},'icon',this.value)" placeholder="e.g. 🏢 🔬 🌃"></div><div class="form-group"><label>Feature</label><input value="${esc(sc.feature)}" onchange="setSZProp(${si},'feature',this.value)" placeholder="e.g. Sniper Nest, Evidence Room..."></div><div class="form-group"><label>Notes</label><textarea rows="2" onchange="setSZProp(${si},'notes',this.value)">${esc(sc.notes)}</textarea></div></div>`;}
+      det=`<div class="card"><div class="fw-700" style="font-size:14px;font-family:var(--font-title);color:var(--accent);margin-bottom:6px">Area ${si+1}: ${esc(sc.name)||'Unknown'}</div><div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px">${!cur&&adj?`<button class="btn btn-primary btn-xs" onclick="travelSZ(${si})">Travel Here</button>`:''}<button class="btn btn-secondary btn-xs" onclick="toggleSZVoid(${si})">${sc.isVoid?'Clear Void':'Mark Void'}</button></div><div class="form-group"><label>Name</label><input value="${esc(sc.name)}" onchange="setSZProp(${si},'name',this.value)" placeholder="e.g. Rooftop, Lab, Alley..."></div><div class="form-group"><label>Icon (game-icons name)</label><input value="${esc(sc.icon)}" onchange="setSZProp(${si},'icon',this.value)" placeholder="e.g. building, lab-flask, city"><div style="font-size:9px;color:var(--muted);margin-top:2px">Type a game-icons.net name (same as power icons). Emoji still works too.</div></div><div class="form-group"><label>Feature</label><input value="${esc(sc.feature)}" onchange="setSZProp(${si},'feature',this.value)" placeholder="e.g. Sniper Nest, Evidence Room..."></div><div class="form-group"><label>Notes</label><textarea rows="2" onchange="setSZProp(${si},'notes',this.value)">${esc(sc.notes)}</textarea></div></div>`;}
     return`<div class="card"><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap"><button class="btn btn-secondary btn-xs" onclick="exitSZ()">\u2190 Back to ${esc(region.name)}</button><span class="pg-title" style="font-size:18px;margin:0">${esc(sz.name)}</span>${sz.type?`<span class="tag" style="background:var(--surface3);color:var(--text);border:1px solid var(--border)">${sz.type}</span>`:''}</div><div class="form-group"><label>Zone Name</label><input value="${esc(sz.name)}" onchange="setSZName(this.value)" style="font-weight:700;color:var(--accent)"></div><div style="font-size:10px;color:var(--muted);margin-bottom:8px">Click adjacent area to travel. Click any cell to view/edit.</div>${g}<div style="display:flex;gap:10px;flex-wrap:wrap;font-size:10px;color:var(--muted)"><span style="color:var(--accent)">\u25a3 You</span><span style="color:var(--blue)">\u25a3 Adjacent</span><span>\u25a0 Explored</span><span style="opacity:.5">\u25a0 Unexplored</span><span style="opacity:.3">\u25a0 Void</span></div></div>${det}`;
   }
 
@@ -2242,14 +2255,14 @@ function renderMapContent(){
   let g='<div id="map-grid">';
   for(let i=0;i<25;i++){const c=region.cells[i],cur=region.currentCell===i,adj=isAdj(region.currentCell,i)&&!c.isVoid;
     let cls='map-cell';if(c.isVoid)cls+=' void';else if(cur)cls+=' current';else if(adj)cls+=' adjacent';else if(c.type==='explored')cls+=' explored';else cls+=' unexplored';
-    const ico=c.icon||(cur?`<span style="color:var(--accent);font-weight:900;font-family:var(--font-title);font-size:22px">${heroMarker()}</span>`:'<span style="color:var(--muted)">\u00b7</span>');
+    const ico=cellIco(c,cur);
     g+=`<div class="${cls}" onclick="clickMapCell(${i})"><span class="cell-num">${i+1}</span><span class="cell-icon">${ico}</span>${c.name?`<span class="cell-name">${esc(c.name)}</span>`:''}</div>`;}
   g+='</div>';
 
   const si=window._selMapCell??region.currentCell,sc=region.cells[si];
   let det='';
   if(sc&&!sc.isVoid){const cur=si===region.currentCell,adj=isAdj(region.currentCell,si);
-    det=`<div class="card"><div class="fw-700" style="font-size:14px;font-family:var(--font-title);color:var(--accent);margin-bottom:6px">Location ${si+1}: ${esc(sc.name)||'Unknown'}</div><div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px">${!cur&&adj?`<button class="btn btn-primary btn-xs" onclick="travelTo(${si})">Travel Here</button>`:''}<button class="btn btn-secondary btn-xs" onclick="toggleMapVoid(${si})">${sc.isVoid?'Clear Void':'Mark Void'}</button><button class="btn btn-gold btn-xs" onclick="enterSZ(${si})">Zoom In${sc.subZone?' ('+sc.subZone.type+')':''}</button></div><div class="form-group"><label>Location Name</label><input value="${esc(sc.name)}" onchange="setMapProp(${si},'name',this.value)" placeholder="e.g. Wayne Tower, City Hall, Docks..."></div><div class="form-group"><label>Icon (emoji)</label><input value="${esc(sc.icon)}" onchange="setMapProp(${si},'icon',this.value)" placeholder="e.g. 🏢 🏭 🌳 🏥 🏛"></div><div class="form-group"><label>Feature</label><input value="${esc(sc.feature)}" onchange="setMapProp(${si},'feature',this.value)" placeholder="e.g. Villain HQ, Hospital, Park..."></div><div class="form-group"><label>Notes</label><textarea rows="2" onchange="setMapProp(${si},'notes',this.value)">${esc(sc.notes)}</textarea></div></div>`;}
+    det=`<div class="card"><div class="fw-700" style="font-size:14px;font-family:var(--font-title);color:var(--accent);margin-bottom:6px">Location ${si+1}: ${esc(sc.name)||'Unknown'}</div><div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px">${!cur&&adj?`<button class="btn btn-primary btn-xs" onclick="travelTo(${si})">Travel Here</button>`:''}<button class="btn btn-secondary btn-xs" onclick="toggleMapVoid(${si})">${sc.isVoid?'Clear Void':'Mark Void'}</button><button class="btn btn-gold btn-xs" onclick="enterSZ(${si})">Zoom In${sc.subZone?' ('+sc.subZone.type+')':''}</button></div><div class="form-group"><label>Location Name</label><input value="${esc(sc.name)}" onchange="setMapProp(${si},'name',this.value)" placeholder="e.g. Wayne Tower, City Hall, Docks..."></div><div class="form-group"><label>Icon (game-icons name)</label><input value="${esc(sc.icon)}" onchange="setMapProp(${si},'icon',this.value)" placeholder="e.g. tower, factory, hospital"><div style="font-size:9px;color:var(--muted);margin-top:2px">Type a game-icons.net name (same as power icons). Emoji still works too.</div></div><div class="form-group"><label>Feature</label><input value="${esc(sc.feature)}" onchange="setMapProp(${si},'feature',this.value)" placeholder="e.g. Villain HQ, Hospital, Park..."></div><div class="form-group"><label>Notes</label><textarea rows="2" onchange="setMapProp(${si},'notes',this.value)">${esc(sc.notes)}</textarea></div></div>`;}
 
   const heroInfo=S.char?`<div class="card-sm" style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><span style="font-size:22px;font-weight:900;font-family:var(--font-title);color:var(--accent)">${heroMarker()}</span><div><div style="font-weight:700;color:var(--accent)">${esc(S.char.costumedName)}</div><div style="font-size:10px;color:var(--muted)">${esc(S.char.civilianName)}</div></div></div>`:'';
 

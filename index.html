@@ -108,6 +108,25 @@ select{cursor:pointer;-webkit-appearance:none;appearance:none;background-image:u
 .sk-btn{width:26px;height:26px;border-radius:50%;border:1px solid var(--border);background:var(--surface3);color:var(--text);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center}
 .sk-btn:active{opacity:.6}
 .sk-btn:disabled{opacity:.3;cursor:default}
+.sb-card .sb-rows{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
+.sb-row{display:flex;align-items:center;gap:8px;padding:6px;border:1px dashed var(--border);border-radius:10px;background:var(--surface2);min-height:46px}
+.sb-row.over{border-color:var(--accent);background:rgba(230,57,70,.14)}
+.sb-row.full{border-style:solid}
+.sb-rowlab{flex-shrink:0;width:54px;text-align:center;display:flex;flex-direction:column;gap:1px;font-family:var(--font-title);font-weight:900;font-size:22px;color:var(--accent);line-height:1}
+.sb-rowsub{font-family:var(--font-label);font-weight:600;font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.3px}
+.sb-slots{flex:1;display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+.sb-empty{min-width:46px;height:30px;border:1px dashed var(--border);border-radius:8px;display:inline-flex;align-items:center;justify-content:center;font-size:11px;color:var(--muted);opacity:.45}
+.sb-lock{flex-shrink:0;font-size:12px;opacity:.6}
+.dc-chip.sb-chip{touch-action:none;-webkit-user-select:none;user-select:none;cursor:grab;display:inline-flex;align-items:center;padding:7px 11px;border-radius:8px;background:var(--surface3);border:1px solid var(--border);font-family:var(--font-label);font-weight:600;font-size:12px;color:var(--text)}
+.sb-chip.placed{background:var(--accent);border-color:var(--accent);color:#fff}
+.sb-chip.sel{box-shadow:0 0 0 2px var(--gold)}
+.dc-chip.dragging{opacity:.3}
+.sb-poolwrap{margin-top:2px}
+.sb-poollab{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;font-family:var(--font-label);margin-bottom:5px}
+.sb-pool{display:flex;flex-wrap:wrap;gap:6px;padding:9px;border:1px dashed var(--border);border-radius:10px;background:var(--surface);min-height:64px;max-height:38vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.sb-pool.over{border-color:var(--blue);background:rgba(59,130,246,.12)}
+.sb-def{margin-top:10px;padding:9px 11px;border-radius:8px;background:var(--surface2);font-size:12px;line-height:1.4;min-height:20px}
+.sb-ghost{position:fixed;z-index:9999;transform:translate(-50%,-150%);pointer-events:none;padding:7px 11px;border-radius:8px;background:var(--accent);color:#fff;font-family:var(--font-label);font-weight:700;font-size:12px;box-shadow:var(--comic-shadow-lg)}
 .power-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-card);padding:10px;margin-bottom:6px;cursor:pointer;transition:border-color .15s}
 .power-card:hover{border-color:var(--accent)}
 .power-card .pw-name{font-family:var(--font-label);font-weight:700;font-size:14px}
@@ -849,6 +868,7 @@ function renderStepCast(){
 // Step 4: Skills
 let _skillMode=null; // null=choose, 'template', 'advanced'
 function renderStepSkills(){
+  sbInit();
   const c=S.creation,budget=getSkillBudget(),used=getSkillUsed(),rem=budget-used,valid=validateColumn();
   // Auto-detect mode if skills already assigned
   if(_skillMode===null&&used>0)_skillMode='advanced';
@@ -890,36 +910,101 @@ function renderSkillTemplate(budget,used,rem,valid){
     h+=`<div class="game-opt ${sel?'selected':''}" onclick="applyColumnTemplate(${ci})"><div class="opt-title" style="font-size:13px">${col.label}</div>${preview}</div>`;
   });
   h+='</div></div>';
-  // Show assignment UI: for each tier, show dropdowns to pick which skills go there
+  // Drag-to-assign board (replaces the tier dropdowns) — shown once a column is chosen.
   if(c._selectedColumn!==undefined&&c._selectedColumn!==null){
-    const col=columns[c._selectedColumn];
-    h+=`<div class="card"><div class="label mb-2">Assign Skills to Tiers</div>`;
-    const assigned=new Set();
-    // Collect currently assigned skills per tier
-    for(let lv=6;lv>=1;lv--){
-      const cnt=col.tiers[lv]||0;if(!cnt)continue;
-      const currentAtLv=SKILLS.filter(sk=>(c.skills[sk]||0)===lv);
-      currentAtLv.forEach(sk=>assigned.add(sk));
-    }
-    for(let lv=6;lv>=1;lv--){
-      const cnt=col.tiers[lv]||0;if(!cnt)continue;
-      h+=`<div class="label mt-2" style="color:var(--accent)">${ladderName(lv)} (+${lv}) \u2014 pick ${cnt}</div>`;
-      const currentAtLv=SKILLS.filter(sk=>(c.skills[sk]||0)===lv);
-      for(let s=0;s<cnt;s++){
-        const cur=currentAtLv[s]||'';
-        h+=`<select style="margin-bottom:4px;font-size:13px" onchange="assignSkillTier(${lv},${s},this.value)"><option value="">— select skill —</option>`;
-        SKILLS.forEach(sk=>{
-          const taken=(c.skills[sk]||0)>0&&c.skills[sk]!==lv;
-          const takenSameLv=(c.skills[sk]||0)===lv&&sk!==cur&&currentAtLv.indexOf(sk)!==-1&&currentAtLv.indexOf(sk)!==s;
-          h+=`<option value="${sk}" ${cur===sk?'selected':''} ${taken||takenSameLv?'disabled':''}>${sk}${SKILL_DESC[sk]?' — '+SKILL_DESC[sk].substring(0,40)+'...':''}</option>`;
-        });
-        h+='</select>';
-      }
-    }
-    h+='</div>';
+    h+=renderSkillBoard(columns[c._selectedColumn]);
   }
   return h;
 }
+
+// ===== Drag-to-assign skill board (touch + mouse) =====
+var _skillDef=null,_sbDrag=null;
+function renderSkillBoard(col){
+  const c=S.creation;
+  const lvls=[];for(let lv=6;lv>=1;lv--){if(col.tiers[lv])lvls.push(lv);}
+  const totalSlots=lvls.reduce((a,lv)=>a+col.tiers[lv],0);
+  const placed=SKILLS.filter(sk=>{const v=c.skills[sk]||0;return v>=1&&v<=6;}).length;
+  let h='<div class="card sb-card"><div class="label" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px"><span>Assign Skills</span><span class="fw-700 '+(placed===totalSlots?'text-green':'text-gold')+'">'+placed+'/'+totalSlots+'</span></div>';
+  h+='<div style="font-size:11px;color:var(--muted);margin-bottom:10px">Drag a skill up into a bonus row to set its rating. Drag a placed skill back down to the list to clear it. Tap any skill to read what it does.</div>';
+  h+='<div class="sb-rows">';
+  lvls.forEach(lv=>{
+    const cnt=col.tiers[lv];
+    const atLv=SKILLS.filter(sk=>(c.skills[sk]||0)===lv);
+    const full=atLv.length>=cnt;
+    h+='<div class="sb-row'+(full?' full':'')+'" data-drop="tier" data-lv="'+lv+'">';
+    h+='<div class="sb-rowlab">+'+lv+'<span class="sb-rowsub">'+ladderName(lv)+'</span></div>';
+    h+='<div class="sb-slots">';
+    for(let sIdx=0;sIdx<cnt;sIdx++){
+      const sk=atLv[sIdx];
+      if(sk){h+='<span class="dc-chip sb-chip placed'+(_skillDef===sk?' sel':'')+'" data-skill="'+sk+'" data-from="tier" data-lv="'+lv+'">'+sk+'</span>';}
+      else{h+='<span class="sb-empty">+'+lv+'</span>';}
+    }
+    h+='</div>'+(full?'<span class="sb-lock" title="This row is full — drag a skill out to free a slot">\u{1F512}</span>':'')+'</div>';
+  });
+  h+='</div>';
+  h+='<div class="sb-poolwrap"><div class="sb-poollab">Skills — drag one up to assign</div><div class="sb-pool" data-drop="pool">';
+  let any=false;
+  SKILLS.forEach(sk=>{const v=c.skills[sk]||0;if(v>=1&&v<=6)return;any=true;h+='<span class="dc-chip sb-chip'+(_skillDef===sk?' sel':'')+'" data-skill="'+sk+'" data-from="pool">'+sk+'</span>';});
+  if(!any)h+='<span style="font-size:11px;color:var(--muted)">All skills placed. Drag one back here to clear it.</span>';
+  h+='</div></div>';
+  const def=_skillDef?('<strong style="color:var(--accent)">'+_skillDef+'</strong>'+(SKILL_DESC[_skillDef]?' — '+SKILL_DESC[_skillDef]:'')):'<span style="color:var(--muted)">Tap a skill to read its definition.</span>';
+  h+='<div class="sb-def" id="sb-def">'+def+'</div></div>';
+  return h;
+}
+function sbColumns(){return SAMPLE_COLUMNS[getSeriesConfig().exp?.skillPts||25]||SAMPLE_COLUMNS[25];}
+function sbAssign(skill,lv){
+  const c=S.creation,col=sbColumns()[c._selectedColumn];if(!col){renderCreationStep();return;}
+  if((c.skills[skill]||0)===lv){_skillDef=skill;renderCreationStep();return;}
+  const cnt=col.tiers[lv]||0;
+  const atLv=SKILLS.filter(s=>(c.skills[s]||0)===lv).length;
+  if(atLv>=cnt){_skillDef=skill;renderCreationStep();return;} // row locked/full
+  if(c.skills[skill])delete c.skills[skill];
+  c.skills[skill]=lv;_skillDef=skill;save();renderCreationStep();
+}
+function sbClear(skill){const c=S.creation;if(c.skills[skill])delete c.skills[skill];_skillDef=skill;save();renderCreationStep();}
+function sbDropTarget(x,y){
+  const els=document.elementsFromPoint?document.elementsFromPoint(x,y):[document.elementFromPoint(x,y)];
+  for(let k=0;k<els.length;k++){const el=els[k];const d=el&&el.closest?el.closest('[data-drop]'):null;if(d)return d;}
+  return null;
+}
+function sbInit(){
+  if(window._sbBound)return;window._sbBound=true;
+  document.addEventListener('pointerdown',function(e){
+    const chip=e.target.closest&&e.target.closest('.dc-chip');
+    if(!chip||!chip.closest('.sb-card'))return;
+    _sbDrag={skill:chip.getAttribute('data-skill'),from:chip.getAttribute('data-from'),chip:chip,sx:e.clientX,sy:e.clientY,dragging:false,ghost:null};
+  },true);
+  document.addEventListener('pointermove',function(e){
+    if(!_sbDrag)return;
+    if(!_sbDrag.dragging){
+      if(Math.abs(e.clientX-_sbDrag.sx)+Math.abs(e.clientY-_sbDrag.sy)<8)return;
+      _sbDrag.dragging=true;
+      const g=document.createElement('div');g.className='sb-ghost';g.textContent=_sbDrag.skill;document.body.appendChild(g);_sbDrag.ghost=g;
+      _sbDrag.chip.classList.add('dragging');
+    }
+    e.preventDefault();
+    _sbDrag.ghost.style.left=e.clientX+'px';_sbDrag.ghost.style.top=e.clientY+'px';
+    document.querySelectorAll('.sb-row.over,.sb-pool.over').forEach(n=>n.classList.remove('over'));
+    _sbDrag.ghost.style.display='none';
+    const d=sbDropTarget(e.clientX,e.clientY);
+    _sbDrag.ghost.style.display='';
+    if(d)d.classList.add('over');
+  },{passive:false});
+  function end(e){
+    if(!_sbDrag)return;const drag=_sbDrag;_sbDrag=null;
+    document.querySelectorAll('.sb-row.over,.sb-pool.over').forEach(n=>n.classList.remove('over'));
+    if(drag.ghost)drag.ghost.remove();
+    if(drag.chip)drag.chip.classList.remove('dragging');
+    if(!drag.dragging){_skillDef=drag.skill;renderCreationStep();return;} // tap
+    const d=sbDropTarget(e.clientX,e.clientY);
+    if(d&&d.getAttribute('data-drop')==='tier'){sbAssign(drag.skill,parseInt(d.getAttribute('data-lv')));}
+    else if(d&&d.getAttribute('data-drop')==='pool'){sbClear(drag.skill);}
+    else{renderCreationStep();}
+  }
+  document.addEventListener('pointerup',end);
+  document.addEventListener('pointercancel',end);
+}
+
 function applyColumnTemplate(ci){
   const c=S.creation;
   const baseBudget=getSeriesConfig().exp?.skillPts||25;

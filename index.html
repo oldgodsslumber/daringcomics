@@ -2221,11 +2221,42 @@ function cellIco(c,cur){
   return cur?`<span style="color:var(--accent);font-weight:900;font-family:var(--font-title);font-size:22px">${heroMarker()}</span>`:'<span style="color:var(--muted)">·</span>';
 }
 
+// ---- Map cell icon picker (same preview + search UX as the power icons) ----
+// The currently-edited cell's picker state. Only one cell detail panel is open
+// at a time, so a single set of ids/state mirrors the power picker exactly.
+var _miScope=null,_miIdx=null,_miVal='',_miDefault='',_miTimer=null;
+function giId(v){return v.indexOf(':')>=0?v:'game-icons:'+v;}
+function mapIconPreview(){var el=document.getElementById('mi-preview');if(!el)return;el.innerHTML=_miVal?'<span class="pw-icon" style="width:26px;height:26px;color:var(--accent);-webkit-mask-image:url(\''+pdIconUrl(giId(_miVal))+'\');mask-image:url(\''+pdIconUrl(giId(_miVal))+'\')"></span>':'<span style="font-size:9px;color:var(--muted);text-align:center;line-height:1.1">no icon</span>';}
+function mapIconResults(icons){var res=document.getElementById('mi-results');if(!res)return;if(!icons||!icons.length){res.innerHTML='<div style="font-size:11px;color:var(--muted);padding:4px">No icons found — try another word (building, tower, skull, factory).</div>';return;}res.innerHTML=icons.map(function(id){var u=pdIconUrl(id);return '<button type="button" class="ic-opt'+(id===_miVal?' sel':'')+'" data-icon="'+esc(id)+'" onclick="selectMapIcon(\''+esc(id)+'\')" title="'+esc(id.replace('game-icons:',''))+'"><span class="pw-icon" style="width:24px;height:24px;-webkit-mask-image:url(\''+u+'\');mask-image:url(\''+u+'\')"></span></button>';}).join('');}
+function mapIconSearch(q){var inp=document.getElementById('mi-search');var query=(typeof q==='string'?q:(inp?inp.value:''))||'';var res=document.getElementById('mi-results');var term=query.trim()||_miDefault||'building';clearTimeout(_miTimer);if(res&&!res.innerHTML)res.innerHTML='<div style="font-size:11px;color:var(--muted);padding:4px">Searching game-icons.net…</div>';_miTimer=setTimeout(function(){fetch('https://api.iconify.design/search?query='+encodeURIComponent(term)+'&prefix=game-icons&limit=48').then(function(r){return r.json();}).then(function(d){mapIconResults(d.icons||[]);}).catch(function(){if(res)res.innerHTML='<div style="font-size:11px;color:var(--muted);padding:4px">Couldn\'t reach game-icons.net. Check your connection and try again.</div>';});},250);}
+function selectMapIcon(id){_miVal=(id===_miVal)?'':id;mapIconPreview();document.querySelectorAll('#mi-results .ic-opt').forEach(function(b){b.classList.toggle('sel',b.dataset.icon===_miVal);});mapIconCommit();}
+function mapIconCommit(){
+  if(_miScope==='sz'){if(!window._mapZoom)return;window._mapZoom.subZone.cells[_miIdx].icon=_miVal;var r=S.regions[S.activeRegion];if(r)r.cells[window._mapZoom.cellIdx].subZone=window._mapZoom.subZone;}
+  else{var rg=S.regions[S.activeRegion];if(rg)rg.cells[_miIdx].icon=_miVal;}
+  save();mapIconUpdateCell();
+}
+// Repaint just the edited cell in the grid — a full renderMap() would wipe the
+// open search results and input focus, so we update the one cell in place.
+function mapIconUpdateCell(){
+  var grid=document.getElementById('map-grid');if(!grid)return;
+  var cellEl=grid.children[_miIdx];if(!cellEl)return;
+  var iconEl=cellEl.querySelector('.cell-icon');if(!iconEl)return;
+  var cObj,cur;
+  if(_miScope==='sz'){cObj=window._mapZoom.subZone.cells[_miIdx];cur=window._mapZoom.subZone.currentCell===_miIdx;}
+  else{var r=S.regions[S.activeRegion];cObj=r.cells[_miIdx];cur=r.currentCell===_miIdx;}
+  iconEl.innerHTML=cellIco(cObj,cur);
+}
+// The picker markup for a cell detail panel (matches the power form's layout).
+function mapIconField(){
+  return '<div class="form-group"><label>Icon <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:10px">(from game-icons.net)</span></label><div style="display:flex;gap:8px;align-items:center;margin-bottom:6px"><div id="mi-preview" style="width:42px;height:42px;flex-shrink:0;border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;background:var(--surface2)"></div><input id="mi-search" placeholder="Search icons — building, tower, skull…" oninput="mapIconSearch()"></div><div id="mi-results" style="display:flex;flex-wrap:wrap;gap:5px;max-height:148px;overflow-y:auto"></div></div>';
+}
+
 function renderMap(){
   if(!S.regions)S.regions=[defaultRegion()];
   if(S.activeRegion===undefined)S.activeRegion=0;
   const el=document.getElementById('map-content');
   el.innerHTML=renderMapContent();
+  if(document.getElementById('mi-preview')){mapIconPreview();mapIconSearch();}
 }
 
 function renderMapContent(){
@@ -2243,7 +2274,8 @@ function renderMapContent(){
     const si=window._selMapCell??sz.currentCell,sc=sz.cells[si];
     let det='';
     if(sc&&!sc.isVoid){const cur=si===sz.currentCell,adj=isAdj(sz.currentCell,si);
-      det=`<div class="card"><div class="fw-700" style="font-size:14px;font-family:var(--font-title);color:var(--accent);margin-bottom:6px">Area ${si+1}: ${esc(sc.name)||'Unknown'}</div><div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px">${!cur&&adj?`<button class="btn btn-primary btn-xs" onclick="travelSZ(${si})">Travel Here</button>`:''}<button class="btn btn-secondary btn-xs" onclick="toggleSZVoid(${si})">${sc.isVoid?'Clear Void':'Mark Void'}</button></div><div class="form-group"><label>Name</label><input value="${esc(sc.name)}" onchange="setSZProp(${si},'name',this.value)" placeholder="e.g. Rooftop, Lab, Alley..."></div><div class="form-group"><label>Icon (game-icons name)</label><input value="${esc(sc.icon)}" onchange="setSZProp(${si},'icon',this.value)" placeholder="e.g. building, lab-flask, city"><div style="font-size:9px;color:var(--muted);margin-top:2px">Type a game-icons.net name (same as power icons). Emoji still works too.</div></div><div class="form-group"><label>Feature</label><input value="${esc(sc.feature)}" onchange="setSZProp(${si},'feature',this.value)" placeholder="e.g. Sniper Nest, Evidence Room..."></div><div class="form-group"><label>Notes</label><textarea rows="2" onchange="setSZProp(${si},'notes',this.value)">${esc(sc.notes)}</textarea></div></div>`;}
+      _miScope='sz';_miIdx=si;_miVal=isGiSlug(sc.icon)?sc.icon:'';_miDefault=sc.name||sz.name||'';
+      det=`<div class="card"><div class="fw-700" style="font-size:14px;font-family:var(--font-title);color:var(--accent);margin-bottom:6px">Area ${si+1}: ${esc(sc.name)||'Unknown'}</div><div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px">${!cur&&adj?`<button class="btn btn-primary btn-xs" onclick="travelSZ(${si})">Travel Here</button>`:''}<button class="btn btn-secondary btn-xs" onclick="toggleSZVoid(${si})">${sc.isVoid?'Clear Void':'Mark Void'}</button></div><div class="form-group"><label>Name</label><input value="${esc(sc.name)}" onchange="setSZProp(${si},'name',this.value)" placeholder="e.g. Rooftop, Lab, Alley..."></div>${mapIconField()}<div class="form-group"><label>Feature</label><input value="${esc(sc.feature)}" onchange="setSZProp(${si},'feature',this.value)" placeholder="e.g. Sniper Nest, Evidence Room..."></div><div class="form-group"><label>Notes</label><textarea rows="2" onchange="setSZProp(${si},'notes',this.value)">${esc(sc.notes)}</textarea></div></div>`;}
     return`<div class="card"><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap"><button class="btn btn-secondary btn-xs" onclick="exitSZ()">\u2190 Back to ${esc(region.name)}</button><span class="pg-title" style="font-size:18px;margin:0">${esc(sz.name)}</span>${sz.type?`<span class="tag" style="background:var(--surface3);color:var(--text);border:1px solid var(--border)">${sz.type}</span>`:''}</div><div class="form-group"><label>Zone Name</label><input value="${esc(sz.name)}" onchange="setSZName(this.value)" style="font-weight:700;color:var(--accent)"></div><div style="font-size:10px;color:var(--muted);margin-bottom:8px">Click adjacent area to travel. Click any cell to view/edit.</div>${g}<div style="display:flex;gap:10px;flex-wrap:wrap;font-size:10px;color:var(--muted)"><span style="color:var(--accent)">\u25a3 You</span><span style="color:var(--blue)">\u25a3 Adjacent</span><span>\u25a0 Explored</span><span style="opacity:.5">\u25a0 Unexplored</span><span style="opacity:.3">\u25a0 Void</span></div></div>${det}`;
   }
 
@@ -2262,7 +2294,8 @@ function renderMapContent(){
   const si=window._selMapCell??region.currentCell,sc=region.cells[si];
   let det='';
   if(sc&&!sc.isVoid){const cur=si===region.currentCell,adj=isAdj(region.currentCell,si);
-    det=`<div class="card"><div class="fw-700" style="font-size:14px;font-family:var(--font-title);color:var(--accent);margin-bottom:6px">Location ${si+1}: ${esc(sc.name)||'Unknown'}</div><div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px">${!cur&&adj?`<button class="btn btn-primary btn-xs" onclick="travelTo(${si})">Travel Here</button>`:''}<button class="btn btn-secondary btn-xs" onclick="toggleMapVoid(${si})">${sc.isVoid?'Clear Void':'Mark Void'}</button><button class="btn btn-gold btn-xs" onclick="enterSZ(${si})">Zoom In${sc.subZone?' ('+sc.subZone.type+')':''}</button></div><div class="form-group"><label>Location Name</label><input value="${esc(sc.name)}" onchange="setMapProp(${si},'name',this.value)" placeholder="e.g. Wayne Tower, City Hall, Docks..."></div><div class="form-group"><label>Icon (game-icons name)</label><input value="${esc(sc.icon)}" onchange="setMapProp(${si},'icon',this.value)" placeholder="e.g. tower, factory, hospital"><div style="font-size:9px;color:var(--muted);margin-top:2px">Type a game-icons.net name (same as power icons). Emoji still works too.</div></div><div class="form-group"><label>Feature</label><input value="${esc(sc.feature)}" onchange="setMapProp(${si},'feature',this.value)" placeholder="e.g. Villain HQ, Hospital, Park..."></div><div class="form-group"><label>Notes</label><textarea rows="2" onchange="setMapProp(${si},'notes',this.value)">${esc(sc.notes)}</textarea></div></div>`;}
+    _miScope='region';_miIdx=si;_miVal=isGiSlug(sc.icon)?sc.icon:'';_miDefault=sc.name||region.name||'';
+    det=`<div class="card"><div class="fw-700" style="font-size:14px;font-family:var(--font-title);color:var(--accent);margin-bottom:6px">Location ${si+1}: ${esc(sc.name)||'Unknown'}</div><div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px">${!cur&&adj?`<button class="btn btn-primary btn-xs" onclick="travelTo(${si})">Travel Here</button>`:''}<button class="btn btn-secondary btn-xs" onclick="toggleMapVoid(${si})">${sc.isVoid?'Clear Void':'Mark Void'}</button><button class="btn btn-gold btn-xs" onclick="enterSZ(${si})">Zoom In${sc.subZone?' ('+sc.subZone.type+')':''}</button></div><div class="form-group"><label>Location Name</label><input value="${esc(sc.name)}" onchange="setMapProp(${si},'name',this.value)" placeholder="e.g. Wayne Tower, City Hall, Docks..."></div>${mapIconField()}<div class="form-group"><label>Feature</label><input value="${esc(sc.feature)}" onchange="setMapProp(${si},'feature',this.value)" placeholder="e.g. Villain HQ, Hospital, Park..."></div><div class="form-group"><label>Notes</label><textarea rows="2" onchange="setMapProp(${si},'notes',this.value)">${esc(sc.notes)}</textarea></div></div>`;}
 
   const heroInfo=S.char?`<div class="card-sm" style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><span style="font-size:22px;font-weight:900;font-family:var(--font-title);color:var(--accent)">${heroMarker()}</span><div><div style="font-weight:700;color:var(--accent)">${esc(S.char.costumedName)}</div><div style="font-size:10px;color:var(--muted)">${esc(S.char.civilianName)}</div></div></div>`:'';
 

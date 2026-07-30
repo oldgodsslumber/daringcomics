@@ -127,6 +127,8 @@ select{cursor:pointer;-webkit-appearance:none;appearance:none;background-image:u
 .sb-pool.over{border-color:var(--blue);background:rgba(59,130,246,.12)}
 .sb-def{margin-top:10px;padding:9px 11px;border-radius:8px;background:var(--surface2);font-size:12px;line-height:1.4;min-height:20px}
 .sb-ghost{position:fixed;z-index:9999;transform:translate(-50%,-150%);pointer-events:none;padding:7px 11px;border-radius:8px;background:var(--accent);color:#fff;font-family:var(--font-label);font-weight:700;font-size:12px;box-shadow:var(--comic-shadow-lg)}
+.arch-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px}
+.arch-opt .opt-desc{font-size:11px;line-height:1.25}
 .power-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-card);padding:10px;margin-bottom:6px;cursor:pointer;transition:border-color .15s}
 .power-card:hover{border-color:var(--accent)}
 .power-card .pw-name{font-family:var(--font-label);font-weight:700;font-size:14px}
@@ -438,6 +440,18 @@ const SAMPLE_COLUMNS={
   {label:'Broad Generalist',tiers:{5:1,4:3,3:3,2:6,1:7}}
 ]
 };
+const ARCHETYPES=[
+ {name:'Shadow Operative',tag:'Silent infiltration and lethal precision',shape:'Focused Expert',skills:['Stealth','Fight','Athletics','Weapons','Notice','Accuracy','Deceive','Thief','Physique','Provoke','Will','Empathy','Investigate','Contacts','Vehicles','Treatment','Rapport','Knowledge']},
+ {name:'Dark Detective',tag:'World-class investigator and brawler',shape:'Skilled Specialist',skills:['Fight','Investigate','Athletics','Notice','Stealth','Will','Physique','Provoke','Deceive','Technology','Knowledge','Contacts','Empathy','Accuracy','Weapons','Resources','Vehicles','Thief']},
+ {name:'Billionaire Inventor',tag:'Genius tech, deep pockets, powered suit',shape:'Skilled Specialist',skills:['Technology','Power','Resources','Knowledge','Accuracy','Contacts','Will','Notice','Leadership','Rapport','Investigate','Deceive','Vehicles','Physique','Athletics','Provoke','Empathy','Fight']},
+ {name:'Sentinel Leader',tag:'Inspiring tactician who leads from the front',shape:'Well-Rounded',skills:['Leadership','Fight','Athletics','Will','Physique','Rapport','Notice','Weapons','Empathy','Provoke','Contacts','Investigate','Vehicles','Accuracy','Deceive','Stealth','Knowledge','Treatment']},
+ {name:'Living Powerhouse',tag:'Raw strength and unstoppable durability',shape:'Focused Expert',skills:['Physique','Fight','Power','Athletics','Provoke','Will','Notice','Weapons','Empathy','Contacts','Accuracy','Vehicles','Stealth','Rapport','Investigate','Leadership']},
+ {name:'Sorcerer Supreme',tag:'Master of arcane forces and rituals',shape:'Skilled Specialist',skills:['Magic','Arcanum','Will','Artificing','Knowledge','Notice','Empathy','Investigate','Rapport','Deceive','Contacts','Provoke','Athletics','Physique','Treatment','Fight','Leadership','Resources']},
+ {name:'Psychic',tag:'Telepathy, telekinesis, and iron will',shape:'Skilled Specialist',skills:['Mental','Will','Empathy','Notice','Rapport','Investigate','Knowledge','Provoke','Deceive','Leadership','Contacts','Athletics','Physique','Treatment','Fight','Stealth','Resources','Accuracy']},
+ {name:'Amazing Acrobat',tag:'Agile powered brawler in constant motion',shape:'Well-Rounded',skills:['Athletics','Fight','Notice','Power','Accuracy','Will','Physique','Stealth','Provoke','Empathy','Investigate','Technology','Knowledge','Rapport','Contacts','Deceive','Vehicles','Weapons']},
+ {name:'Master Marksman',tag:'Deadly aim, gadgets, and field skills',shape:'Skilled Specialist',skills:['Accuracy','Athletics','Notice','Weapons','Stealth','Fight','Physique','Technology','Investigate','Will','Resources','Contacts','Vehicles','Deceive','Provoke','Empathy','Leadership','Treatment']},
+ {name:'Charismatic Face',tag:'Spy and socialite who wins with words',shape:'Broad Generalist',skills:['Rapport','Deceive','Empathy','Contacts','Provoke','Notice','Will','Investigate','Resources','Leadership','Stealth','Fight','Athletics','Knowledge','Vehicles','Accuracy','Weapons','Treatment','Physique','Thief']}
+];
 const SAMPLE_STUNTS=[
 {name:'Any Object is a Bullet',skill:'Accuracy',cost:1,desc:'Declare any small object as a ranged weapon when thrown. Weapon: 2 rating.'},
 {name:'Lead Rain',skill:'Accuracy',cost:1,desc:'With full-auto weapon success, create Fair (+2) movement opposition in zone until next turn.'},
@@ -902,7 +916,10 @@ function renderSkillTemplate(budget,used,rem,valid){
   const c=S.creation;
   let h='';
   if(budget>baseBudget){h+=`<div class="card-sm" style="background:rgba(241,196,15,.08);border-color:var(--gold)"><div style="font-size:11px;color:var(--gold)"><strong>Note:</strong> You have ${budget-baseBudget} bonus skill point${budget-baseBudget>1?'s':''} from Supporting Cast. Templates fit ${baseBudget} points \u2014 switch to Advanced to spend the bonus, or add them to skills after applying a template.</div></div>`;}
-  h+='<div class="card"><div class="label mb-2">Pick a Column Shape</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px">';
+  h+='<div class="card"><div class="label mb-1">Quick Start — Archetypes</div><div style="font-size:11px;color:var(--muted);margin-bottom:8px">New to this? Pick a ready-made hero to auto-fill skills, then tweak by dragging below.</div><div class="arch-grid">';
+  ARCHETYPES.forEach((a,ai)=>{h+=`<div class="game-opt arch-opt ${c._archetype===ai?'selected':''}" onclick="applyArchetype(${ai})"><div class="opt-title" style="font-size:13px">${a.name}</div><div class="opt-desc">${a.tag}</div></div>`;});
+  h+='</div></div>';
+  h+='<div class="card"><div class="label mb-2">Or pick a column shape</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px">';
   columns.forEach((col,ci)=>{
     const sel=c._selectedColumn===ci;
     let preview='';
@@ -959,9 +976,9 @@ function sbAssign(skill,lv){
   const atLv=SKILLS.filter(s=>(c.skills[s]||0)===lv).length;
   if(atLv>=cnt){_skillDef=skill;renderCreationStep();return;} // row locked/full
   if(c.skills[skill])delete c.skills[skill];
-  c.skills[skill]=lv;_skillDef=skill;save();renderCreationStep();
+  c.skills[skill]=lv;_skillDef=skill;c._archetype=null;save();renderCreationStep();
 }
-function sbClear(skill){const c=S.creation;if(c.skills[skill])delete c.skills[skill];_skillDef=skill;save();renderCreationStep();}
+function sbClear(skill){const c=S.creation;if(c.skills[skill])delete c.skills[skill];_skillDef=skill;c._archetype=null;save();renderCreationStep();}
 function sbDropTarget(x,y){
   const els=document.elementsFromPoint?document.elementsFromPoint(x,y):[document.elementFromPoint(x,y)];
   for(let k=0;k<els.length;k++){const el=els[k];const d=el&&el.closest?el.closest('[data-drop]'):null;if(d)return d;}
@@ -1005,11 +1022,22 @@ function sbInit(){
   document.addEventListener('pointercancel',end);
 }
 
+function applyArchetype(ai){
+  const c=S.creation,arch=ARCHETYPES[ai];if(!arch)return;
+  const baseBudget=getSeriesConfig().exp?.skillPts||25;
+  const columns=SAMPLE_COLUMNS[baseBudget]||SAMPLE_COLUMNS[25];
+  let ci=columns.findIndex(col=>col.label===arch.shape);if(ci<0)ci=0;
+  const col=columns[ci];
+  const slots=[];for(let lv=6;lv>=1;lv--){const n=col.tiers[lv]||0;for(let k=0;k<n;k++)slots.push(lv);}
+  c._selectedColumn=ci;c._archetype=ai;c.skills={};
+  arch.skills.forEach((sk,idx)=>{if(idx<slots.length&&SKILLS.indexOf(sk)>=0&&!c.skills[sk])c.skills[sk]=slots[idx];});
+  _skillDef=null;save();renderCreationStep();
+}
 function applyColumnTemplate(ci){
   const c=S.creation;
   const baseBudget=getSeriesConfig().exp?.skillPts||25;
   const columns=SAMPLE_COLUMNS[baseBudget]||SAMPLE_COLUMNS[25];
-  c._selectedColumn=ci;
+  c._selectedColumn=ci;c._archetype=null;
   // Clear existing skills
   c.skills={};
   save();renderCreationStep();

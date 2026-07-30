@@ -129,6 +129,10 @@ select{cursor:pointer;-webkit-appearance:none;appearance:none;background-image:u
 .sb-ghost{position:fixed;z-index:9999;transform:translate(-50%,-150%);pointer-events:none;padding:7px 11px;border-radius:8px;background:var(--accent);color:#fff;font-family:var(--font-label);font-weight:700;font-size:12px;box-shadow:var(--comic-shadow-lg)}
 .arch-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px}
 .arch-opt .opt-desc{font-size:11px;line-height:1.25}
+.uni-bar{display:inline-flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:4px 11px;margin-bottom:10px;cursor:pointer;font-family:var(--font-label);font-size:12px}
+.uni-bar:hover{border-color:var(--accent)}
+.uni-bar .uni-name{font-weight:700}
+.uni-bar .uni-caret{color:var(--muted);font-size:10px}
 .power-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-card);padding:10px;margin-bottom:6px;cursor:pointer;transition:border-color .15s}
 .power-card:hover{border-color:var(--accent)}
 .power-card .pw-name{font-family:var(--font-label);font-weight:700;font-size:14px}
@@ -354,6 +358,7 @@ html[data-theme="dark"] .pg-title,html[data-theme="street"] .pg-title{text-shado
 <div class="modal-overlay" id="power-modal"><div class="modal-inner"><div id="power-modal-body"></div></div></div>
 <div class="modal-overlay" id="gear-modal"><div class="modal-inner"><div id="gear-modal-body"></div></div></div>
 <div class="modal-overlay" id="npc-modal"><div class="modal-inner"><div class="card" id="npc-modal-body"></div></div></div>
+<div class="modal-overlay" id="universe-modal"><div class="modal-inner"><div id="universe-modal-body"></div></div></div>
 
 <script>
 // ═══════════════════════════════════════════════════════════
@@ -774,13 +779,31 @@ const LOG_TYPES=[
 function defaultState(){
   return{series:{tone:null,level:null,experience:null},char:null,
     creation:{step:0,costumedName:'',civilianName:'',aspects:{concept:'',motivation:'',contingent:[{cat:'',text:''},{cat:'',text:''},{cat:'',text:''}]},supportingCast:[],roguesGallery:[],skills:{},powerSets:[],stunts:[]},
-    team:null,npcs:[],regions:[defaultRegion()],activeRegion:0,conflict:{active:false,zones:[],turnOrder:[],currentTurn:0,round:1,log:[]},dice:null,notes:[]};
+    team:null,universeId:null,npcs:[],regions:[defaultRegion()],activeRegion:0,conflict:{active:false,zones:[],turnOrder:[],currentTurn:0,round:1,log:[]},dice:null,notes:[]};
 }
 let S=defaultState(),currentSlot=null;
 function slotKey(n){return'dc_slot_'+n;}
 function getSlotData(n){try{const d=localStorage.getItem(slotKey(n));return d?JSON.parse(d):null;}catch(e){return null;}}
-function save(){if(currentSlot===null)return;try{localStorage.setItem(slotKey(currentSlot),JSON.stringify(S));}catch(e){}flashSaved();hudBroadcast();}
-function loadSlot(n){currentSlot=n;try{localStorage.setItem('dc_active_slot',String(n));}catch(e){}const d=getSlotData(n);S=d||defaultState();}
+function save(){if(currentSlot===null)return;const _bound=currentUniverse()&&S.npcs===currentUniverse().roster;if(_bound&&S.char)syncHeroToRoster();const _n=S.npcs;try{if(_bound)S.npcs=[];localStorage.setItem(slotKey(currentSlot),JSON.stringify(S));}catch(e){}S.npcs=_n;if(_bound)saveUniverses();flashSaved();hudBroadcast();}
+function loadSlot(n){currentSlot=n;try{localStorage.setItem('dc_active_slot',String(n));}catch(e){}const d=getSlotData(n);S=d||defaultState();bindUniverse();}
+
+// ═══════════════════════════════════════════════════════════
+// UNIVERSE STORE (shared, cross-slot, local)
+// ═══════════════════════════════════════════════════════════
+function uid(p){return (p||'e')+'_'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
+function ensureId(e){if(e&&!e.id)e.id=uid();return e;}
+let U=null;
+function loadUniverses(){if(U)return U;try{U=JSON.parse(localStorage.getItem('dc_universes'))||null;}catch(e){U=null;}if(!U)U={version:2,activeUniverseId:null,universes:[]};return U;}
+function saveUniverses(){try{localStorage.setItem('dc_universes',JSON.stringify(U));}catch(e){}}
+function getUniverse(id){loadUniverses();return U.universes.find(u=>u.id===id)||null;}
+function currentUniverse(){return (typeof S!=='undefined'&&S)?getUniverse(S.universeId):null;}
+function createUniverse(name){loadUniverses();const u={id:uid('u'),name:(name||'').trim()||'Untitled Universe',created:Date.now(),roster:[]};U.universes.push(u);U.activeUniverseId=u.id;saveUniverses();return u;}
+function renameUniverse(id,name){const u=getUniverse(id);if(u){u.name=(name||'').trim()||u.name;saveUniverses();}}
+function universeHeroCount(id){let c=0;for(let i=0;i<10;i++){const d=getSlotData(i);if(d&&d.universeId===id)c++;}return c;}
+function deleteUniverse(id){loadUniverses();if(U.universes.length<=1)return false;U.universes=U.universes.filter(u=>u.id!==id);if(U.activeUniverseId===id)U.activeUniverseId=(U.universes[0]||{}).id||null;saveUniverses();return true;}
+function upsertRosterEntity(uId,entity){const u=getUniverse(uId);if(!u)return;ensureId(entity);const i=u.roster.findIndex(e=>e.id===entity.id);if(i>=0)u.roster[i]=entity;else u.roster.push(entity);saveUniverses();}
+function removeRosterEntity(uId,entityId){const u=getUniverse(uId);if(!u)return;u.roster=u.roster.filter(e=>e.id!==entityId);saveUniverses();}
+function bindUniverse(){loadUniverses();let u=getUniverse(S.universeId);if(!u){u=getUniverse(U.activeUniverseId)||U.universes[0];if(u)S.universeId=u.id;}if(u){(u.roster||[]).forEach(ensureId);S.npcs=u.roster;}else{S.npcs=S.npcs||[];}}
 
 // ═══════════════════════════════════════════════════════════
 // SLOTS
@@ -788,7 +811,7 @@ function loadSlot(n){currentSlot=n;try{localStorage.setItem('dc_active_slot',Str
 function openSlotModal(){document.getElementById('slot-modal').classList.add('open');renderSlotModal();}
 function closeSlotModal(){document.getElementById('slot-modal').classList.remove('open');}
 function renderSlotModal(){
-  let h='<div class="pg-title" style="font-size:22px">Save Slots</div><div style="margin-top:12px">';
+  let h='<div class="pg-title" style="font-size:22px">Save Slots</div>'+universeChooserHTML()+'<div style="margin-top:12px">';
   for(let i=0;i<10;i++){const d=getSlotData(i),a=i===currentSlot,nm=d?.char?.costumedName||d?.creation?.costumedName||null,lb=nm||(d?'In Progress':'Empty'),tn=d?.series?.tone?SERIES_TONES.find(t=>t.id===d.series.tone)?.name:'';
     h+=`<div class="card-sm" style="display:flex;align-items:center;gap:10px;cursor:pointer;${a?'border-color:var(--accent)':''}" onclick="selectSlot(${i})"><div style="width:28px;height:28px;border-radius:50%;background:${a?'var(--accent)':'var(--surface3)'};display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:${a?'#fff':'var(--muted)'}">${i+1}</div><div style="flex:1"><div style="font-weight:700;font-size:14px">${lb}</div>${tn?`<div style="font-size:11px;color:var(--muted)">${tn}</div>`:''}</div>${d?`<button class="btn btn-danger btn-xs" onclick="event.stopPropagation();deleteSlot(${i})">Del</button>`:''}</div>`;}
   h+=`</div><div class="divider"></div><div style="display:flex;gap:8px"><button class="btn btn-gold btn-sm" style="flex:1" onclick="exportJSON()">Export Current Slot</button><button class="btn btn-secondary btn-sm" style="flex:1" onclick="importJSON()">Import JSON</button></div>`;
@@ -796,6 +819,93 @@ function renderSlotModal(){
 }
 function selectSlot(n){loadSlot(n);closeSlotModal();renderAll();}
 function deleteSlot(n){if(!confirm('Delete this save?'))return;try{localStorage.removeItem(slotKey(n));}catch(e){}if(n===currentSlot)S=defaultState();renderSlotModal();renderAll();}
+
+// ═══════════════════════════════════════════════════════════
+// UNIVERSE UI (naming gate, manager, bar)
+// ═══════════════════════════════════════════════════════════
+let _uniRequired=false;
+function refreshUniverseUI(){try{renderHero();}catch(e){}try{if(document.getElementById('npcs-content'))renderNPCs();}catch(e){}}
+function universeBarHTML(){const u=currentUniverse();const nm=u?u.name:'No universe';return `<div class="uni-bar" onclick="openUniverseManager()" title="Your game world — tap to manage universes"><span class="uni-ico">\u{1F30C}</span><span class="uni-name">${esc(nm)}</span><span class="uni-caret">▾</span></div>`;}
+function universeChooserHTML(){loadUniverses();const act=U.activeUniverseId;return `<div class="card-sm" style="display:flex;align-items:center;gap:8px;margin-top:8px"><span style="font-size:11px;color:var(--muted);white-space:nowrap">New heroes join</span><select style="flex:1" onchange="U.activeUniverseId=this.value;saveUniverses();renderSlotModal()">${U.universes.map(u=>`<option value="${u.id}" ${u.id===act?'selected':''}>${esc(u.name)}</option>`).join('')}<\/select><button class="btn btn-secondary btn-xs" onclick="openUniverseManager()">Manage<\/button><\/div>`;}
+function closeUniverseModal(){const m=document.getElementById('universe-modal');if(m)m.classList.remove('open','locked');}
+function openUniverseSetup(required){
+  _uniRequired=!!required;
+  let h=`<div class="card"><div class="pg-title" style="font-size:22px">${required?'Name Your Universe':'New Universe'}</div>`;
+  h+=`<div style="font-size:12px;color:var(--muted);margin:6px 0 12px">A universe is your shared game world (like "Marvel"). Every hero, NPC, and villain you create in it is automatically shared with the other heroes in that universe.</div>`;
+  h+=`<div class="form-group"><label>Universe Name</label><input id="uni-name" placeholder="e.g. Marvel, My City, Earth-27" onkeydown="if(event.key==='Enter')submitUniverseSetup()"><\/div>`;
+  h+=`<div style="display:flex;gap:8px;margin-top:8px">`;
+  if(!required)h+=`<button class="btn btn-secondary" style="flex:1" onclick="closeUniverseModal()">Cancel<\/button>`;
+  h+=`<button class="btn btn-primary" style="flex:1" onclick="submitUniverseSetup()">Create Universe<\/button><\/div><\/div>`;
+  document.getElementById('universe-modal-body').innerHTML=h;
+  const m=document.getElementById('universe-modal');m.classList.toggle('locked',!!required);m.classList.add('open');
+  setTimeout(function(){const i=document.getElementById('uni-name');if(i)i.focus();},60);
+}
+function submitUniverseSetup(){
+  const name=(document.getElementById('uni-name').value||'').trim();
+  if(!name)return alert('Please enter a universe name.');
+  const firstEver=loadUniverses().universes.length===0;
+  const u=createUniverse(name);
+  if(firstEver)foldLegacySlots(u);
+  try{localStorage.setItem('dc_schema_version','2');}catch(e){}
+  const wasRequired=_uniRequired;_uniRequired=false;
+  closeUniverseModal();
+  if(wasRequired){
+    let a=null;try{a=localStorage.getItem('dc_active_slot');}catch(e){}
+    if(a!==null&&a!=='')loadSlot(parseInt(a));
+    renderHero();
+    if(currentSlot===null)openSlotModal();
+  } else {
+    U.activeUniverseId=u.id;saveUniverses();
+    openUniverseManager();refreshUniverseUI();
+  }
+}
+function foldLegacySlots(u){
+  for(let i=0;i<10;i++){const d=getSlotData(i);if(!d)continue;if(d.universeId)continue;
+    (d.npcs||[]).forEach(function(e){ensureId(e);
+      if(!u.roster.some(r=>r.type===e.type&&(r.name||'').toLowerCase()===(e.name||'').toLowerCase()))u.roster.push(e);
+    });
+    if(d.char){if(!d.char.heroId)d.char.heroId=uid();const m=characterToNpc(d.char,d.char.heroId);m.sourceSlot=i;
+      if(!u.roster.some(r=>r.id===m.id))u.roster.push(m);
+      try{localStorage.setItem(slotKey(i),JSON.stringify(Object.assign(d,{char:d.char})));}catch(e){}}
+    d.universeId=u.id;d.npcs=[];
+    try{localStorage.setItem(slotKey(i),JSON.stringify(d));}catch(e){}
+  }
+  saveUniverses();
+}
+function openUniverseManager(){
+  loadUniverses();
+  let h=`<div class="card"><div style="display:flex;justify-content:space-between;align-items:center"><div class="pg-title" style="font-size:20px">Universes<\/div><button class="btn btn-secondary btn-xs" onclick="closeUniverseModal()">Close<\/button><\/div>`;
+  h+=`<div style="font-size:11px;color:var(--muted);margin:4px 0 10px">Your game worlds. Heroes, NPCs & villains are shared within a universe.<\/div>`;
+  U.universes.forEach(function(u){
+    const heroes=universeHeroCount(u.id);const isCur=(typeof S!=='undefined'&&S&&S.universeId===u.id);const rc=(u.roster||[]).length;
+    h+=`<div class="card-sm" style="${isCur?'border-color:var(--accent)':''}"><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><div style="flex:1;min-width:120px"><div class="fw-700">${esc(u.name)}${isCur?' <span style="font-size:10px;color:var(--accent)">(current)<\/span>':''}<\/div><div style="font-size:10px;color:var(--muted)">${heroes} hero${heroes===1?'':'es'} • ${rc} in roster<\/div><\/div>`;
+    h+=`<button class="btn btn-secondary btn-xs" onclick="renameUniversePrompt('${u.id}')">Rename<\/button>`;
+    if(typeof S!=='undefined'&&S&&S.char&&!isCur)h+=`<button class="btn btn-gold btn-xs" onclick="moveHeroToUniverse('${u.id}')" title="Move the hero you are playing into this universe">Move hero<\/button>`;
+    if(U.universes.length>1)h+=`<button class="btn btn-danger btn-xs" onclick="deleteUniversePrompt('${u.id}')">Del<\/button>`;
+    h+=`<\/div><\/div>`;
+  });
+  h+=`<button class="btn btn-primary btn-full" style="margin-top:8px" onclick="openUniverseSetup(false)">+ New Universe<\/button><\/div>`;
+  document.getElementById('universe-modal-body').innerHTML=h;
+  document.getElementById('universe-modal').classList.remove('locked');
+  document.getElementById('universe-modal').classList.add('open');
+}
+function renameUniversePrompt(id){const u=getUniverse(id);if(!u)return;const n=prompt('Rename universe:',u.name);if(n!==null){renameUniverse(id,n);openUniverseManager();refreshUniverseUI();}}
+function deleteUniversePrompt(id){
+  loadUniverses();if(U.universes.length<=1)return alert('You must keep at least one universe.');
+  const cnt=universeHeroCount(id);
+  if(!confirm('Delete this universe'+(cnt?' and unlink its '+cnt+' hero'+(cnt===1?'':'es'):'')+'? Its shared roster will be removed. This cannot be undone.'))return;
+  for(let i=0;i<10;i++){const d=getSlotData(i);if(d&&d.universeId===id){d.universeId=null;try{localStorage.setItem(slotKey(i),JSON.stringify(d));}catch(e){}}}
+  deleteUniverse(id);
+  if(typeof S!=='undefined'&&S&&S.universeId===id){S.universeId=null;if(currentSlot!==null)bindUniverse();}
+  openUniverseManager();refreshUniverseUI();
+}
+function moveHeroToUniverse(id){
+  if(!S||!S.char)return;const u=getUniverse(id);if(!u)return;
+  if(!confirm('Move "'+(S.char.costumedName||'this hero')+'" into "'+u.name+'"? Its future NPCs & villains will be shared with that universe.'))return;
+  S.universeId=id;bindUniverse();syncHeroToRoster();save();
+  closeUniverseModal();refreshUniverseUI();
+}
+
 
 // ═══════════════════════════════════════════════════════════
 // NAV
@@ -837,7 +947,7 @@ function getHPSpent(){let t=0;(S.creation.stunts||[]).forEach(s=>t+=s.cost);(S.c
 function renderCreationStep(){
   const c=S.creation,labels=['Series','Names','Aspects','Cast','Skills','Powers','Review'];
   let dots='';for(let i=0;i<7;i++){dots+=`<span class="${i<c.step?'step-dot done':i===c.step?'step-dot active':'step-dot'}" title="${labels[i]}"></span>`;}
-  let h=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px"><div class="pg-title">Create Your Hero</div><button class="btn btn-secondary btn-xs" onclick="openSlotModal()">Slots</button></div>`;
+  let h=universeBarHTML()+`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px"><div class="pg-title">Create Your Hero</div><button class="btn btn-secondary btn-xs" onclick="openSlotModal()">Slots</button></div>`;
   h+=c.step>0?`<button class="btn btn-secondary btn-xs" onclick="creationBack()" style="margin-bottom:8px">\u2190 Back</button>`:'';
   h+=`<div style="display:flex;gap:6px;margin-bottom:16px;justify-content:center;align-items:center">${dots}</div>`;
   if(c.step===0)h+=renderStepSeries();else if(c.step===1)h+=renderStepNames();else if(c.step===2)h+=renderStepAspects();
@@ -1288,8 +1398,8 @@ function finishCreation(){
   const ps=2+tb+pb,ms=2+tb+wb,hpS=getHPSpent(),tHP=getTotalHP();
   const ru=hpS>tHP?Math.min(hpS-tHP,(tone?.refresh||5)-1):0,fr=Math.max(1,(tone?.refresh||5)-ru);
   S.char={costumedName:c.costumedName,civilianName:c.civilianName,aspects:JSON.parse(JSON.stringify(c.aspects)),supportingCast:JSON.parse(JSON.stringify(c.supportingCast)),roguesGallery:JSON.parse(JSON.stringify(c.roguesGallery)),skills:JSON.parse(JSON.stringify(c.skills)),refresh:fr,fatePoints:fr,stress:{physical:Array(ps).fill(false),mental:Array(ms).fill(false)},consequences:{mild:'',moderate:'',severe:''},stunts:JSON.parse(JSON.stringify(c.stunts||[])),forms:[{name:'Main Form',powerSets:JSON.parse(JSON.stringify(c.powerSets||[]))}],activeForm:0,gear:'',hardStress:[],hardCons:{mild:[],moderate:[],severe:[]}};
-  c.supportingCast.forEach(sc=>{if(sc.name)S.npcs.push({type:'supporting',name:sc.name,desc:sc.desc,skills:{},aspects:[]});});
-  c.roguesGallery.forEach(rg=>{if(rg.name)S.npcs.push({type:'rogue',name:rg.name,desc:rg.desc,aspects:[],skills:{},powers:'',stress:Array(4).fill(false),consequences:{mild:'',moderate:'',severe:''}});});
+  c.supportingCast.forEach(sc=>{if(sc.name)S.npcs.push({id:uid(),type:'supporting',name:sc.name,desc:sc.desc,skills:{},aspects:[]});});
+  c.roguesGallery.forEach(rg=>{if(rg.name)S.npcs.push({id:uid(),type:'rogue',name:rg.name,desc:rg.desc,aspects:[],skills:{},powers:'',stress:Array(4).fill(false),consequences:{mild:'',moderate:'',severe:''}});});
   save();renderHero();
 }
 
@@ -1307,7 +1417,7 @@ function renderSheet(){
   if(ch.activeForm==null||ch.activeForm>=ch.forms.length)ch.activeForm=0;
   const _hb=syncHardiness(ch);
   const _af=ch.activeForm,_curForm=ch.forms[_af]||{name:'',powerSets:[]};
-  let h=`<div class="${_heroEditMode?'':'no-edit'}">`;
+  let h=universeBarHTML()+`<div class="${_heroEditMode?'':'no-edit'}">`;
   h+=`<div style="display:flex;justify-content:space-between;align-items:start;gap:8px;margin-bottom:8px;flex-wrap:wrap"><div style="flex:1;min-width:160px"><div class="pg-title" style="font-size:28px">${esc(ch.costumedName)}</div><div style="font-size:13px;color:var(--muted)">${esc(ch.civilianName)}</div></div><div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end">${editToggleBtn(_heroEditMode,'toggleHeroEdit')}<button class="btn btn-gold btn-xs" onclick="exportJSON()">Export</button><button class="btn btn-secondary btn-xs" onclick="openSlotModal()">Slots</button><button class="btn btn-danger btn-xs edit-only" onclick="resetChar()">New</button></div></div>`;
   if(!_heroEditMode)h+=noEditBanner();
   // Fate Points
@@ -1493,6 +1603,23 @@ function npcToCharacter(npc){
     gear:npc.gear||''
   };
 }
+function characterToNpc(char, existingId){
+  const asp=[char.aspects&&char.aspects.concept,char.aspects&&char.aspects.motivation].concat(((char.aspects&&char.aspects.contingent)||[]).map(c=>c&&c.text)).filter(Boolean);
+  const _hid=existingId||uid();
+  return {id:_hid,heroId:_hid,type:'main',fromHero:true,sourceSlot:currentSlot,
+    name:char.costumedName||'Unnamed Hero',desc:char.civilianName||'',
+    aspects:asp,skills:JSON.parse(JSON.stringify(char.skills||{})),
+    forms:JSON.parse(JSON.stringify(char.forms||[])),activeForm:char.activeForm||0,
+    stunts:JSON.parse(JSON.stringify(char.stunts||[])),stress:[],
+    consequences:JSON.parse(JSON.stringify(char.consequences||{mild:'',moderate:'',severe:''})),gear:char.gear||''};
+}
+function syncHeroToRoster(){
+  if(!S||!S.char)return;const u=currentUniverse();if(!u)return;
+  if(!S.char.heroId)S.char.heroId=uid();
+  const ent=characterToNpc(S.char,S.char.heroId);
+  const i=u.roster.findIndex(e=>e.id===ent.id);
+  if(i>=0)u.roster[i]=ent;else u.roster.push(ent);
+}
 function exportNPCToSlot(npcIdx){
   const npc=S.npcs[npcIdx];if(!npc)return;
   // Build slot list label for the prompt
@@ -1507,6 +1634,7 @@ function exportNPCToSlot(npcIdx){
   if(existing&&existing.char){if(!confirm('Slot '+(n+1)+' already has "'+(existing.char.costumedName||'a character')+'". Overwrite?'))return;}
   const newState=defaultState();
   newState.series=JSON.parse(JSON.stringify(S.series));
+  newState.universeId=S.universeId;
   newState.char=npcToCharacter(npc);
   try{localStorage.setItem(slotKey(n),JSON.stringify(newState));}catch(e){return alert('Save failed: '+e.message);}
   alert('Exported "'+npc.name+'" to slot '+(n+1)+'.');
@@ -1767,13 +1895,13 @@ const NPC_TABS=[{id:'supporting',label:'Cast'},{id:'rogue',label:'Rogues'},{id:'
 function renderNPCs(){
   const el=document.getElementById('npcs-content');
   if(_npcFullMode){renderFullNPCEditor();return;}
-  let h=`<div class="${_npcEditMode?'':'no-edit'}">`;
+  let h=universeBarHTML()+`<div class="${_npcEditMode?'':'no-edit'}">`;
   h+=`<div style="display:flex;justify-content:space-between;align-items:start;gap:8px;flex-wrap:wrap;margin-bottom:4px"><div><div class="pg-title">NPCs</div><div class="pg-sub">Characters, Villains & Team</div></div>${editToggleBtn(_npcEditMode,'toggleNPCEdit')}</div>`;
   if(!_npcEditMode)h+=noEditBanner();
   h+=`<div class="npc-tabs">${NPC_TABS.map(t=>`<div class="npc-tab ${_npcTab===t.id?'active':''}" onclick="_npcTab='${t.id}';renderNPCs()">${t.label}</div>`).join('')}</div>`;
   if(_npcTab==='team'){let teamH='';renderTeamInner({set innerHTML(v){teamH=v;}});h+=teamH+'</div>';el.innerHTML=h;return;}
-  S.npcs.filter(n=>n.type===_npcTab).forEach(npc=>{const ri=S.npcs.indexOf(npc);
-    h+=`<div class="card-sm"><div style="display:flex;justify-content:space-between;align-items:start"><div style="flex:1"><div class="fw-700">${esc(npc.name)}</div>${npc.desc?`<div style="font-size:12px;color:var(--muted)">${esc(npc.desc)}</div>`:''}`;
+  S.npcs.filter(n=>n.type===_npcTab && !(n.fromHero&&S.char&&n.heroId===S.char.heroId)).forEach(npc=>{const ri=S.npcs.indexOf(npc);
+    h+=`<div class="card-sm"><div style="display:flex;justify-content:space-between;align-items:start"><div style="flex:1"><div class="fw-700">${esc(npc.name)}</div>${npc.desc?`<div style="font-size:12px;color:var(--muted)">${esc(npc.desc)}</div>`:''}${npc.fromHero?`<div style="font-size:10px;color:var(--blue);margin-top:2px">\u25C6 Player hero (mirrored)</div>`:''}`;
     if(npc.type==='main'||npc.type==='rogue'){
       if(npc.aspects?.length)h+=`<div style="font-size:11px;margin-top:2px">${npc.aspects.map(a=>`<span class="tag" style="background:var(--surface3);color:var(--text);border:1px solid var(--border)">${esc(a)}</span>`).join(' ')}</div>`;
       if(npc.skills&&Object.keys(npc.skills).length){const sk=Object.entries(npc.skills).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]).slice(0,6);h+=`<div style="font-size:10px;color:var(--muted);margin-top:2px">${sk.map(([n,v])=>`${n} +${v}`).join(', ')}</div>`;}
@@ -1785,8 +1913,12 @@ function renderNPCs(){
     if(npc.type==='nameless')h+=`<div style="font-size:11px;color:var(--accent);margin-top:2px">Obstacle: ${npc.obstacle||'+0'}</div>`;
     if(npc.stress?.length){h+=`<div style="display:flex;gap:4px;margin-top:4px">`;npc.stress.forEach((v,si)=>{h+=`<div class="stress-box ${v?'filled':''}" style="width:22px;height:22px;font-size:10px" onclick="S.npcs[${ri}].stress[${si}]=!S.npcs[${ri}].stress[${si}];save();renderNPCs()">${si+1}</div>`;});h+='</div>';}
     h+=`</div><div class="edit-only" style="display:flex;flex-direction:column;gap:4px;margin-left:8px">`;
-    if(npc.type==='main'||npc.type==='rogue'){h+=`<button class="btn btn-gold btn-xs" onclick="openFullNPCBuilder(${ri})">Builder</button>`;h+=`<button class="btn btn-secondary btn-xs" onclick="exportNPCToSlot(${ri})" title="Save this NPC as a playable character in a save slot">→ Slot</button>`;}
-    h+=`<button class="btn btn-secondary btn-xs" onclick="editNPC(${ri})">Edit</button><button class="btn btn-danger btn-xs" onclick="if(confirm('Delete?')){S.npcs.splice(${ri},1);save();renderNPCs();}">X</button></div></div></div>`;
+    if(npc.fromHero){h+=`<button class="btn btn-secondary btn-xs" onclick="exportNPCToSlot(${ri})" title="Copy into a save slot to play">→ Slot</button>`;}
+    else{
+      if(npc.type==='main'||npc.type==='rogue'){h+=`<button class="btn btn-gold btn-xs" onclick="openFullNPCBuilder(${ri})">Builder</button>`;h+=`<button class="btn btn-secondary btn-xs" onclick="exportNPCToSlot(${ri})" title="Save this NPC as a playable character in a save slot">→ Slot</button>`;}
+      h+=`<button class="btn btn-secondary btn-xs" onclick="editNPC(${ri})">Edit</button><button class="btn btn-danger btn-xs" onclick="if(confirm('Delete?')){S.npcs.splice(${ri},1);save();renderNPCs();}">X</button>`;
+    }
+    h+=`</div></div></div>`;
   });
   h+=`<div class="edit-only" style="display:flex;gap:6px;margin-top:8px"><button class="btn btn-primary" style="flex:1" onclick="openAddNPC()">+ Quick Add</button>`;
   if(_npcTab==='main'||_npcTab==='rogue')h+=`<button class="btn btn-gold" style="flex:1" onclick="openFullNPCBuilder(null)">+ Full Builder</button>`;
@@ -1812,7 +1944,7 @@ function saveNPC(){
   if(type==='main'||type==='rogue'){npc.aspects=(document.getElementById('nm-asp')?.value||'').split(',').map(s=>s.trim()).filter(Boolean);npc.skillText=document.getElementById('nm-sk')?.value||'';npc.powers=document.getElementById('nm-pw')?.value||'';npc.stress=Array(parseInt(document.getElementById('nm-st')?.value)||4).fill(false);if(!npc.consequences)npc.consequences={mild:'',moderate:'',severe:''};}
   if(type==='nameless'){npc.obstacle=document.getElementById('nm-ob')?.value||'+2';npc.stress=Array(parseInt(document.getElementById('nm-st')?.value)||2).fill(false);}
   if(type==='supporting'){npc.skills=npc.skills||{};npc.aspects=npc.aspects||[];}
-  if(_npcEdit!==null)S.npcs[_npcEdit]=npc;else S.npcs.push(npc);save();closeNM();renderNPCs();
+  ensureId(npc);if(_npcEdit!==null)S.npcs[_npcEdit]=npc;else S.npcs.push(npc);save();closeNM();renderNPCs();
 }
 
 // ─── Full NPC Builder ─────────────────────────────────────
@@ -1848,7 +1980,7 @@ function saveFullNPC(){
   d.skillText=Object.entries(d.skills||{}).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]).map(([n,v])=>`${n} +${v}`).join(', ');
   d.powers=(d.forms||[]).flatMap(f=>(f.powerSets||[]).flatMap(ps=>(ps.powers||[]).map(pw=>pw.customName||POWERS.find(p=>p.id===pw.powerId)?.name||pw.powerId))).join(', ');
   delete d.powerSets; // forms supersedes legacy powerSets
-  if(_npcEdit!==null)S.npcs[_npcEdit]=d;else S.npcs.push(d);
+  ensureId(d);if(_npcEdit!==null)S.npcs[_npcEdit]=d;else S.npcs.push(d);
   save();closeFullNPCBuilder();
 }
 function renderFullNPCEditor(){
@@ -2514,9 +2646,9 @@ function pdIconPreview(){var el=document.getElementById('pw-icon-preview');if(!e
 function selectPdIcon(id){_pdIcon=(id===_pdIcon)?'':id;pdIconPreview();document.querySelectorAll('#pw-icon-results .ic-opt').forEach(function(b){b.classList.toggle('sel',b.dataset.icon===_pdIcon);});}
 function renderPdIcons(icons){var res=document.getElementById('pw-icon-results');if(!res)return;if(!icons||!icons.length){res.innerHTML='<div style="font-size:11px;color:var(--muted);padding:4px">No icons found — try another word (fire, claw, star, shield).</div>';return;}res.innerHTML=icons.map(function(id){var u=pdIconUrl(id);return '<button type="button" class="ic-opt'+(id===_pdIcon?' sel':'')+'" data-icon="'+esc(id)+'" onclick="selectPdIcon(\''+esc(id)+'\')" title="'+esc(id.replace('game-icons:',''))+'"><span class="pw-icon" style="width:24px;height:24px;-webkit-mask-image:url(\''+u+'\');mask-image:url(\''+u+'\')"></span></button>';}).join('');}
 function pdIconSearch(q){var inp=document.getElementById('pw-icon-search');var query=(typeof q==='string'?q:(inp?inp.value:''))||'';var res=document.getElementById('pw-icon-results');var pw=POWERS.find(function(p){return p.id===window._pdId;});var term=query.trim()||(pw?pw.name:'power');clearTimeout(_pdIconTimer);if(res&&!res.innerHTML)res.innerHTML='<div style="font-size:11px;color:var(--muted);padding:4px">Searching game-icons.net…</div>';_pdIconTimer=setTimeout(function(){fetch('https://api.iconify.design/search?query='+encodeURIComponent(term)+'&prefix=game-icons&limit=48').then(function(r){return r.json();}).then(function(d){renderPdIcons(d.icons||[]);}).catch(function(){if(res)res.innerHTML='<div style="font-size:11px;color:var(--muted);padding:4px">Couldn\'t reach game-icons.net. Check your connection and try again.</div>';});},250);}
-document.addEventListener('click',function(e){if(e.target&&e.target.classList&&e.target.classList.contains('modal-overlay'))e.target.classList.remove('open');});
-document.addEventListener('keydown',function(e){if(e.key==='Escape')document.querySelectorAll('.modal-overlay.open').forEach(function(m){m.classList.remove('open');});});
-(function(){let a=null;try{a=localStorage.getItem('dc_active_slot');}catch(e){}if(a!==null&&a!=='')loadSlot(parseInt(a));renderHero();if(currentSlot===null)openSlotModal();})();
+document.addEventListener('click',function(e){if(e.target&&e.target.classList&&e.target.classList.contains('modal-overlay')&&!e.target.classList.contains('locked'))e.target.classList.remove('open');});
+document.addEventListener('keydown',function(e){if(e.key==='Escape')document.querySelectorAll('.modal-overlay.open').forEach(function(m){if(!m.classList.contains('locked'))m.classList.remove('open');});});
+(function boot(){loadUniverses();if(U.universes.length===0){openUniverseSetup(true);return;}let a=null;try{a=localStorage.getItem('dc_active_slot');}catch(e){}if(a!==null&&a!=='')loadSlot(parseInt(a));renderHero();if(currentSlot===null)openSlotModal();})();
 </script>
 </body>
 </html>

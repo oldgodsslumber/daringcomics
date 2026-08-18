@@ -1,0 +1,6 @@
+# Firebase web config — kept out of the repo so an API key is never committed.
+# Copy firebase-config.example.js to firebase-config.js and fill it in.
+firebase-config.js
+
+node_modules/
+package-lock.json

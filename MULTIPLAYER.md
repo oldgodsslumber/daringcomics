@@ -17,13 +17,14 @@ manager. Until then the Firebase SDK is never fetched.
 
 ## 1. Firebase setup
 
-This app is wired to the Firebase project **`daringcomics-98cea`**; its config is
-already in `FIREBASE_CONFIG` near the bottom of `index.html`. Remaining steps:
+Copy `firebase-config.example.js` to **`firebase-config.js`** and fill in your
+project's values. That file is gitignored and loaded on demand — see the note at
+the end of this section for why it is not committed. Then:
 
 1. **Realtime Database → Create Database**, then paste the rules in §2. Do not
    leave it in test mode.
-2. **Confirm `databaseURL`.** The value in `index.html` assumes a `us-central1`
-   instance:
+2. **Confirm `databaseURL`.** For project `daringcomics-98cea` a `us-central1`
+   instance would be:
 
    ```
    https://daringcomics-98cea-default-rtdb.firebaseio.com
@@ -38,20 +39,47 @@ already in `FIREBASE_CONFIG` near the bottom of `index.html`. Remaining steps:
 4. **Authentication → Settings → Authorised domains:** add wherever you host it
    (`localhost` for local testing, plus your GitHub Pages domain).
 
+5. **Restrict the key** — see the note below. Do this before the config reaches
+   any public host.
+
 ### Setting up a different project instead
 
 Register a web app under **Project settings → Your apps → Web (`</>`)**, copy the
-`firebaseConfig`, and replace `FIREBASE_CONFIG` in `index.html`. The `databaseURL`
+`firebaseConfig`, and paste it into your `firebase-config.js`. The `databaseURL`
 field is not in the snippet Firebase shows you until the Realtime Database
 exists — add it by hand from the database page.
 
-### A note on the API key in the repo
+### Why the config is not in the repo
 
-Firebase web API keys are project identifiers, not secrets; they are meant to
-ship in client code, and the security rules in §2 are what actually protect the
-data. The practical exposure of a public key is that a stranger could sign in and
-create universes against your quota. If that ever becomes a problem, turn on
-**App Check**, or move the config to an untracked file.
+`firebase-config.js` is gitignored. An earlier version of this app had the config
+inline in `index.html` and it was committed to the public repo, which tripped
+secret scanning. The reasoning at the time — "Firebase web keys are identifiers,
+not secrets" — is the official Firebase line but it is too glib:
+
+- The key is an **`AIzaSy…` Google API key, not a Firebase-only credential.**
+  Unless you restrict it, it can call *any* API enabled on the project. This app
+  talks to Gemini, so enabling the Generative Language API on the same project
+  would turn a public key into someone else's billable quota.
+- Secret scanners flag the pattern regardless of how it is meant to be used, so
+  committing one means alerts and, eventually, an automatic disable.
+
+**If you host this publicly** — GitHub Pages or anywhere else — the config has to
+reach the browser somehow, and there is no server to hide it behind. Secrecy is
+not the control there; **restriction** is:
+
+1. Google Cloud console → **APIs & Services → Credentials** → your browser key.
+2. **Application restrictions:** HTTP referrers, listing only your own domains.
+3. **API restrictions:** only the APIs this app uses (Identity Toolkit for
+   Google sign-in, Firebase Realtime Database). Do **not** leave it unrestricted,
+   and do not add the Generative Language API to this key.
+4. Consider **App Check** to stop unenrolled clients using the project at all.
+
+With those restrictions in place a deployed key is genuinely low-risk, and you
+can copy `firebase-config.js` into your deploy output on purpose. What you should
+not do is commit an *unrestricted* one, which is what happened here.
+
+If a key has been public even briefly, rotate it. Rewriting git history does not
+help — it was fetchable, and scanners have already read it.
 
 Google sign-in needs a real origin — opening `index.html` from `file://` will not
 work for multiplayer. The offline app is unaffected.

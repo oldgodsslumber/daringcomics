@@ -15,26 +15,43 @@ manager. Until then the Firebase SDK is never fetched.
 
 ---
 
-## 1. Firebase setup (one-time)
+## 1. Firebase setup
 
-1. Create a project at <https://console.firebase.google.com>.
-2. **Authentication → Sign-in method →** enable **Google**.
-3. **Realtime Database → Create Database** (start in test mode, then paste the
-   rules in §2 — do not leave it in test mode).
-4. **Project settings → Your apps → Web (`</>`)** — register a web app and copy
-   the `firebaseConfig` object.
-5. Paste it into `FIREBASE_CONFIG` near the bottom of `index.html`:
+This app is wired to the Firebase project **`daringcomics-98cea`**; its config is
+already in `FIREBASE_CONFIG` near the bottom of `index.html`. Remaining steps:
 
-   ```js
-   window.FIREBASE_CONFIG={
-     apiKey:'AIza…', authDomain:'yourproject.firebaseapp.com',
-     databaseURL:'https://yourproject-default-rtdb.firebaseio.com',
-     projectId:'yourproject', appId:'1:…'
-   };
+1. **Realtime Database → Create Database**, then paste the rules in §2. Do not
+   leave it in test mode.
+2. **Confirm `databaseURL`.** The value in `index.html` assumes a `us-central1`
+   instance:
+
+   ```
+   https://daringcomics-98cea-default-rtdb.firebaseio.com
    ```
 
-6. **Authentication → Settings → Authorised domains:** add wherever you host it
-   (`localhost`, your GitHub Pages domain, …).
+   Any other region gets a different domain — e.g.
+   `…-default-rtdb.europe-west1.firebasedatabase.app`. Copy the exact URL from
+   the top of the Realtime Database page. If it is wrong, the lobby shows a
+   "Can't reach the database" panel after a few seconds rather than failing
+   silently.
+3. **Authentication → Sign-in method →** enable **Google**.
+4. **Authentication → Settings → Authorised domains:** add wherever you host it
+   (`localhost` for local testing, plus your GitHub Pages domain).
+
+### Setting up a different project instead
+
+Register a web app under **Project settings → Your apps → Web (`</>`)**, copy the
+`firebaseConfig`, and replace `FIREBASE_CONFIG` in `index.html`. The `databaseURL`
+field is not in the snippet Firebase shows you until the Realtime Database
+exists — add it by hand from the database page.
+
+### A note on the API key in the repo
+
+Firebase web API keys are project identifiers, not secrets; they are meant to
+ship in client code, and the security rules in §2 are what actually protect the
+data. The practical exposure of a public key is that a stranger could sign in and
+create universes against your quota. If that ever becomes a problem, turn on
+**App Check**, or move the config to an untracked file.
 
 Google sign-in needs a real origin — opening `index.html` from `file://` will not
 work for multiplayer. The offline app is unaffected.

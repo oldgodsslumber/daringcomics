@@ -54,6 +54,17 @@ window.MP = (function(){
     inited = true;
   }
   function isInited(){return inited;}
+  // RTDB exposes a synthetic `.info/connected` node. A wrong databaseURL (the
+  // easiest thing to get wrong during setup — the region changes the domain)
+  // otherwise produces silence rather than an error, so watch it and let the
+  // caller say something useful.
+  function onConnectionState(cb){
+    try{
+      const ref=db.ref('.info/connected');
+      const h=ref.on('value',function(s){cb(s.val()===true);});
+      return function(){ref.off('value',h);};
+    }catch(e){cb(false);return function(){};}
+  }
   function onAuth(cb){authCbs.push(cb);if(inited)cb(user);return function(){authCbs=authCbs.filter(function(x){return x!==cb;});};}
 
   // ---- Auth ----------------------------------------------------------------
@@ -350,7 +361,7 @@ window.MP = (function(){
   }
 
   return {
-    init, isInited, onAuth,
+    init, isInited, onAuth, onConnectionState,
     signInGoogle, signOut, currentUser, currentUid, displayName,
     createUniverse, joinUniverse, leaveUniverse, forgetUniverse, deleteUniverse,
     universeExists, listMyUniverses,

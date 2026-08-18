@@ -39,11 +39,32 @@
     MP.onAuth(function(){_refreshBar();if($('dc-mp-lobby'))_renderLobby();});
     _installBar();
     _openLobby();
+    _watchConnection();
     // Deep link: index.html#u=1234
     const m=/[#&]u=(\d{1,4})/.exec(location.hash||'');
     if(m)_pendingJoinCode=String(m[1]).padStart(4,'0');
   };
   let _pendingJoinCode='';
+  let _connected=false;
+  // If we never connect, the overwhelmingly likely cause is a databaseURL that
+  // doesn't match the console (the region suffix is easy to get wrong). Say so
+  // rather than letting the lobby sit there doing nothing.
+  function _watchConnection(){
+    MP.onConnectionState(function(ok){
+      _connected=ok;
+      const w=$('dc-mp-conn');
+      if(ok&&w)w.remove();
+    });
+    setTimeout(function(){
+      if(_connected||!$('dc-mp-lobby-card'))return;
+      const card=$('dc-mp-lobby-card');
+      if($('dc-mp-conn'))return;
+      const d=el('div',{id:'dc-mp-conn',class:'card-sm',style:{borderColor:'var(--red)'}});
+      d.innerHTML='<div class="label mb-1" style="color:var(--red)">Can\'t reach the database</div>'+
+        '<div style="font-size:11px;color:var(--muted)">Check that <code>databaseURL</code> in index.html exactly matches the URL shown at the top of the Realtime Database page in the Firebase console — the region changes the domain. Also confirm this site\'s domain is listed under Authentication → Settings → Authorised domains.</div>';
+      card.insertBefore(d,card.firstChild.nextSibling);
+    },7000);
+  }
 
   // ---- Small DOM helpers --------------------------------------------------
   function el(tag,attrs,kids){

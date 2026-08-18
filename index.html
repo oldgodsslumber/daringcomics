@@ -1171,7 +1171,9 @@ function openUniverseManager(){
     if(U.universes.length>1)h+=`<button class="btn btn-danger btn-xs" onclick="deleteUniversePrompt('${u.id}')">Del<\/button>`;
     h+=`<\/div><\/div>`;
   });
-  h+=`<button class="btn btn-primary btn-full" style="margin-top:8px" onclick="openUniverseSetup(false)">+ New Universe<\/button><\/div>`;
+  h+=`<button class="btn btn-primary btn-full" style="margin-top:8px" onclick="openUniverseSetup(false)">+ New Universe<\/button>`;
+  h+=`<div class="divider"><\/div><button class="btn btn-gold btn-full" onclick="openMultiplayer()" title="Share a universe with your table">\u{1F310} Play With Your Table<\/button>`;
+  h+=`<div style="font-size:10px;color:var(--muted);margin-top:5px;text-align:center">Share a universe's roster and wiki with other players. Your heroes and save files stay on this device.<\/div><\/div>`;
   document.getElementById('universe-modal-body').innerHTML=h;
   document.getElementById('universe-modal').classList.remove('locked');
   document.getElementById('universe-modal').classList.add('open');
@@ -3503,6 +3505,50 @@ function gotoLinkedNPC(npcId){
 
 document.addEventListener('click',function(e){if(e.target&&e.target.classList&&e.target.classList.contains('modal-overlay')&&!e.target.classList.contains('locked'))e.target.classList.remove('open');});
 document.addEventListener('keydown',function(e){if(e.key==='Escape')document.querySelectorAll('.modal-overlay.open').forEach(function(m){if(!m.classList.contains('locked'))m.classList.remove('open');});});
+// ═══════════════════════════════════════════════════════════
+// MULTIPLAYER (optional — see MULTIPLAYER.md)
+// ═══════════════════════════════════════════════════════════
+// Paste your Firebase web config here to enable shared universes. Left empty,
+// the app is exactly the offline app it was: no SDK is fetched, no network
+// call is made, and the Multiplayer button explains what to do.
+window.FIREBASE_CONFIG={
+  apiKey:'', authDomain:'', databaseURL:'', projectId:'', appId:''
+};
+const FIREBASE_SDK='https://www.gstatic.com/firebasejs/10.8.0/';
+let _mpLoading=null;
+function mpConfigured(){return !!(window.FIREBASE_CONFIG&&window.FIREBASE_CONFIG.apiKey&&window.FIREBASE_CONFIG.databaseURL);}
+function _loadScript(src){
+  return new Promise(function(res,rej){
+    const s=document.createElement('script');
+    s.src=src;s.async=false;
+    s.onload=res;s.onerror=function(){rej(new Error('Could not load '+src));};
+    document.head.appendChild(s);
+  });
+}
+// Lazy: the Firebase SDK is ~300KB and most sessions are solo, so nothing is
+// fetched until the player actually asks for multiplayer.
+function openMultiplayer(){
+  if(!mpConfigured()){
+    alert('Multiplayer is not set up yet.\n\nAdd your Firebase web config to FIREBASE_CONFIG in index.html, and paste the security rules from MULTIPLAYER.md into the Firebase console.\n\nEverything else in the app works without it.');
+    return;
+  }
+  if(window.MP&&window.DC_BOOT_MP){DC_MP.openLobby();return;}
+  if(_mpLoading)return;
+  _mpLoading=(async function(){
+    try{
+      await _loadScript(FIREBASE_SDK+'firebase-app-compat.js');
+      await _loadScript(FIREBASE_SDK+'firebase-auth-compat.js');
+      await _loadScript(FIREBASE_SDK+'firebase-database-compat.js');
+      await _loadScript('dc-mp.js');
+      await _loadScript('dc-app-mp.js');
+      DC_BOOT_MP(window.FIREBASE_CONFIG);
+    }catch(e){
+      _mpLoading=null;
+      alert('Could not load multiplayer: '+e.message+'\n\nCheck your connection — the rest of the app still works offline.');
+    }
+  })();
+}
+
 (function boot(){
   loadUniverses();
   if(U.universes.length===0){openUniverseSetup(true);return;}

@@ -1,0 +1,12 @@
+{
+  "name": "daringcomics",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Daring Comics RPG tracker — a static single-page app. This manifest exists only for the test suites; the app itself has no build step and no runtime dependencies.",
+  "scripts": {
+    "test": "node test/run.js"
+  },
+  "devDependencies": {
+    "jsdom": "^29.1.1"
+  }
+}

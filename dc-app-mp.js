@@ -179,8 +179,11 @@
     create:async function(){
       const n=($('dc-mp-name')||{}).value||'';
       if(!n.trim())return _toast('Give the universe a name first.',true);
+      // Carry the local universe's tone/level up if we have one, so a GM who
+      // set the world up offline doesn't lose it when they share it.
+      const lu=_u(),ls=(lu&&lu.series)||{};
       try{
-        const code=await MP.createUniverse({name:n.trim()});
+        const code=await MP.createUniverse({name:n.trim(),series:{tone:ls.tone||'',level:ls.level||''}});
         _toast('Universe created — code '+code);
         await _enterShared(code,n.trim());
       }catch(e){_err(e);}
@@ -248,6 +251,9 @@
     // Push whatever we already have so a fresh universe isn't empty.
     _pushShared(true);
     if(typeof S!=='undefined'&&S&&S.char)_pushHero();
+    // Joining is a valid way out of the first-run "name your universe" gate —
+    // a player invited to someone else's table has no universe of their own.
+    if(typeof finishUniverseGate==='function')finishUniverseGate();
     _rerenderAll();
   }
   function _leaveShared(){
@@ -273,9 +279,17 @@
 
   function _onMeta(meta){
     const had=!!MP.currentUniverse().meta;
-    if(meta&&meta.name){
+    if(meta){
       const u=_u();
-      if(u&&u.name!==meta.name){u.name=meta.name;saveUniverses();}
+      if(u){
+        let dirty=false;
+        if(meta.name&&u.name!==meta.name){u.name=meta.name;dirty=true;}
+        // The GM owns tone and power level; players inherit them.
+        u.series=u.series||{tone:'',level:''};
+        if(meta.tone&&u.series.tone!==meta.tone){u.series.tone=meta.tone;dirty=true;}
+        if(meta.level&&u.series.level!==meta.level){u.series.level=meta.level;dirty=true;}
+        if(dirty){_withRemote(function(){saveUniverses();});_rerenderAll();}
+      }
     }
     // GM deleted the universe while we were in it.
     if(had&&!meta&&inShared){
@@ -624,6 +638,14 @@
     });
     p.innerHTML=h;
   }
+
+  // Called by the app when the GM edits universe settings, so tone/level reach
+  // the table. No-op for players — writeMeta rejects them anyway.
+  window.mpPushUniverseSeries=function(){
+    if(!inShared||!MP.isGM())return;
+    const u=_u(),s=(u&&u.series)||{};
+    MP.writeMeta({name:(u&&u.name)||'',tone:s.tone||'',level:s.level||''}).catch(_err);
+  };
 
   // Expose a little state for tests and debugging.
   window.DC_MP._state=function(){return{inShared:inShared,members:members,rollFeed:rollFeed,pushed:_pushed,tomb:_tomb};};

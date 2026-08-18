@@ -115,6 +115,11 @@ window.MP = (function(){
     const meta={
       gmUid:user.uid, gmName:displayName(),
       name:(opts.name||'Untitled Universe'),
+      // Tone and power level are properties of the world, so they travel with
+      // it — a joining player inherits the table's setting rather than picking
+      // their own during character creation.
+      tone:(opts.series&&opts.series.tone)||'',
+      level:(opts.series&&opts.series.level)||'',
       createdAt:firebase.database.ServerValue.TIMESTAMP
     };
     await db.ref('universes/'+code+'/meta').set(meta);

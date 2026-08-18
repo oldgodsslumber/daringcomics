@@ -816,7 +816,8 @@ function saveKey(id){return'dc_save_'+id;}
 function getSaveData(id){try{const d=localStorage.getItem(saveKey(id));return d?JSON.parse(d):null;}catch(e){return null;}}
 
 function _stateHP(st){
-  const lv=SERIES_LEVELS.find(l=>l.id===st?.series?.level),ex=EXP_LEVELS.find(e=>e.id===st?.series?.experience);
+  const ids=seriesIdsFor(st);
+  const lv=SERIES_LEVELS.find(l=>l.id===ids.level),ex=EXP_LEVELS.find(e=>e.id===ids.experience);
   return (lv?.baseHP||0)+(ex?.bonusHP||0)+((st?.creation?.roguesGallery||[]).length);
 }
 function _statePowerCount(st){
@@ -829,7 +830,7 @@ function saveSummary(id,state,prev){
     id:id,universeId:state.universeId||null,
     name:(ch?.costumedName||cr?.costumedName||'').trim(),
     civilianName:(ch?.civilianName||cr?.civilianName||'').trim(),
-    tone:state.series?.tone||'',level:state.series?.level||'',experience:state.series?.experience||'',
+    tone:seriesIdsFor(state).tone,level:seriesIdsFor(state).level,experience:state.series?.experience||'',
     hp:_stateHP(state),forms:(ch?.forms||[]).length,powers:_statePowerCount(state),
     icon:(ch?.forms?.[0]?.powerSets?.[0]?.powers?.[0]?.icon)||'',
     started:!!ch,step:ch?null:(cr?.step||0),
@@ -999,12 +1000,37 @@ function loadUniverses(){if(U)return U;try{U=JSON.parse(localStorage.getItem('dc
 function saveUniverses(){try{localStorage.setItem('dc_universes',JSON.stringify(U));}catch(e){}}
 function getUniverse(id){loadUniverses();return U.universes.find(u=>u.id===id)||null;}
 function currentUniverse(){return (typeof S!=='undefined'&&S)?getUniverse(S.universeId):null;}
-function createUniverse(name){loadUniverses();const u={id:uid('u'),name:(name||'').trim()||'Untitled Universe',created:Date.now(),roster:[]};U.universes.push(u);U.activeUniverseId=u.id;saveUniverses();return u;}
-function renameUniverse(id,name){const u=getUniverse(id);if(u){u.name=(name||'').trim()||u.name;saveUniverses();}}
+// Tone and level belong to the world, not the hero — every hero in a universe
+// plays at the same power level. Experience stays per-hero.
+function createUniverse(name,series){loadUniverses();const u={id:uid('u'),name:(name||'').trim()||'Untitled Universe',created:Date.now(),roster:[],lore:[],series:{tone:(series&&series.tone)||'',level:(series&&series.level)||''}};U.universes.push(u);U.activeUniverseId=u.id;saveUniverses();return u;}
 function universeHeroCount(id){return listSaves(id).length;}
 function deleteUniverse(id){loadUniverses();if(U.universes.length<=1)return false;U.universes=U.universes.filter(u=>u.id!==id);if(U.activeUniverseId===id)U.activeUniverseId=(U.universes[0]||{}).id||null;saveUniverses();return true;}
 function upsertRosterEntity(uId,entity){const u=getUniverse(uId);if(!u)return;ensureId(entity);const i=u.roster.findIndex(e=>e.id===entity.id);if(i>=0)u.roster[i]=entity;else u.roster.push(entity);saveUniverses();}
 function removeRosterEntity(uId,entityId){const u=getUniverse(uId);if(!u)return;u.roster=u.roster.filter(e=>e.id!==entityId);saveUniverses();}
+// Universes created before tone/level moved up have no series. Adopt it from
+// the heroes already living there — they all had to agree in practice anyway —
+// so nobody has to re-pick, and nothing silently resets to Gritty Realism.
+function migrateUniverseSeries(){
+  loadUniverses();
+  let changed=false;
+  U.universes.forEach(function(u){
+    if(u.series&&u.series.tone&&u.series.level)return;
+    u.series=u.series||{tone:'',level:''};
+    const votes={tone:{},level:{}};
+    listSaves(u.id).forEach(function(sm){
+      const st=getSaveData(sm.id);if(!st||!st.series)return;
+      if(st.series.tone)votes.tone[st.series.tone]=(votes.tone[st.series.tone]||0)+1;
+      if(st.series.level)votes.level[st.series.level]=(votes.level[st.series.level]||0)+1;
+    });
+    ['tone','level'].forEach(function(k){
+      if(u.series[k])return;
+      const best=Object.keys(votes[k]).sort(function(a,b){return votes[k][b]-votes[k][a];})[0];
+      if(best){u.series[k]=best;changed=true;}
+    });
+  });
+  if(changed)saveUniverses();
+}
+
 function bindUniverse(){loadUniverses();let u=getUniverse(S.universeId);if(!u){u=getUniverse(U.activeUniverseId)||U.universes[0];if(u)S.universeId=u.id;}if(u){(u.roster||[]).forEach(ensureId);S.npcs=u.roster;}else{S.npcs=S.npcs||[];}}
 
 // ═══════════════════════════════════════════════════════════
@@ -1129,39 +1155,81 @@ function refreshUniverseUI(){try{renderHero();}catch(e){}try{if(document.getElem
 function universeBarHTML(){const u=currentUniverse();const nm=u?u.name:'No universe';return `<div class="uni-bar" onclick="openUniverseManager()" title="Your game world — tap to manage universes"><span class="uni-ico">\u{1F30C}</span><span class="uni-name">${esc(nm)}</span><span class="uni-caret">▾</span></div>`;}
 function universeChooserHTML(){loadUniverses();const act=U.activeUniverseId;return `<div class="card-sm" style="display:flex;align-items:center;gap:8px;margin-top:8px"><span style="font-size:11px;color:var(--muted);white-space:nowrap">New heroes join</span><select style="flex:1" onchange="U.activeUniverseId=this.value;saveUniverses();renderSaveModal()">${U.universes.map(u=>`<option value="${u.id}" ${u.id===act?'selected':''}>${esc(u.name)}</option>`).join('')}<\/select><button class="btn btn-secondary btn-xs" onclick="openUniverseManager()">Manage<\/button><\/div>`;}
 function closeUniverseModal(){const m=document.getElementById('universe-modal');if(m)m.classList.remove('open','locked');}
-function openUniverseSetup(required){
+function openUniverseSetup(required,editId){
   _uniRequired=!!required;
-  let h=`<div class="card"><div class="pg-title" style="font-size:22px">${required?'Name Your Universe':'New Universe'}</div>`;
-  h+=`<div style="font-size:12px;color:var(--muted);margin:6px 0 12px">A universe is your shared game world (like "Marvel"). Every hero, NPC, and villain you create in it is automatically shared with the other heroes in that universe.</div>`;
-  h+=`<div class="form-group"><label>Universe Name</label><input id="uni-name" placeholder="e.g. Marvel, My City, Earth-27" onkeydown="if(event.key==='Enter')submitUniverseSetup()"><\/div>`;
+  const ed=editId?getUniverse(editId):null;
+  const cur=(ed&&ed.series)||{};
+  let h=`<div class="card"><div class="pg-title" style="font-size:22px">${ed?'Universe Settings':(required?'Name Your Universe':'New Universe')}</div>`;
+  h+=`<div style="font-size:12px;color:var(--muted);margin:6px 0 12px">A universe is your shared game world (like "Marvel"). Every hero, NPC, villain and wiki entry in it is shared. Its tone and power level apply to every hero here.</div>`;
+  h+=`<div class="form-group"><label>Universe Name</label><input id="uni-name" value="${esc(ed?ed.name:'')}" placeholder="e.g. Marvel, My City, Earth-27" onkeydown="if(event.key==='Enter')submitUniverseSetup('${editId||''}')"><\/div>`;
+  h+=`<div class="label">Series Tone</div><div class="grid-3 mb-3">`;
+  SERIES_TONES.forEach(function(t){h+=`<div class="game-opt ${cur.tone===t.id?'selected':''}" onclick="_uniPick('tone','${t.id}','${editId||''}')"><div class="opt-title">${t.name}<\/div><div class="opt-desc">${t.desc}<\/div><div class="opt-stats">Refresh ${t.refresh} | ${2+t.stressBonus} Stress Boxes<\/div><\/div>`;});
+  h+=`<\/div><div class="label">Series Level (Base Hero Points)</div><div class="grid-2 mb-3">`;
+  SERIES_LEVELS.forEach(function(l){h+=`<div class="game-opt ${cur.level===l.id?'selected':''}" onclick="_uniPick('level','${l.id}','${editId||''}')"><div class="opt-title">${l.name}<\/div><div class="opt-desc">${l.desc}<\/div><div class="opt-stats">${l.baseHP} HP<\/div><\/div>`;});
+  h+=`<\/div>`;
+  h+=`<div style="font-size:11px;color:var(--muted);margin-bottom:10px">Each hero still picks their own Experience Level during character creation.<\/div>`;
   h+=`<div style="display:flex;gap:8px;margin-top:8px">`;
   if(!required)h+=`<button class="btn btn-secondary" style="flex:1" onclick="closeUniverseModal()">Cancel<\/button>`;
-  h+=`<button class="btn btn-primary" style="flex:1" onclick="submitUniverseSetup()">Create Universe<\/button><\/div><\/div>`;
+  h+=`<button class="btn btn-primary" style="flex:1" onclick="submitUniverseSetup('${editId||''}')">${ed?'Save Changes':'Create Universe'}<\/button><\/div>`;
+  // A brand-new browser has no universe, so this modal is locked — without a
+  // way through it, a player invited to someone else's table could never reach
+  // the sign-in screen at all.
+  if(required)h+=`<div class="divider"><\/div><div style="text-align:center"><div style="font-size:11px;color:var(--muted);margin-bottom:6px">Joining a game someone else is running?<\/div><button class="btn btn-gold btn-full" onclick="openMultiplayer()">\u{1F310} Join a Shared Universe<\/button><\/div>`;
+  h+=`<\/div>`;
   document.getElementById('universe-modal-body').innerHTML=h;
   const m=document.getElementById('universe-modal');m.classList.toggle('locked',!!required);m.classList.add('open');
   setTimeout(function(){const i=document.getElementById('uni-name');if(i)i.focus();},60);
 }
-function submitUniverseSetup(){
+// Tone/level are picked before the universe exists, so park them on a draft.
+let _uniDraft={tone:'',level:''};
+function _uniPick(field,val,editId){
+  if(editId){const u=getUniverse(editId);if(u){u.series=u.series||{};u.series[field]=val;saveUniverses();}}
+  else _uniDraft[field]=val;
+  const nm=(document.getElementById('uni-name')||{}).value||'';
+  openUniverseSetup(_uniRequired,editId);
+  const i=document.getElementById('uni-name');if(i)i.value=nm;
+}
+function submitUniverseSetup(editId){
   const name=(document.getElementById('uni-name').value||'').trim();
   if(!name)return alert('Please enter a universe name.');
+  if(editId){
+    const u=getUniverse(editId);if(!u)return;
+    u.name=name;u.series=u.series||{};
+    if(!u.series.tone||!u.series.level)return alert('Pick a series tone and level.');
+    saveUniverses();closeUniverseModal();
+    if(typeof mpPushUniverseSeries==='function')mpPushUniverseSeries();
+    openUniverseManager();refreshUniverseUI();
+    return;
+  }
+  if(!_uniDraft.tone||!_uniDraft.level)return alert('Pick a series tone and level — they apply to every hero in this universe.');
   const firstEver=loadUniverses().universes.length===0;
-  const u=createUniverse(name);
+  const u=createUniverse(name,{tone:_uniDraft.tone,level:_uniDraft.level});
+  _uniDraft={tone:'',level:''};
   // Fold pre-universe slot data into the roster BEFORE copying slots into save
   // files, so the migrated saves carry the universeId this step assigns.
   if(firstEver)foldLegacySlots(u);
   const wasRequired=_uniRequired;_uniRequired=false;
   closeUniverseModal();
-  if(wasRequired){
-    migrateSlotsToSaves();
-    const first=listSaves().sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0))[0];
-    if(SV.activeId&&getSaveData(SV.activeId))loadSave(SV.activeId);
-    else if(first)loadSave(first.id);
-    renderHero();
-    if(currentSaveId===null)openSlotModal();
-  } else {
+  if(wasRequired)finishUniverseGate();
+  else{
     U.activeUniverseId=u.id;saveUniverses();
     openUniverseManager();refreshUniverseUI();
   }
+}
+// Shared by both ways out of the first-run gate: creating a universe, or
+// joining someone else's from the multiplayer lobby.
+function finishUniverseGate(){
+  _uniRequired=false;
+  closeUniverseModal();
+  migrateSlotsToSaves();
+  loadSaves();
+  if(!saveIndexHealthy())rebuildSaveIndex();
+  migrateUniverseSeries();
+  const first=listSaves().sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0))[0];
+  if(SV.activeId&&getSaveData(SV.activeId))loadSave(SV.activeId);
+  else if(first)loadSave(first.id);
+  try{renderHero();}catch(e){}
+  if(currentSaveId===null)openSlotModal();
 }
 function foldLegacySlots(u){
   for(let i=0;i<10;i++){const d=legacySlotData(i);if(!d)continue;if(d.universeId)continue;
@@ -1175,14 +1243,20 @@ function foldLegacySlots(u){
   }
   saveUniverses();
 }
+function _uniSeriesLabel(u){
+  const s=(u&&u.series)||{};
+  const t=SERIES_TONES.find(x=>x.id===s.tone),l=SERIES_LEVELS.find(x=>x.id===s.level);
+  if(!t&&!l)return `<div style="font-size:10px;color:var(--accent)">No tone or power level set<\/div>`;
+  return `<div style="font-size:10px;color:var(--gold)">${esc([t&&t.name,l&&l.name].filter(Boolean).join(' · '))}<\/div>`;
+}
 function openUniverseManager(){
   loadUniverses();
   let h=`<div class="card"><div style="display:flex;justify-content:space-between;align-items:center"><div class="pg-title" style="font-size:20px">Universes<\/div><button class="btn btn-secondary btn-xs" onclick="closeUniverseModal()">Close<\/button><\/div>`;
   h+=`<div style="font-size:11px;color:var(--muted);margin:4px 0 10px">Your game worlds. Heroes, NPCs & villains are shared within a universe.<\/div>`;
   U.universes.forEach(function(u){
     const heroes=universeHeroCount(u.id);const isCur=(typeof S!=='undefined'&&S&&S.universeId===u.id);const rc=(u.roster||[]).length;
-    h+=`<div class="card-sm" style="${isCur?'border-color:var(--accent)':''}"><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><div style="flex:1;min-width:120px"><div class="fw-700">${esc(u.name)}${isCur?' <span style="font-size:10px;color:var(--accent)">(current)<\/span>':''}<\/div><div style="font-size:10px;color:var(--muted)">${heroes} hero${heroes===1?'':'es'} • ${rc} in roster<\/div><\/div>`;
-    h+=`<button class="btn btn-secondary btn-xs" onclick="renameUniversePrompt('${u.id}')">Rename<\/button>`;
+    h+=`<div class="card-sm" style="${isCur?'border-color:var(--accent)':''}"><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><div style="flex:1;min-width:120px"><div class="fw-700">${esc(u.name)}${isCur?' <span style="font-size:10px;color:var(--accent)">(current)<\/span>':''}<\/div><div style="font-size:10px;color:var(--muted)">${heroes} hero${heroes===1?'':'es'} • ${rc} in roster<\/div>${_uniSeriesLabel(u)}<\/div>`;
+    h+=`<button class="btn btn-secondary btn-xs" onclick="openUniverseSetup(false,'${u.id}')" title="Name, tone and power level">Settings<\/button>`;
     if(typeof S!=='undefined'&&S&&S.char&&!isCur)h+=`<button class="btn btn-gold btn-xs" onclick="moveHeroToUniverse('${u.id}')" title="Move the hero you are playing into this universe">Move hero<\/button>`;
     if(U.universes.length>1)h+=`<button class="btn btn-danger btn-xs" onclick="deleteUniversePrompt('${u.id}')">Del<\/button>`;
     h+=`<\/div><\/div>`;
@@ -1194,7 +1268,6 @@ function openUniverseManager(){
   document.getElementById('universe-modal').classList.remove('locked');
   document.getElementById('universe-modal').classList.add('open');
 }
-function renameUniversePrompt(id){const u=getUniverse(id);if(!u)return;const n=prompt('Rename universe:',u.name);if(n!==null){renameUniverse(id,n);openUniverseManager();refreshUniverseUI();}}
 function deleteUniversePrompt(id){
   loadUniverses();if(U.universes.length<=1)return alert('You must keep at least one universe.');
   const cnt=universeHeroCount(id);
@@ -1256,7 +1329,21 @@ function renderHero(){
 // ═══════════════════════════════════════════════════════════
 // CHARACTER CREATION
 // ═══════════════════════════════════════════════════════════
-function getSeriesConfig(){return{tone:SERIES_TONES.find(t=>t.id===S.series.tone),level:SERIES_LEVELS.find(l=>l.id===S.series.level),exp:EXP_LEVELS.find(e=>e.id===S.series.experience)};}
+// Tone/level come from the universe; experience from the individual hero.
+// Falls back to the save's own series so pre-migration saves still resolve.
+function seriesIdsFor(st){
+  const u=(st&&st.universeId)?getUniverse(st.universeId):currentUniverse();
+  const us=(u&&u.series)||{};
+  return{
+    tone:us.tone||st?.series?.tone||'',
+    level:us.level||st?.series?.level||'',
+    experience:st?.series?.experience||''
+  };
+}
+function getSeriesConfig(){
+  const ids=seriesIdsFor(typeof S!=='undefined'?S:null);
+  return{tone:SERIES_TONES.find(t=>t.id===ids.tone),level:SERIES_LEVELS.find(l=>l.id===ids.level),exp:EXP_LEVELS.find(e=>e.id===ids.experience)};
+}
 function getTotalHP(){const{level,exp}=getSeriesConfig();return(level?.baseHP||0)+(exp?.bonusHP||0)+(S.creation.roguesGallery?.length||0);}
 function getSkillBudget(){const{exp}=getSeriesConfig();return(exp?.skillPts||0)+(S.creation.supportingCast?.length||0);}
 function getSkillUsed(){let t=0;for(const v of Object.values(S.creation.skills))t+=v;return t;}
@@ -1276,15 +1363,23 @@ function creationNext(){S.creation.step++;save();renderCreationStep();}
 function creationBack(){if(S.creation.step>0){S.creation.step--;save();renderCreationStep();}}
 function updateContinue(){const btn=document.getElementById('btn-continue');if(!btn)return;const c=S.creation;let ok=false;if(c.step===1)ok=c.costumedName.trim().length>0;else if(c.step===2)ok=c.aspects.concept.trim().length>0&&c.aspects.motivation.trim().length>0;if(ok){btn.disabled=false;btn.style.opacity='1';}else{btn.disabled=true;btn.style.opacity='.4';}}
 
-// Step 0: Series
+// Step 0: Experience. Tone and level are set once for the whole universe and
+// shown here as context, not as choices \u2014 every hero in a world plays at the
+// same power level.
 function renderStepSeries(){
-  let h='<div class="label">Series Tone</div><div class="grid-3 mb-3">';
-  SERIES_TONES.forEach(t=>{h+=`<div class="game-opt ${S.series.tone===t.id?'selected':''}" onclick="S.series.tone='${t.id}';save();renderCreationStep()"><div class="opt-title">${t.name}</div><div class="opt-desc">${t.desc}</div><div class="opt-stats">Refresh ${t.refresh} | ${2+t.stressBonus} Stress Boxes</div></div>`;});
-  h+='</div><div class="label">Series Level (Base Hero Points)</div><div class="grid-2 mb-3">';
-  SERIES_LEVELS.forEach(l=>{h+=`<div class="game-opt ${S.series.level===l.id?'selected':''}" onclick="S.series.level='${l.id}';save();renderCreationStep()"><div class="opt-title">${l.name}</div><div class="opt-desc">${l.desc}</div><div class="opt-stats">${l.baseHP} HP</div></div>`;});
-  h+='</div><div class="label">Experience Level</div><div style="display:grid;gap:6px" class="mb-3">';
+  const u=currentUniverse(),{tone,level}=getSeriesConfig();
+  let h=`<div class="card-sm"><div class="label mb-1">${esc(u?u.name:'This Universe')}</div>`;
+  if(tone||level){
+    h+=`<div style="font-size:12px">${tone?`<span class="fw-700">${esc(tone.name)}</span> <span style="color:var(--muted)">\u00b7 Refresh ${tone.refresh} \u00b7 ${2+tone.stressBonus} stress boxes</span>`:''}</div>`;
+    if(level)h+=`<div style="font-size:12px;margin-top:2px"><span class="fw-700">${esc(level.name)}</span> <span style="color:var(--muted)">\u00b7 ${level.baseHP} base HP</span></div>`;
+    h+=`<div style="font-size:11px;color:var(--muted);margin-top:5px">Tone and power level are set for the whole universe, so every hero here matches.</div>`;
+  }else{
+    h+=`<div style="font-size:12px;color:var(--accent)">This universe has no tone or power level set yet.</div>`;
+  }
+  h+=`<button class="btn btn-secondary btn-xs mt-2" onclick="openUniverseSetup(false,'${u?u.id:''}')">Change for the whole universe</button></div>`;
+  h+='<div class="label">Your Experience Level</div><div style="font-size:11px;color:var(--muted);margin-bottom:6px">This one is yours alone \u2014 how seasoned this particular hero is.</div><div style="display:grid;gap:6px" class="mb-3">';
   EXP_LEVELS.forEach(e=>{h+=`<div class="game-opt ${S.series.experience===e.id?'selected':''}" onclick="S.series.experience='${e.id}';save();renderCreationStep()"><div style="display:flex;justify-content:space-between;align-items:center"><div class="opt-title">${e.name}</div><div class="opt-stats">${e.skillPts} Skills | +${e.bonusHP} HP</div></div></div>`;});
-  h+='</div>';const ok=S.series.tone&&S.series.level&&S.series.experience;
+  h+='</div>';const ok=tone&&level&&S.series.experience;
   h+=`<button class="btn btn-primary btn-full" ${ok?'':`disabled style="opacity:.4"`} onclick="creationNext()">Continue \u2192</button>`;return h;
 }
 // Step 1: Names
@@ -1891,7 +1986,7 @@ function delNPCPower(psi,pwi){const af=S._npcDraft.activeForm||0;S._npcDraft.for
 
 // Export an NPC (Main or Rogue) into a save slot as a playable character
 function npcToCharacter(npc){
-  const tone=SERIES_TONES.find(t=>t.id===S.series.tone);
+  const tone=getSeriesConfig().tone;
   const refresh=tone?.refresh||5;
   const phys=npc.skills?.['Physique']||0,will=npc.skills?.['Will']||0;
   const tb=tone?.stressBonus||0;
@@ -2496,8 +2591,9 @@ function prBlankHTML(){return prPage('Session Notes','','<div class="map-key">'+
 function prResolveChar(s){
   if(s.k==='hero')return S.char?{ch:S.char,series:null,role:'Hero'}:null;
   if(s.k==='slot'){const st=getSaveData(s.id);if(!st||!st.char)return null;
-    return{ch:st.char,role:'Hero',series:{tone:SERIES_TONES.find(t=>t.id===st.series?.tone),
-      level:SERIES_LEVELS.find(l=>l.id===st.series?.level),exp:EXP_LEVELS.find(e=>e.id===st.series?.experience)}};}
+    const _ids=seriesIdsFor(st);
+    return{ch:st.char,role:'Hero',series:{tone:SERIES_TONES.find(t=>t.id===_ids.tone),
+      level:SERIES_LEVELS.find(l=>l.id===_ids.level),exp:EXP_LEVELS.find(e=>e.id===_ids.experience)}};}
   const n=(S.npcs||[]).find(x=>x.id===s.id);if(!n)return null;
   if(s.k==='player')return{ch:npcToCharacter(n),role:'Player hero',series:null};
   return{ch:npcToCharacter(n),role:NPC_TYPE_LABELS[n.type]||'NPC',series:null,npc:n};
@@ -4091,6 +4187,7 @@ function openMultiplayer(){
   migrateSlotsToSaves();
   loadSaves();
   if(!saveIndexHealthy())rebuildSaveIndex();
+  migrateUniverseSeries();
   if(SV.activeId&&getSaveData(SV.activeId))loadSave(SV.activeId);
   else{
     const first=listSaves().sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0))[0];

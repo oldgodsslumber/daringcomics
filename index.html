@@ -217,8 +217,9 @@ select{cursor:pointer;-webkit-appearance:none;appearance:none;background-image:u
 .cell-name{font-size:8px;color:var(--accent);text-align:center;padding:0 2px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--font-label);letter-spacing:.3px}
 @media(min-width:481px){.cell-icon{font-size:28px}.cell-gi{width:46px;height:46px}.cell-name{font-size:10px}.cell-num{font-size:9px}}
 #theme-wrap{display:none}
-#nb-theme{display:flex}
-#theme-popup{display:none}
+/* Wiki took over the mobile nav slot the Theme button used to hold, so the
+   swatches ride along at the bottom of the Wiki page on small screens. */
+.wiki-theme-strip{margin-top:16px;padding-top:12px;border-top:1px solid var(--border)}
 #nb-hud{display:none}
 #nb-dice{display:none}
 #hero-dice-sidebar{display:none}
@@ -247,8 +248,7 @@ select{cursor:pointer;-webkit-appearance:none;appearance:none;background-image:u
   .nb{padding:12px 4px;flex:initial}
   body{margin-left:80px;max-width:900px;padding-bottom:16px}
   #theme-wrap{display:block!important;margin-top:auto}
-  #nb-theme{display:none!important}
-  #theme-popup{display:none!important}
+  .wiki-theme-strip{display:none}
   #nb-hud{display:flex!important}
   #nb-dice{display:flex!important}
   #page-hero{display:none}
@@ -324,8 +324,8 @@ html[data-theme="dark"] .pg-title,html[data-theme="street"] .pg-title{text-shado
   <button class="nb" onclick="openHUD()" id="nb-hud">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>HUD
   </button>
-  <button class="nb" onclick="toggleThemePopup()" id="nb-theme">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>Theme
+  <button class="nb" onclick="showTab('wiki')" id="nb-wiki">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="9" y1="7" x2="16" y2="7"/><line x1="9" y1="11" x2="16" y2="11"/></svg>Wiki
   </button>
   <div id="theme-wrap" style="padding:8px 10px;border-top:1px solid var(--border)">
     <div style="font-size:8px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;font-family:var(--font-label)">Theme</div>
@@ -338,27 +338,21 @@ html[data-theme="dark"] .pg-title,html[data-theme="street"] .pg-title{text-shado
     </div>
   </div>
 </nav>
-<div id="theme-popup" style="display:none;position:fixed;bottom:62px;left:50%;transform:translateX(-50%);width:220px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);padding:14px;z-index:150;box-shadow:0 -4px 20px rgba(0,0,0,.5)">
-  <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;font-family:var(--font-label);text-align:center">Choose Theme</div>
-  <div style="display:flex;gap:8px;justify-content:center">
-    <button class="theme-swatch" data-theme="" title="Classic Comics" style="width:32px;height:32px;background:linear-gradient(135deg,#0a0e1a,#e63946)"></button>
-    <button class="theme-swatch" data-theme="dark" title="Dark &amp; Gritty" style="width:32px;height:32px;background:linear-gradient(135deg,#0c0c0c,#d4a020)"></button>
-    <button class="theme-swatch" data-theme="cosmic" title="Cosmic" style="width:32px;height:32px;background:linear-gradient(135deg,#0a0020,#ff2d78)"></button>
-    <button class="theme-swatch" data-theme="street" title="Street Level" style="width:32px;height:32px;background:linear-gradient(135deg,#111510,#e8a020)"></button>
-    <button class="theme-swatch" data-theme="golden" title="Golden Age" style="width:32px;height:32px;background:linear-gradient(135deg,#1a140e,#cc3333)"></button>
-  </div>
-</div>
 <div class="page active" id="page-hero"><div id="hero-main"><div id="hero-creation"></div><div id="hero-sheet" style="display:none"></div></div><div id="hero-dice-sidebar"></div></div>
 <div class="page" id="page-npcs"><div id="npcs-content"></div></div>
 <div class="page" id="page-map"><div id="map-content"></div></div>
 <div class="page" id="page-dice"><div id="dice-content"></div></div>
 <div class="page" id="page-conflict"><div id="conflict-content"></div></div>
 <div class="page" id="page-notes"><div id="notes-content"></div></div>
+<div class="page" id="page-wiki"><div id="wiki-content"></div></div>
 <div class="modal-overlay" id="slot-modal"><div class="modal-inner"><div class="card" id="slot-modal-body"></div></div></div>
 <div class="modal-overlay" id="power-modal"><div class="modal-inner"><div id="power-modal-body"></div></div></div>
 <div class="modal-overlay" id="gear-modal"><div class="modal-inner"><div id="gear-modal-body"></div></div></div>
 <div class="modal-overlay" id="npc-modal"><div class="modal-inner"><div class="card" id="npc-modal-body"></div></div></div>
 <div class="modal-overlay" id="universe-modal"><div class="modal-inner"><div id="universe-modal-body"></div></div></div>
+<div class="modal-overlay" id="lore-modal"><div class="modal-inner"><div class="card" id="lore-modal-body"></div></div></div>
+<div class="modal-overlay" id="ai-modal"><div class="modal-inner"><div class="card" id="ai-modal-body"></div></div></div>
+<div class="modal-overlay" id="npc-export-modal"><div class="modal-inner"><div class="card" id="npc-export-modal-body"></div></div></div>
 
 <script>
 // ═══════════════════════════════════════════════════════════
@@ -781,11 +775,203 @@ function defaultState(){
     creation:{step:0,costumedName:'',civilianName:'',aspects:{concept:'',motivation:'',contingent:[{cat:'',text:''},{cat:'',text:''},{cat:'',text:''}]},supportingCast:[],roguesGallery:[],skills:{},powerSets:[],stunts:[]},
     team:null,universeId:null,npcs:[],regions:[defaultRegion()],activeRegion:0,conflict:{active:false,zones:[],turnOrder:[],currentTurn:0,round:1,log:[]},dice:null,notes:[]};
 }
-let S=defaultState(),currentSlot=null;
-function slotKey(n){return'dc_slot_'+n;}
-function getSlotData(n){try{const d=localStorage.getItem(slotKey(n));return d?JSON.parse(d):null;}catch(e){return null;}}
-function save(){if(currentSlot===null)return;const _bound=currentUniverse()&&S.npcs===currentUniverse().roster;if(_bound&&S.char)syncHeroToRoster();const _n=S.npcs;try{if(_bound)S.npcs=[];localStorage.setItem(slotKey(currentSlot),JSON.stringify(S));}catch(e){}S.npcs=_n;if(_bound)saveUniverses();flashSaved();hudBroadcast();}
-function loadSlot(n){currentSlot=n;try{localStorage.setItem('dc_active_slot',String(n));}catch(e){}const d=getSlotData(n);S=d||defaultState();bindUniverse();}
+let S=defaultState(),currentSaveId=null;
+
+// ═══════════════════════════════════════════════════════════
+// SAVE FILES
+// ═══════════════════════════════════════════════════════════
+// One localStorage key per save, keyed by id — save() fires on every keystroke
+// from the sheet, so a single all-saves blob would re-serialize every character
+// on every letter typed. dc_saves is a small manifest of summaries so the save
+// list renders from one parse instead of one per character.
+//   dc_saves        {version, activeId, order:[id], saves:{id:summary}}
+//   dc_save_<id>    the full state blob — the source of truth
+let SV=null;
+function loadSaves(){
+  if(SV)return SV;
+  try{SV=JSON.parse(localStorage.getItem('dc_saves'))||null;}catch(e){SV=null;}
+  if(!SV||typeof SV!=='object')SV={version:3,activeId:null,order:[],saves:{}};
+  if(!Array.isArray(SV.order))SV.order=[];
+  if(!SV.saves||typeof SV.saves!=='object')SV.saves={};
+  return SV;
+}
+function persistSaves(){try{localStorage.setItem('dc_saves',JSON.stringify(SV));return true;}catch(e){reportQuota(e);return false;}}
+function saveKey(id){return'dc_save_'+id;}
+function getSaveData(id){try{const d=localStorage.getItem(saveKey(id));return d?JSON.parse(d):null;}catch(e){return null;}}
+
+function _stateHP(st){
+  const lv=SERIES_LEVELS.find(l=>l.id===st?.series?.level),ex=EXP_LEVELS.find(e=>e.id===st?.series?.experience);
+  return (lv?.baseHP||0)+(ex?.bonusHP||0)+((st?.creation?.roguesGallery||[]).length);
+}
+function _statePowerCount(st){
+  return ((st?.char?.forms)||[]).reduce((n,f)=>n+((f.powerSets||[]).reduce((m,ps)=>m+((ps.powers||[]).length),0)),0);
+}
+// Everything the save list needs to draw a row, so it never has to parse blobs.
+function saveSummary(id,state,prev){
+  const ch=state.char,cr=state.creation;
+  return{
+    id:id,universeId:state.universeId||null,
+    name:(ch?.costumedName||cr?.costumedName||'').trim(),
+    civilianName:(ch?.civilianName||cr?.civilianName||'').trim(),
+    tone:state.series?.tone||'',level:state.series?.level||'',experience:state.series?.experience||'',
+    hp:_stateHP(state),forms:(ch?.forms||[]).length,powers:_statePowerCount(state),
+    icon:(ch?.forms?.[0]?.powerSets?.[0]?.powers?.[0]?.icon)||'',
+    started:!!ch,step:ch?null:(cr?.step||0),
+    createdAt:prev?.createdAt||state.createdAt||Date.now(),updatedAt:Date.now()
+  };
+}
+function listSaves(universeId){
+  loadSaves();
+  let ids=SV.order.filter(id=>SV.saves[id]);
+  if(universeId!==undefined&&universeId!==null)ids=ids.filter(id=>SV.saves[id].universeId===universeId);
+  return ids.map(id=>SV.saves[id]);
+}
+function getSaveSummary(id){loadSaves();return SV.saves[id]||null;}
+
+// Quota is the one storage error that actually loses work. It used to be
+// swallowed by a bare catch, so a full disk showed "Saved ✓" and dropped the
+// sheet. Throttled so a held-down key doesn't fire a hundred alerts.
+let _quotaWarnedAt=0;
+function reportQuota(e){
+  const full=e&&(e.name==='QuotaExceededError'||e.code===22||e.code===1014||/quota/i.test(e.message||''));
+  const msg=full?'Storage is full — this change was NOT saved. Delete or export a save file to free space.':('Save failed: '+(e&&e.message||e));
+  flashSaveError(full?'Not saved — storage full':'Not saved');
+  if(Date.now()-_quotaWarnedAt>30000){_quotaWarnedAt=Date.now();setTimeout(()=>alert(msg),0);}
+}
+
+function newSaveId(){return uid('s');}
+function writeSave(id,state){
+  loadSaves();
+  const prev=SV.saves[id];
+  try{localStorage.setItem(saveKey(id),JSON.stringify(state));}
+  catch(e){reportQuota(e);return false;}
+  SV.saves[id]=saveSummary(id,state,prev);
+  if(SV.order.indexOf(id)<0)SV.order.push(id);
+  return persistSaves();
+}
+function createSave(state){
+  const id=newSaveId();
+  const st=state||defaultState();
+  st.createdAt=Date.now();
+  if(!writeSave(id,st))return null;
+  return id;
+}
+function deleteSave(id){
+  loadSaves();
+  try{localStorage.removeItem(saveKey(id));}catch(e){}
+  delete SV.saves[id];
+  SV.order=SV.order.filter(x=>x!==id);
+  if(SV.activeId===id)SV.activeId=null;
+  persistSaves();
+}
+function duplicateSave(id){
+  const d=getSaveData(id);if(!d)return null;
+  const copy=JSON.parse(JSON.stringify(d));
+  const base=(copy.char?.costumedName||copy.creation?.costumedName||'').trim();
+  if(copy.char){copy.char.costumedName=(base||'Hero')+' (copy)';copy.char.heroId=uid();}
+  else if(copy.creation)copy.creation.costumedName=base?base+' (copy)':'';
+  copy.createdAt=Date.now();
+  return createSave(copy);
+}
+function renameSave(id){
+  const s=getSaveSummary(id);if(!s)return;
+  const n=prompt('Rename this save:',s.name||'');
+  if(n===null)return;
+  const d=getSaveData(id);if(!d)return;
+  if(d.char)d.char.costumedName=n.trim();
+  else{d.creation=d.creation||{};d.creation.costumedName=n.trim();}
+  writeSave(id,d);
+  if(id===currentSaveId){S=d;bindUniverse();renderAll();}
+  renderSaveModal();
+}
+
+// The blobs are truth; the manifest is a cache. Anything that can desync it —
+// an import, a second tab, hand-edited storage — is repaired from the blobs.
+function rebuildSaveIndex(){
+  loadSaves();
+  const found=[];
+  for(let i=0;i<localStorage.length;i++){
+    const k=localStorage.key(i);
+    if(k&&k.indexOf('dc_save_')===0)found.push(k.slice(8));
+  }
+  const kept=SV.order.filter(id=>found.indexOf(id)>=0);
+  found.forEach(function(id){if(kept.indexOf(id)<0)kept.push(id);});
+  SV.order=kept;
+  const saves={};
+  kept.forEach(function(id){
+    const d=getSaveData(id);
+    if(!d)return;
+    saves[id]=saveSummary(id,d,SV.saves[id]);
+    if(SV.saves[id]&&SV.saves[id].updatedAt)saves[id].updatedAt=SV.saves[id].updatedAt;
+  });
+  SV.saves=saves;
+  SV.order=SV.order.filter(id=>saves[id]);
+  if(SV.activeId&&!saves[SV.activeId])SV.activeId=null;
+  persistSaves();
+  return SV.order.length;
+}
+function saveIndexHealthy(){
+  loadSaves();
+  let n=0;
+  for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.indexOf('dc_save_')===0)n++;}
+  return n===SV.order.length;
+}
+
+// ─── Migration from the old fixed 10 slots ────────────────
+function legacySlotKey(n){return'dc_slot_'+n;}
+function legacySlotData(n){try{const d=localStorage.getItem(legacySlotKey(n));return d?JSON.parse(d):null;}catch(e){return null;}}
+function legacySlotCount(){let c=0;for(let i=0;i<10;i++)if(legacySlotData(i))c++;return c;}
+// Copies rather than moves — the originals stay recoverable until the user
+// presses "Clean up old slots" in the save manager.
+function migrateSlotsToSaves(){
+  loadSaves();
+  let v=null;try{v=localStorage.getItem('dc_schema_version');}catch(e){}
+  if(v==='3')return 0;
+  let moved=0;
+  const legacyActive=(function(){try{const a=localStorage.getItem('dc_active_slot');return a===null||a===''?null:parseInt(a);}catch(e){return null;}})();
+  for(let i=0;i<10;i++){
+    const d=legacySlotData(i);
+    if(!d)continue;
+    if(SV.order.some(id=>SV.saves[id]&&SV.saves[id].migratedFrom===i))continue;
+    const id=newSaveId();
+    d.createdAt=d.createdAt||Date.now();
+    if(!writeSave(id,d))break;
+    SV.saves[id].migratedFrom=i;
+    if(legacyActive===i)SV.activeId=id;
+    moved++;
+  }
+  try{localStorage.setItem('dc_schema_version','3');}catch(e){}
+  persistSaves();
+  return moved;
+}
+function cleanupLegacySlots(){
+  const n=legacySlotCount();
+  if(!n){alert('No old slot data left to clean up.');return;}
+  if(!confirm('Delete the '+n+' original slot backup'+(n===1?'':'s')+' from before the save-file update?\n\nYour current save files are not touched. This only removes the old copies, and cannot be undone.'))return;
+  for(let i=0;i<10;i++){try{localStorage.removeItem(legacySlotKey(i));}catch(e){}}
+  try{localStorage.removeItem('dc_active_slot');}catch(e){}
+  renderSaveModal();
+}
+
+function save(){
+  if(currentSaveId===null)return;
+  const _bound=currentUniverse()&&S.npcs===currentUniverse().roster;
+  if(_bound&&S.char)syncHeroToRoster();
+  const _n=S.npcs;
+  if(_bound)S.npcs=[];
+  const okay=writeSave(currentSaveId,S);
+  S.npcs=_n;
+  if(_bound)saveUniverses();
+  if(okay)flashSaved();
+  hudBroadcast();
+}
+function loadSave(id){
+  currentSaveId=id;
+  loadSaves();SV.activeId=id;persistSaves();
+  const d=getSaveData(id);
+  S=d||defaultState();
+  bindUniverse();
+}
 
 // ═══════════════════════════════════════════════════════════
 // UNIVERSE STORE (shared, cross-slot, local)
@@ -799,7 +985,7 @@ function getUniverse(id){loadUniverses();return U.universes.find(u=>u.id===id)||
 function currentUniverse(){return (typeof S!=='undefined'&&S)?getUniverse(S.universeId):null;}
 function createUniverse(name){loadUniverses();const u={id:uid('u'),name:(name||'').trim()||'Untitled Universe',created:Date.now(),roster:[]};U.universes.push(u);U.activeUniverseId=u.id;saveUniverses();return u;}
 function renameUniverse(id,name){const u=getUniverse(id);if(u){u.name=(name||'').trim()||u.name;saveUniverses();}}
-function universeHeroCount(id){let c=0;for(let i=0;i<10;i++){const d=getSlotData(i);if(d&&d.universeId===id)c++;}return c;}
+function universeHeroCount(id){return listSaves(id).length;}
 function deleteUniverse(id){loadUniverses();if(U.universes.length<=1)return false;U.universes=U.universes.filter(u=>u.id!==id);if(U.activeUniverseId===id)U.activeUniverseId=(U.universes[0]||{}).id||null;saveUniverses();return true;}
 function upsertRosterEntity(uId,entity){const u=getUniverse(uId);if(!u)return;ensureId(entity);const i=u.roster.findIndex(e=>e.id===entity.id);if(i>=0)u.roster[i]=entity;else u.roster.push(entity);saveUniverses();}
 function removeRosterEntity(uId,entityId){const u=getUniverse(uId);if(!u)return;u.roster=u.roster.filter(e=>e.id!==entityId);saveUniverses();}
@@ -808,25 +994,124 @@ function bindUniverse(){loadUniverses();let u=getUniverse(S.universeId);if(!u){u
 // ═══════════════════════════════════════════════════════════
 // SLOTS
 // ═══════════════════════════════════════════════════════════
-function openSlotModal(){document.getElementById('slot-modal').classList.add('open');renderSlotModal();}
+function openSlotModal(){document.getElementById('slot-modal').classList.add('open');renderSaveModal();}
 function closeSlotModal(){document.getElementById('slot-modal').classList.remove('open');}
-function renderSlotModal(){
-  let h='<div class="pg-title" style="font-size:22px">Save Slots</div>'+universeChooserHTML()+'<div style="margin-top:12px">';
-  for(let i=0;i<10;i++){const d=getSlotData(i),a=i===currentSlot,nm=d?.char?.costumedName||d?.creation?.costumedName||null,lb=nm||(d?'In Progress':'Empty'),tn=d?.series?.tone?SERIES_TONES.find(t=>t.id===d.series.tone)?.name:'';
-    h+=`<div class="card-sm" style="display:flex;align-items:center;gap:10px;cursor:pointer;${a?'border-color:var(--accent)':''}" onclick="selectSlot(${i})"><div style="width:28px;height:28px;border-radius:50%;background:${a?'var(--accent)':'var(--surface3)'};display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:${a?'#fff':'var(--muted)'}">${i+1}</div><div style="flex:1"><div style="font-weight:700;font-size:14px">${lb}</div>${tn?`<div style="font-size:11px;color:var(--muted)">${tn}</div>`:''}</div>${d?`<button class="btn btn-danger btn-xs" onclick="event.stopPropagation();deleteSlot(${i})">Del</button>`:''}</div>`;}
-  h+=`</div><div class="divider"></div><div style="display:flex;gap:8px"><button class="btn btn-gold btn-sm" style="flex:1" onclick="exportJSON()">Export Current Slot</button><button class="btn btn-secondary btn-sm" style="flex:1" onclick="importJSON()">Import JSON</button></div>`;
+
+const CREATION_LABELS=['Series','Names','Aspects','Cast','Skills','Powers','Review'];
+function relTime(ts){
+  if(!ts)return'';
+  const s=Math.floor((Date.now()-ts)/1000);
+  if(s<60)return'just now';
+  if(s<3600){const m=Math.floor(s/60);return m+' minute'+(m===1?'':'s')+' ago';}
+  if(s<86400){const hr=Math.floor(s/3600);return hr+' hour'+(hr===1?'':'s')+' ago';}
+  if(s<604800){const d=Math.floor(s/86400);return d+' day'+(d===1?'':'s')+' ago';}
+  return new Date(ts).toLocaleDateString(undefined,{month:'short',day:'numeric'});
+}
+function saveEmblem(sm,active){
+  const bg=active?'var(--accent)':'var(--surface3)',fg=active?'#fff':'var(--muted)';
+  const inner=sm.icon
+    ? `<span class="pw-icon" style="width:24px;height:24px;-webkit-mask-image:url('${pdIconUrl(sm.icon)}');mask-image:url('${pdIconUrl(sm.icon)}')"></span>`
+    : (sm.started?esc((sm.name||'?').charAt(0).toUpperCase()):'?');
+  return `<div style="width:42px;height:42px;flex:0 0 42px;border-radius:10px;background:${bg};display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;font-family:var(--font-title);color:${fg}">${inner}</div>`;
+}
+function saveStatLine(sm){
+  const tn=sm.tone?SERIES_TONES.find(t=>t.id===sm.tone)?.name:'';
+  const lv=sm.level?SERIES_LEVELS.find(l=>l.id===sm.level)?.name:'';
+  const ex=sm.experience?EXP_LEVELS.find(e=>e.id===sm.experience)?.name:'';
+  return [sm.civilianName,tn,lv||ex].filter(Boolean).join(' · ');
+}
+function saveCardHTML(sm,active){
+  const detail=sm.started
+    ? [sm.hp?sm.hp+' HP':'',sm.forms?sm.forms+' form'+(sm.forms===1?'':'s'):'',sm.powers?sm.powers+' power'+(sm.powers===1?'':'s'):''].filter(Boolean).join(' · ')
+    : 'In creation — step '+((sm.step||0)+1)+' of 7 ('+CREATION_LABELS[sm.step||0]+')';
+  let h=`<div class="card-sm" style="display:flex;align-items:center;gap:10px;cursor:pointer${active?';border-color:var(--accent)':''}" onclick="selectSave('${sm.id}')">`;
+  h+=saveEmblem(sm,active);
+  h+=`<div style="flex:1;min-width:0">`;
+  h+=`<div class="fw-700" style="font-size:14px">${esc(sm.name||'(unnamed hero)')}</div>`;
+  const stat=saveStatLine(sm);
+  if(stat)h+=`<div style="font-size:11px;color:var(--muted)">${esc(stat)}</div>`;
+  h+=`<div style="font-size:11px;color:var(--muted)">${esc(detail)}</div>`;
+  if(sm.updatedAt)h+=`<div style="font-size:10px;color:var(--muted);opacity:.8">Last played ${esc(relTime(sm.updatedAt))}</div>`;
+  h+=`</div><div style="display:flex;flex-direction:column;gap:3px" onclick="event.stopPropagation()">`;
+  h+=`<button class="btn btn-secondary btn-xs" title="Rename" onclick="renameSave('${sm.id}')">↻</button>`;
+  h+=`<button class="btn btn-secondary btn-xs" title="Duplicate" onclick="duplicateSavePrompt('${sm.id}')">⧉</button>`;
+  h+=`<button class="btn btn-danger btn-xs" title="Delete" onclick="deleteSavePrompt('${sm.id}')">✕</button>`;
+  h+=`</div></div>`;
+  return h;
+}
+function renderSaveModal(){
+  loadSaves();
+  const u=currentUniverse(),uid_=u?u.id:null;
+  const mine=listSaves(uid_).slice().sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
+  const others=listSaves().filter(s=>s.universeId!==uid_);
+  const active=mine.find(s=>s.id===currentSaveId);
+
+  let h='<div class="pg-title" style="font-size:22px">Save Files</div>'+universeChooserHTML();
+  h+=`<div style="font-size:11px;color:var(--muted);margin:4px 0 10px">${mine.length} character${mine.length===1?'':'s'} in this universe. Add as many as you like.</div>`;
+
+  if(active){
+    h+=`<div class="label mb-1" style="color:var(--accent)">▶ Continue</div>`;
+    h+=saveCardHTML(active,true);
+    const rest=mine.filter(s=>s.id!==currentSaveId);
+    if(rest.length){h+=`<div class="label mb-1" style="margin-top:12px">Other Characters</div>`;rest.forEach(s=>{h+=saveCardHTML(s,false);});}
+  }else if(mine.length){
+    mine.forEach(s=>{h+=saveCardHTML(s,false);});
+  }else{
+    h+=`<div class="card tac"><div class="fw-700" style="margin-bottom:4px">No characters yet</div><div style="font-size:12px;color:var(--muted)">Start one below — you can keep as many as you want in this universe.</div></div>`;
+  }
+
+  h+=`<button class="btn btn-primary btn-full" style="margin-top:10px" onclick="newSavePrompt()">+ New Character</button>`;
+
+  if(others.length)h+=`<div style="font-size:11px;color:var(--muted);margin-top:8px;text-align:center">${others.length} more character${others.length===1?'':'s'} in other universes — switch universe above to see ${others.length===1?'it':'them'}.</div>`;
+
+  h+=`<div class="divider"></div><div style="display:flex;gap:8px"><button class="btn btn-gold btn-sm" style="flex:1" onclick="exportJSON()">Export Current</button><button class="btn btn-secondary btn-sm" style="flex:1" onclick="importJSON()">Import JSON</button></div>`;
+
+  const legacy=legacySlotCount();
+  const healthy=saveIndexHealthy();
+  if(legacy||!healthy){
+    h+=`<div class="card-sm" style="margin-top:10px"><div class="label mb-1">Maintenance</div>`;
+    if(!healthy)h+=`<div style="font-size:11px;color:var(--accent);margin-bottom:6px">The save list looks out of sync with stored data.</div><button class="btn btn-secondary btn-sm btn-full" onclick="repairSaveIndex()" style="margin-bottom:6px">Repair save list</button>`;
+    if(legacy)h+=`<div style="font-size:11px;color:var(--muted);margin-bottom:6px">${legacy} original slot backup${legacy===1?'':'s'} from before the save-file update ${legacy===1?'is':'are'} still stored. Your save files above are already independent of ${legacy===1?'it':'them'}.</div><button class="btn btn-secondary btn-sm btn-full" onclick="cleanupLegacySlots()">Clean up old slots</button>`;
+    h+=`</div>`;
+  }
   document.getElementById('slot-modal-body').innerHTML=h;
 }
-function selectSlot(n){loadSlot(n);closeSlotModal();renderAll();}
-function deleteSlot(n){if(!confirm('Delete this save?'))return;try{localStorage.removeItem(slotKey(n));}catch(e){}if(n===currentSlot)S=defaultState();renderSlotModal();renderAll();}
+function selectSave(id){if(id===currentSaveId){closeSlotModal();return;}loadSave(id);closeSlotModal();renderAll();}
+function newSavePrompt(){
+  const u=currentUniverse();
+  const st=defaultState();
+  if(u)st.universeId=u.id;
+  const id=createSave(st);
+  if(!id)return;
+  loadSave(id);closeSlotModal();renderAll();
+}
+function duplicateSavePrompt(id){
+  const sm=getSaveSummary(id);if(!sm)return;
+  if(!confirm('Make a copy of "'+(sm.name||'this character')+'"?'))return;
+  const nid=duplicateSave(id);
+  if(nid)renderSaveModal();
+}
+function deleteSavePrompt(id){
+  const sm=getSaveSummary(id);if(!sm)return;
+  if(!confirm('Delete "'+(sm.name||'this character')+'"? This cannot be undone.'))return;
+  const wasCurrent=(id===currentSaveId);
+  deleteSave(id);
+  if(wasCurrent){
+    const next=listSaves(currentUniverse()?.id).sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0))[0];
+    if(next)loadSave(next.id);
+    else{currentSaveId=null;S=defaultState();bindUniverse();}
+  }
+  renderSaveModal();renderAll();
+}
+function repairSaveIndex(){const n=rebuildSaveIndex();alert('Save list rebuilt from stored data — '+n+' save file'+(n===1?'':'s')+' found.');renderSaveModal();}
 
 // ═══════════════════════════════════════════════════════════
 // UNIVERSE UI (naming gate, manager, bar)
 // ═══════════════════════════════════════════════════════════
 let _uniRequired=false;
-function refreshUniverseUI(){try{renderHero();}catch(e){}try{if(document.getElementById('npcs-content'))renderNPCs();}catch(e){}}
+function refreshUniverseUI(){try{renderHero();}catch(e){}try{if(document.getElementById('npcs-content'))renderNPCs();}catch(e){}try{if(document.getElementById('wiki-content'))renderWiki();}catch(e){}}
 function universeBarHTML(){const u=currentUniverse();const nm=u?u.name:'No universe';return `<div class="uni-bar" onclick="openUniverseManager()" title="Your game world — tap to manage universes"><span class="uni-ico">\u{1F30C}</span><span class="uni-name">${esc(nm)}</span><span class="uni-caret">▾</span></div>`;}
-function universeChooserHTML(){loadUniverses();const act=U.activeUniverseId;return `<div class="card-sm" style="display:flex;align-items:center;gap:8px;margin-top:8px"><span style="font-size:11px;color:var(--muted);white-space:nowrap">New heroes join</span><select style="flex:1" onchange="U.activeUniverseId=this.value;saveUniverses();renderSlotModal()">${U.universes.map(u=>`<option value="${u.id}" ${u.id===act?'selected':''}>${esc(u.name)}</option>`).join('')}<\/select><button class="btn btn-secondary btn-xs" onclick="openUniverseManager()">Manage<\/button><\/div>`;}
+function universeChooserHTML(){loadUniverses();const act=U.activeUniverseId;return `<div class="card-sm" style="display:flex;align-items:center;gap:8px;margin-top:8px"><span style="font-size:11px;color:var(--muted);white-space:nowrap">New heroes join</span><select style="flex:1" onchange="U.activeUniverseId=this.value;saveUniverses();renderSaveModal()">${U.universes.map(u=>`<option value="${u.id}" ${u.id===act?'selected':''}>${esc(u.name)}</option>`).join('')}<\/select><button class="btn btn-secondary btn-xs" onclick="openUniverseManager()">Manage<\/button><\/div>`;}
 function closeUniverseModal(){const m=document.getElementById('universe-modal');if(m)m.classList.remove('open','locked');}
 function openUniverseSetup(required){
   _uniRequired=!!required;
@@ -845,30 +1130,32 @@ function submitUniverseSetup(){
   if(!name)return alert('Please enter a universe name.');
   const firstEver=loadUniverses().universes.length===0;
   const u=createUniverse(name);
+  // Fold pre-universe slot data into the roster BEFORE copying slots into save
+  // files, so the migrated saves carry the universeId this step assigns.
   if(firstEver)foldLegacySlots(u);
-  try{localStorage.setItem('dc_schema_version','2');}catch(e){}
   const wasRequired=_uniRequired;_uniRequired=false;
   closeUniverseModal();
   if(wasRequired){
-    let a=null;try{a=localStorage.getItem('dc_active_slot');}catch(e){}
-    if(a!==null&&a!=='')loadSlot(parseInt(a));
+    migrateSlotsToSaves();
+    const first=listSaves().sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0))[0];
+    if(SV.activeId&&getSaveData(SV.activeId))loadSave(SV.activeId);
+    else if(first)loadSave(first.id);
     renderHero();
-    if(currentSlot===null)openSlotModal();
+    if(currentSaveId===null)openSlotModal();
   } else {
     U.activeUniverseId=u.id;saveUniverses();
     openUniverseManager();refreshUniverseUI();
   }
 }
 function foldLegacySlots(u){
-  for(let i=0;i<10;i++){const d=getSlotData(i);if(!d)continue;if(d.universeId)continue;
+  for(let i=0;i<10;i++){const d=legacySlotData(i);if(!d)continue;if(d.universeId)continue;
     (d.npcs||[]).forEach(function(e){ensureId(e);
       if(!u.roster.some(r=>r.type===e.type&&(r.name||'').toLowerCase()===(e.name||'').toLowerCase()))u.roster.push(e);
     });
-    if(d.char){if(!d.char.heroId)d.char.heroId=uid();const m=characterToNpc(d.char,d.char.heroId);m.sourceSlot=i;
-      if(!u.roster.some(r=>r.id===m.id))u.roster.push(m);
-      try{localStorage.setItem(slotKey(i),JSON.stringify(Object.assign(d,{char:d.char})));}catch(e){}}
+    if(d.char){if(!d.char.heroId)d.char.heroId=uid();const m=characterToNpc(d.char,d.char.heroId);
+      if(!u.roster.some(r=>r.id===m.id))u.roster.push(m);}
     d.universeId=u.id;d.npcs=[];
-    try{localStorage.setItem(slotKey(i),JSON.stringify(d));}catch(e){}
+    try{localStorage.setItem(legacySlotKey(i),JSON.stringify(d));}catch(e){}
   }
   saveUniverses();
 }
@@ -894,9 +1181,14 @@ function deleteUniversePrompt(id){
   loadUniverses();if(U.universes.length<=1)return alert('You must keep at least one universe.');
   const cnt=universeHeroCount(id);
   if(!confirm('Delete this universe'+(cnt?' and unlink its '+cnt+' hero'+(cnt===1?'':'es'):'')+'? Its shared roster will be removed. This cannot be undone.'))return;
-  for(let i=0;i<10;i++){const d=getSlotData(i);if(d&&d.universeId===id){d.universeId=null;try{localStorage.setItem(slotKey(i),JSON.stringify(d));}catch(e){}}}
+  listSaves(id).slice().forEach(function(sm){
+    const d=getSaveData(sm.id);
+    if(!d)return;
+    d.universeId=null;
+    writeSave(sm.id,d);
+  });
   deleteUniverse(id);
-  if(typeof S!=='undefined'&&S&&S.universeId===id){S.universeId=null;if(currentSlot!==null)bindUniverse();}
+  if(typeof S!=='undefined'&&S&&S.universeId===id){S.universeId=null;if(currentSaveId!==null)bindUniverse();}
   openUniverseManager();refreshUniverseUI();
 }
 function moveHeroToUniverse(id){
@@ -917,14 +1209,22 @@ function showTab(id){
   const nb=document.getElementById('nb-'+id);if(nb)nb.classList.add('active');
   if(id==='hero')renderHero();if(id==='npcs')renderNPCs();if(id==='map')renderMap();
   if(id==='dice')renderDice();if(id==='conflict')renderConflict();if(id==='notes')renderNotes();
+  if(id==='wiki')renderWiki();
 }
 function renderAll(){renderHero();}
 
 // ═══════════════════════════════════════════════════════════
 // THEME
 // ═══════════════════════════════════════════════════════════
-function toggleThemePopup(){const p=document.getElementById('theme-popup');p.style.display=p.style.display==='block'?'none':'block';}
-document.querySelectorAll('.theme-swatch').forEach(b=>{b.addEventListener('click',()=>{const t=b.dataset.theme;document.documentElement.setAttribute('data-theme',t);try{localStorage.setItem('dc_theme',t);}catch(e){}document.querySelectorAll('.theme-swatch').forEach(s=>s.classList.toggle('active',s.dataset.theme===t));const p=document.getElementById('theme-popup');if(p)p.style.display='none';});});
+// Swatches exist in two places — the static desktop sidebar and the Wiki page,
+// which is re-rendered from a string — so this has to be callable, not a
+// listener bound once at load.
+function setTheme(t){
+  document.documentElement.setAttribute('data-theme',t);
+  try{localStorage.setItem('dc_theme',t);}catch(e){}
+  document.querySelectorAll('.theme-swatch').forEach(s=>s.classList.toggle('active',s.dataset.theme===t));
+}
+document.querySelectorAll('#theme-wrap .theme-swatch').forEach(b=>{b.addEventListener('click',()=>setTheme(b.dataset.theme));});
 (function(){try{const t=localStorage.getItem('dc_theme');if(t){document.documentElement.setAttribute('data-theme',t);document.querySelectorAll('.theme-swatch').forEach(b=>{b.classList.toggle('active',b.dataset.theme===t);});}}catch(e){}})();
 
 // ═══════════════════════════════════════════════════════════
@@ -947,7 +1247,7 @@ function getHPSpent(){let t=0;(S.creation.stunts||[]).forEach(s=>t+=s.cost);(S.c
 function renderCreationStep(){
   const c=S.creation,labels=['Series','Names','Aspects','Cast','Skills','Powers','Review'];
   let dots='';for(let i=0;i<7;i++){dots+=`<span class="${i<c.step?'step-dot done':i===c.step?'step-dot active':'step-dot'}" title="${labels[i]}"></span>`;}
-  let h=universeBarHTML()+`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px"><div class="pg-title">Create Your Hero</div><button class="btn btn-secondary btn-xs" onclick="openSlotModal()">Slots</button></div>`;
+  let h=universeBarHTML()+`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px"><div class="pg-title">Create Your Hero</div><button class="btn btn-secondary btn-xs" onclick="openSlotModal()">Saves</button></div>`;
   h+=c.step>0?`<button class="btn btn-secondary btn-xs" onclick="creationBack()" style="margin-bottom:8px">\u2190 Back</button>`:'';
   h+=`<div style="display:flex;gap:6px;margin-bottom:16px;justify-content:center;align-items:center">${dots}</div>`;
   if(c.step===0)h+=renderStepSeries();else if(c.step===1)h+=renderStepNames();else if(c.step===2)h+=renderStepAspects();
@@ -1418,7 +1718,7 @@ function renderSheet(){
   const _hb=syncHardiness(ch);
   const _af=ch.activeForm,_curForm=ch.forms[_af]||{name:'',powerSets:[]};
   let h=universeBarHTML()+`<div class="${_heroEditMode?'':'no-edit'}">`;
-  h+=`<div style="display:flex;justify-content:space-between;align-items:start;gap:8px;margin-bottom:8px;flex-wrap:wrap"><div style="flex:1;min-width:160px"><div class="pg-title" style="font-size:28px">${esc(ch.costumedName)}</div><div style="font-size:13px;color:var(--muted)">${esc(ch.civilianName)}</div></div><div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end">${editToggleBtn(_heroEditMode,'toggleHeroEdit')}<button class="btn btn-gold btn-xs" onclick="exportJSON()">Export</button><button class="btn btn-secondary btn-xs" onclick="openSlotModal()">Slots</button><button class="btn btn-danger btn-xs edit-only" onclick="resetChar()">New</button></div></div>`;
+  h+=`<div style="display:flex;justify-content:space-between;align-items:start;gap:8px;margin-bottom:8px;flex-wrap:wrap"><div style="flex:1;min-width:160px"><div class="pg-title" style="font-size:28px">${esc(ch.costumedName)}</div><div style="font-size:13px;color:var(--muted)">${esc(ch.civilianName)}</div></div><div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end">${editToggleBtn(_heroEditMode,'toggleHeroEdit')}<button class="btn btn-gold btn-xs" onclick="exportJSON()">Export</button><button class="btn btn-secondary btn-xs" onclick="openSlotModal()">Saves</button><button class="btn btn-danger btn-xs edit-only" onclick="resetChar()">New</button></div></div>`;
   if(!_heroEditMode)h+=noEditBanner();
   // Fate Points
   h+=`<div class="card" style="display:flex;align-items:center;justify-content:space-between"><div><div class="label">Fate Points</div><div style="font-size:11px;color:var(--muted)">Refresh: ${ch.refresh}</div></div><div style="display:flex;align-items:center;gap:10px"><button class="sk-btn" onclick="adjFP(-1)">−</button><span style="font-size:28px;font-weight:900;font-family:var(--font-title);color:var(--gold)">${ch.fatePoints}</span><button class="sk-btn" onclick="adjFP(1)">+</button></div></div>`;
@@ -1606,7 +1906,7 @@ function npcToCharacter(npc){
 function characterToNpc(char, existingId){
   const asp=[char.aspects&&char.aspects.concept,char.aspects&&char.aspects.motivation].concat(((char.aspects&&char.aspects.contingent)||[]).map(c=>c&&c.text)).filter(Boolean);
   const _hid=existingId||uid();
-  return {id:_hid,heroId:_hid,type:'main',fromHero:true,sourceSlot:currentSlot,
+  return {id:_hid,heroId:_hid,type:'main',fromHero:true,sourceSaveId:currentSaveId,
     name:char.costumedName||'Unnamed Hero',desc:char.civilianName||'',
     aspects:asp,skills:JSON.parse(JSON.stringify(char.skills||{})),
     forms:JSON.parse(JSON.stringify(char.forms||[])),activeForm:char.activeForm||0,
@@ -1620,24 +1920,34 @@ function syncHeroToRoster(){
   const i=u.roster.findIndex(e=>e.id===ent.id);
   if(i>=0)u.roster[i]=ent;else u.roster.push(ent);
 }
+// With no slot cap there is nothing to overwrite, so the old numeric prompt
+// becomes a straight "make this NPC playable" — it always creates a new save.
+let _exportNpcIdx=null;
 function exportNPCToSlot(npcIdx){
   const npc=S.npcs[npcIdx];if(!npc)return;
-  // Build slot list label for the prompt
-  const slotInfo=[];
-  for(let i=0;i<10;i++){const d=getSlotData(i);const nm=d?.char?.costumedName||d?.creation?.costumedName||(d?'In Progress':'Empty');slotInfo.push((i+1)+': '+nm);}
-  const ans=prompt('Export "'+npc.name+'" as a playable character. Enter slot 1-10:\n\n'+slotInfo.join('\n'),'');
-  if(!ans)return;
-  const n=parseInt(ans)-1;
-  if(isNaN(n)||n<0||n>9)return alert('Slot must be 1-10');
-  if(n===currentSlot)return alert('That is the slot you are playing right now. Pick a different slot so your current game is not overwritten.');
-  const existing=getSlotData(n);
-  if(existing&&existing.char){if(!confirm('Slot '+(n+1)+' already has "'+(existing.char.costumedName||'a character')+'". Overwrite?'))return;}
+  _exportNpcIdx=npcIdx;
+  let h=`<div class="pg-title" style="font-size:20px">Play as ${esc(npc.name)}</div>`;
+  h+=`<div style="font-size:12px;color:var(--muted);margin:6px 0 12px">Creates a new save file with ${esc(npc.name)} as a playable character. Your current game is untouched.</div>`;
+  const mine=listSaves(S.universeId).sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
+  if(mine.length)h+=`<div class="card-sm"><div class="label mb-1">Already in this universe</div>${mine.map(s=>`<div style="font-size:12px;color:var(--muted)">• ${esc(s.name||'(unnamed hero)')}</div>`).join('')}</div>`;
+  h+=`<div style="display:flex;gap:8px;margin-top:12px"><button class="btn btn-secondary" style="flex:1" onclick="closeExportNPC()">Cancel</button><button class="btn btn-primary" style="flex:1" onclick="confirmExportNPC(false)">Create Save</button></div>`;
+  h+=`<div class="tac mt-2"><button class="btn btn-gold btn-xs" onclick="confirmExportNPC(true)">Create & switch to it →</button></div>`;
+  document.getElementById('npc-export-modal-body').innerHTML=h;
+  document.getElementById('npc-export-modal').classList.add('open');
+}
+function closeExportNPC(){document.getElementById('npc-export-modal').classList.remove('open');_exportNpcIdx=null;}
+function confirmExportNPC(switchTo){
+  const npc=S.npcs[_exportNpcIdx];if(!npc)return closeExportNPC();
   const newState=defaultState();
   newState.series=JSON.parse(JSON.stringify(S.series));
   newState.universeId=S.universeId;
   newState.char=npcToCharacter(npc);
-  try{localStorage.setItem(slotKey(n),JSON.stringify(newState));}catch(e){return alert('Save failed: '+e.message);}
-  alert('Exported "'+npc.name+'" to slot '+(n+1)+'.');
+  const id=createSave(newState);
+  if(!id)return;
+  const nm=npc.name;
+  closeExportNPC();
+  if(switchTo){loadSave(id);renderAll();showTab('hero');}
+  else alert('"'+nm+'" is now a save file you can switch to from Save Files.');
 }
 
 function printCharSheet(){
@@ -2639,7 +2949,12 @@ function importJSON(){
       try{
         const data=JSON.parse(e.target.result);
         if(!data.series&&!data.char&&!data.creation){alert('Invalid save file.');return;}
-        if(currentSlot===null){let _t=0;for(let i=0;i<10;i++){if(!getSlotData(i)){_t=i;break;}}currentSlot=_t;try{localStorage.setItem('dc_active_slot',String(_t));}catch(e){}}S=data;save();closeSlotModal();renderAll();
+        // Imports always land in a NEW save file — never overwrite whatever
+        // happens to be open.
+        if(!data.universeId&&currentUniverse())data.universeId=currentUniverse().id;
+        const _id=createSave(data);
+        if(!_id){alert('Import failed — storage is full. Delete a save file and try again.');return;}
+        loadSave(_id);closeSlotModal();renderAll();
       }catch(err){alert('Failed to parse JSON: '+err.message);}
     };
     reader.readAsText(file);
@@ -2654,7 +2969,10 @@ function _hcExtra(ch){var o='';var hc=ch.hardCons||{};[['mild','Mild (2)'],['mod
 function clearRollToast(){var t=document.getElementById('quick-roll-toast');if(t)t.innerHTML='';}
 function addTeamToConflict(){if(!S.team||!S.conflict)return;S.conflict.turnOrder.push({name:S.team.name+' (Team)',type:'Team'});S.conflict.log.push(S.team.name+' joined');save();renderConflict();}
 var _saveFlashT=null;
-function flashSaved(){var el=document.getElementById('save-flash');if(!el){el=document.createElement('div');el.id='save-flash';el.textContent='Saved ✓';document.body.appendChild(el);}clearTimeout(_saveFlashT);el.classList.add('show');_saveFlashT=setTimeout(function(){el.classList.remove('show');},900);}
+function _saveFlashEl(){var el=document.getElementById('save-flash');if(!el){el=document.createElement('div');el.id='save-flash';document.body.appendChild(el);}return el;}
+function flashSaved(){var el=_saveFlashEl();el.textContent='Saved ✓';el.style.background='';el.style.color='';clearTimeout(_saveFlashT);el.classList.add('show');_saveFlashT=setTimeout(function(){el.classList.remove('show');},900);}
+// A failed write used to still flash "Saved ✓" — the flash now tells the truth.
+function flashSaveError(msg){var el=_saveFlashEl();el.textContent='⚠ '+(msg||'Not saved');el.style.background='var(--red)';el.style.color='#fff';clearTimeout(_saveFlashT);el.classList.add('show');_saveFlashT=setTimeout(function(){el.classList.remove('show');},2600);}
 function pdIconUrl(id){return 'https://api.iconify.design/'+encodeURIComponent(id)+'.svg';}
 function powerIco(pw,size){size=size||18;if(!pw||!pw.icon)return'';var u=pdIconUrl(pw.icon);return '<span class="pw-icon" style="width:'+size+'px;height:'+size+'px;-webkit-mask-image:url(\''+u+'\');mask-image:url(\''+u+'\')"></span> ';}
 var _pdIcon='',_pdIconTimer=null;
@@ -2662,9 +2980,543 @@ function pdIconPreview(){var el=document.getElementById('pw-icon-preview');if(!e
 function selectPdIcon(id){_pdIcon=(id===_pdIcon)?'':id;pdIconPreview();document.querySelectorAll('#pw-icon-results .ic-opt').forEach(function(b){b.classList.toggle('sel',b.dataset.icon===_pdIcon);});}
 function renderPdIcons(icons){var res=document.getElementById('pw-icon-results');if(!res)return;if(!icons||!icons.length){res.innerHTML='<div style="font-size:11px;color:var(--muted);padding:4px">No icons found — try another word (fire, claw, star, shield).</div>';return;}res.innerHTML=icons.map(function(id){var u=pdIconUrl(id);return '<button type="button" class="ic-opt'+(id===_pdIcon?' sel':'')+'" data-icon="'+esc(id)+'" onclick="selectPdIcon(\''+esc(id)+'\')" title="'+esc(id.replace('game-icons:',''))+'"><span class="pw-icon" style="width:24px;height:24px;-webkit-mask-image:url(\''+u+'\');mask-image:url(\''+u+'\')"></span></button>';}).join('');}
 function pdIconSearch(q){var inp=document.getElementById('pw-icon-search');var query=(typeof q==='string'?q:(inp?inp.value:''))||'';var res=document.getElementById('pw-icon-results');var pw=POWERS.find(function(p){return p.id===window._pdId;});var term=query.trim()||(pw?pw.name:'power');clearTimeout(_pdIconTimer);if(res&&!res.innerHTML)res.innerHTML='<div style="font-size:11px;color:var(--muted);padding:4px">Searching game-icons.net…</div>';_pdIconTimer=setTimeout(function(){fetch('https://api.iconify.design/search?query='+encodeURIComponent(term)+'&prefix=game-icons&limit=48').then(function(r){return r.json();}).then(function(d){renderPdIcons(d.icons||[]);}).catch(function(){if(res)res.innerHTML='<div style="font-size:11px;color:var(--muted);padding:4px">Couldn\'t reach game-icons.net. Check your connection and try again.</div>';});},250);}
+// ═══════════════════════════════════════════════════════════
+// LLM (Gemini + any OpenAI-compatible local endpoint)
+// ═══════════════════════════════════════════════════════════
+// Settings live outside the save slot and outside the universe — they're a
+// property of THIS DEVICE, not of the game. Never export them with a slot.
+var LLM_DEFAULTS={backend:'gemini',geminiKey:'',geminiModel:'gemini-2.0-flash',localUrl:'http://localhost:5000/v1',localModel:'',localKey:''};
+var _llmCfg=null;
+function llmConfig(){if(_llmCfg)return _llmCfg;try{_llmCfg=Object.assign({},LLM_DEFAULTS,JSON.parse(localStorage.getItem('dc_llm'))||{});}catch(e){_llmCfg=Object.assign({},LLM_DEFAULTS);}return _llmCfg;}
+function saveLLMConfig(patch){const c=Object.assign(llmConfig(),patch||{});try{localStorage.setItem('dc_llm',JSON.stringify(c));}catch(e){}_llmCfg=c;return c;}
+function llmReady(){const c=llmConfig();return c.backend==='gemini'?!!c.geminiKey.trim():!!c.localUrl.trim();}
+function llmBackendLabel(){const c=llmConfig();return c.backend==='gemini'?('Gemini · '+c.geminiModel):('Local · '+(c.localModel||'default model'));}
+
+// One non-streaming completion. Returns the reply text. Throws with a message
+// worth showing the user — this is the only AI surface in the app, so a silent
+// failure here reads as "the button is broken".
+async function llmChat(opts){
+  const c=llmConfig();
+  if(!llmReady())throw new Error('No AI backend configured — open AI Setup from the Wiki tab.');
+  return c.backend==='gemini'?llmGemini(c,opts):llmLocal(c,opts);
+}
+async function llmGemini(c,opts){
+  const url='https://generativelanguage.googleapis.com/v1beta/models/'+encodeURIComponent(c.geminiModel)+':generateContent?key='+encodeURIComponent(c.geminiKey.trim());
+  const body={
+    systemInstruction:{parts:[{text:opts.system||''}]},
+    contents:[{role:'user',parts:[{text:opts.user||''}]}],
+    generationConfig:{temperature:opts.temperature==null?0.2:opts.temperature,maxOutputTokens:opts.maxTokens||8192}
+  };
+  if(opts.jsonMode)body.generationConfig.responseMimeType='application/json';
+  const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const data=await r.json().catch(function(){return null;});
+  if(!r.ok){
+    const msg=(data&&data.error&&data.error.message)||('HTTP '+r.status);
+    if(r.status===400&&/API key/i.test(msg))throw new Error('Gemini rejected the API key. Check it in AI Setup.');
+    if(r.status===429)throw new Error('Gemini rate limit hit. Wait a minute and try again.');
+    throw new Error('Gemini error: '+msg);
+  }
+  const cand=(data&&data.candidates&&data.candidates[0])||null;
+  if(!cand){
+    const blocked=data&&data.promptFeedback&&data.promptFeedback.blockReason;
+    throw new Error(blocked?('Gemini blocked the request ('+blocked+'). Try rewording the notes.'):'Gemini returned no result.');
+  }
+  if(cand.finishReason==='MAX_TOKENS')console.warn('[wiki] Gemini hit the token cap — the reply may be truncated.');
+  return ((cand.content&&cand.content.parts)||[]).map(function(p){return p.text||'';}).join('');
+}
+async function llmLocal(c,opts){
+  const base=c.localUrl.trim().replace(/\/+$/,'');
+  const headers={'Content-Type':'application/json'};
+  if(c.localKey.trim())headers['Authorization']='Bearer '+c.localKey.trim();
+  const body={
+    messages:[{role:'system',content:opts.system||''},{role:'user',content:opts.user||''}],
+    temperature:opts.temperature==null?0.2:opts.temperature,
+    max_tokens:opts.maxTokens||8192,stream:false
+  };
+  if(c.localModel.trim())body.model=c.localModel.trim();
+  if(opts.jsonMode)body.response_format={type:'json_object'};
+  let r;
+  try{r=await fetch(base+'/chat/completions',{method:'POST',headers:headers,body:JSON.stringify(body)});}
+  catch(e){throw new Error('Couldn\'t reach '+base+'. Is the local server running, and does it allow requests from this page (CORS)?');}
+  const data=await r.json().catch(function(){return null;});
+  if(!r.ok)throw new Error('Local model error: '+((data&&data.error&&(data.error.message||data.error))||('HTTP '+r.status)));
+  const ch=(data&&data.choices&&data.choices[0])||null;
+  if(!ch)throw new Error('The local model returned no result.');
+  return (ch.message&&ch.message.content)||ch.text||'';
+}
+
+function openAISetup(){
+  const m=document.getElementById('ai-modal');m.classList.add('open');renderAISetup();
+}
+function closeAISetup(){document.getElementById('ai-modal').classList.remove('open');if(document.getElementById('wiki-content'))renderWiki();}
+function renderAISetup(){
+  const c=llmConfig();
+  let h=`<div class="pg-title" style="font-size:22px">AI Setup</div><div class="pg-sub" style="margin-bottom:10px">Powers the Wiki's plain-language intake. Stored on this device only — never in a save file.</div>`;
+  h+=`<div style="display:flex;gap:6px;margin-bottom:12px">`;
+  h+=`<button class="btn btn-${c.backend==='gemini'?'primary':'secondary'} btn-sm" style="flex:1" onclick="saveLLMConfig({backend:'gemini'});renderAISetup()">Gemini</button>`;
+  h+=`<button class="btn btn-${c.backend==='local'?'primary':'secondary'} btn-sm" style="flex:1" onclick="saveLLMConfig({backend:'local'});renderAISetup()">Local / Custom</button></div>`;
+  if(c.backend==='gemini'){
+    h+=`<div class="form-group"><label>API Key</label><input type="password" id="ai-gk" value="${esc(c.geminiKey)}" placeholder="AIza..." autocomplete="off"></div>`;
+    h+=`<div class="form-group"><label>Model</label><input id="ai-gm" value="${esc(c.geminiModel)}" placeholder="gemini-2.0-flash"></div>`;
+    h+=`<div style="font-size:11px;color:var(--muted);margin-bottom:10px">Get a free key at <span style="color:var(--blue)">aistudio.google.com/apikey</span>. The free tier is plenty for filing notes.</div>`;
+  }else{
+    h+=`<div class="form-group"><label>Base URL</label><input id="ai-lu" value="${esc(c.localUrl)}" placeholder="http://localhost:5000/v1"></div>`;
+    h+=`<div class="form-group"><label>Model <span style="font-weight:400;text-transform:none;color:var(--muted)">(optional)</span></label><input id="ai-lm" value="${esc(c.localModel)}" placeholder="leave blank to use whatever is loaded"></div>`;
+    h+=`<div class="form-group"><label>API Key <span style="font-weight:400;text-transform:none;color:var(--muted)">(optional)</span></label><input type="password" id="ai-lk" value="${esc(c.localKey)}" placeholder="only if your server requires one" autocomplete="off"></div>`;
+    h+=`<div style="font-size:11px;color:var(--muted);margin-bottom:10px">Any OpenAI-compatible <code>/chat/completions</code> endpoint — text-generation-webui, Ollama, LM Studio, llama.cpp. The server must allow cross-origin requests from this page.</div>`;
+  }
+  h+=`<div id="ai-test-status" style="font-size:12px;min-height:16px;margin-bottom:8px"></div>`;
+  h+=`<div style="display:flex;gap:6px"><button class="btn btn-secondary" style="flex:1" onclick="closeAISetup()">Close</button><button class="btn btn-secondary" onclick="testLLM()">Test</button><button class="btn btn-primary" style="flex:1" onclick="applyAISetup(true)">Save</button></div>`;
+  document.getElementById('ai-modal-body').innerHTML=h;
+}
+function applyAISetup(close){
+  const c=llmConfig(),g=function(id){const el=document.getElementById(id);return el?el.value:null;};
+  if(c.backend==='gemini')saveLLMConfig({geminiKey:g('ai-gk')||'',geminiModel:(g('ai-gm')||'').trim()||LLM_DEFAULTS.geminiModel});
+  else saveLLMConfig({localUrl:(g('ai-lu')||'').trim(),localModel:(g('ai-lm')||'').trim(),localKey:g('ai-lk')||''});
+  if(close){flashSaved();closeAISetup();}
+}
+async function testLLM(){
+  applyAISetup(false);
+  const st=document.getElementById('ai-test-status');if(st){st.style.color='var(--muted)';st.textContent='Testing…';}
+  try{
+    const t=await llmChat({system:'Reply with exactly the word: OK',user:'Say OK.',maxTokens:16,jsonMode:false});
+    if(st){st.style.color='var(--green)';st.textContent='Connected. Model replied: '+String(t).trim().slice(0,40);}
+  }catch(e){if(st){st.style.color='var(--accent)';st.textContent=e.message;}}
+}
+
+// ═══════════════════════════════════════════════════════════
+// WIKI — universe-wide lore, browsable as cards, fed by plain language
+// ═══════════════════════════════════════════════════════════
+const LORE_TYPES=[
+  {id:'character',label:'Character',ico:'\u{1F464}'},
+  {id:'location',label:'Location',ico:'\u{1F3D9}'},
+  {id:'organization',label:'Organization',ico:'\u{1F6E1}'},
+  {id:'item',label:'Item',ico:'\u{1F4E6}'},
+  {id:'event',label:'Event',ico:'⚡'},
+  {id:'lore',label:'Lore',ico:'\u{1F4D6}'},
+  {id:'plot',label:'Plot Thread',ico:'\u{1F5DD}'}
+];
+function loreTypeDef(t){return LORE_TYPES.find(x=>x.id===t)||LORE_TYPES[5];}
+
+// Lore lives on the universe next to the NPC roster, so every save slot bound
+// to that universe sees the same wiki — same mechanism S.npcs already uses.
+function ensureLore(u){if(u&&!Array.isArray(u.lore))u.lore=[];return u;}
+function listLore(){const u=currentUniverse();if(!u)return[];ensureLore(u);u.lore.forEach(ensureId);return u.lore;}
+function saveLoreEntry(entry){const u=currentUniverse();if(!u)return null;ensureLore(u);ensureId(entry);entry.updatedAt=Date.now();
+  const i=u.lore.findIndex(e=>e.id===entry.id);if(i>=0)u.lore[i]=entry;else{entry.createdAt=Date.now();u.lore.push(entry);}
+  saveUniverses();return entry;}
+function deleteLoreEntry(id){const u=currentUniverse();if(!u)return;ensureLore(u);u.lore=u.lore.filter(e=>e.id!==id);saveUniverses();}
+function blankLoreEntry(type){return{type:type||'character',name:'',aliases:[],tags:[],body:'',secret:'',hidden:false,npcId:null,createdBy:'user'};}
+
+// ─── Parsing model output ─────────────────────────────────
+// Never trust the model's formatting. Try strict JSON, then a repaired parse,
+// then an [...] substring, then a brace scan that digs objects out of prose.
+// Everything that survives goes through sanitizeLore, which is what actually
+// makes the data safe — anything without a usable name is dropped, not shown.
+function _loreRelaxedParse(s){
+  try{return JSON.parse(s);}catch(e){}
+  try{return JSON.parse(String(s).replace(/,\s*([}\]])/g,'$1'));}catch(e){return undefined;}
+}
+function _loreScanObjects(s){
+  const out=[];let depth=0,start=-1,inStr=false,esc=false,q='';
+  for(let i=0;i<s.length;i++){
+    const c=s[i];
+    if(inStr){if(esc)esc=false;else if(c==='\\')esc=true;else if(c===q)inStr=false;continue;}
+    if(c==='"'||c==="'"){inStr=true;q=c;}
+    else if(c==='{'){if(depth===0)start=i;depth++;}
+    else if(c==='}'){if(depth>0){depth--;if(depth===0&&start>=0){out.push(s.slice(start,i+1));start=-1;}}}
+  }
+  return out;
+}
+function _loreArr(v){
+  let list=[];
+  if(Array.isArray(v))list=v;else if(typeof v==='string')list=v.split(',');
+  return list.map(x=>String(x==null?'':x).replace(/\s+/g,' ').trim()).filter(Boolean).slice(0,12);
+}
+function sanitizeLore(o){
+  if(!o||typeof o!=='object'||Array.isArray(o))return null;
+  const name=String(o.name==null?'':o.name).replace(/\s+/g,' ').trim();
+  if(!name||name.length>100)return null; // a sentence, not an entry name
+  let type=String(o.type==null?'':o.type).toLowerCase().trim();
+  if(!LORE_TYPES.some(t=>t.id===type))type='lore';
+  const clean=function(val,cap){
+    let s=String(val==null?'':val).replace(/```[\s\S]*?```/g,' ').replace(/[ \t]+/g,' ').replace(/\n{3,}/g,'\n\n').trim();
+    if(s.length>cap)s=s.slice(0,cap).trim()+'…';
+    return s;
+  };
+  const out={type:type,name:name,aliases:_loreArr(o.aliases),tags:_loreArr(o.tags),body:clean(o.body,6000)};
+  if(o.hidden===true||o.hidden==='true')out.hidden=true;
+  const secret=clean(o.secret,2000);if(secret)out.secret=secret;
+  return out;
+}
+function parseLoreBlocks(text){
+  const candidates=[];
+  const addFrom=function(v){
+    if(Array.isArray(v))v.forEach(addFrom);
+    else if(v&&typeof v==='object'){
+      if(Array.isArray(v.entries))v.entries.forEach(addFrom);
+      else candidates.push(v);
+    }
+  };
+  let t=String(text||'').trim();
+  // Parse the raw reply BEFORE unwrapping any fence. A body that itself
+  // contains a ``` block would otherwise get mistaken for the wrapper and
+  // shred the whole payload; sanitizeLore strips stray fences from bodies.
+  const whole=_loreRelaxedParse(t);
+  if(whole!==undefined)addFrom(whole);
+  if(!candidates.length){
+    const fence=t.match(/```(?:json)?[ \t]*\r?\n?([\s\S]*?)```/i);
+    if(fence){t=fence[1].trim();const inner=_loreRelaxedParse(t);if(inner!==undefined)addFrom(inner);}
+  }
+  if(!candidates.length){
+    const open=t.indexOf('['),close=t.lastIndexOf(']');
+    if(open>=0&&close>open){const arr=_loreRelaxedParse(t.slice(open,close+1));if(arr!==undefined)addFrom(arr);}
+  }
+  if(!candidates.length)_loreScanObjects(t).forEach(function(chunk){const o=_loreRelaxedParse(chunk);if(o!==undefined)addFrom(o);});
+  const cleaned=[];
+  candidates.forEach(function(o){const s=sanitizeLore(o);if(s)cleaned.push(s);});
+  return cleaned;
+}
+
+// A name like "the masked woman" is a placeholder; "Selina Vane" is a real
+// name. Used to retitle an entry in place once a figure is properly named.
+function isDescriptiveHandle(n){
+  const s=String(n||'').trim();
+  if(!s)return true;
+  if(/^(the|a|an) /i.test(s))return true;
+  return !/[A-Z]/.test(s.slice(1))&&s.split(/\s+/).length>1;
+}
+
+// Match on incoming name OR any incoming alias against existing name-or-alias,
+// so a record carrying a newly-learned name plus the old handle updates the
+// entry instead of duplicating it. Bodies APPEND rather than overwrite.
+function upsertLore(data){
+  const name=String(data.name||'').trim();if(!name)return null;
+  const list=listLore();
+  const incoming=[name].concat(data.aliases||[]).map(n=>String(n||'').trim().toLowerCase()).filter(Boolean);
+  const found=list.find(function(e){
+    const names=[e.name].concat(e.aliases||[]).map(n=>String(n||'').toLowerCase());
+    return names.some(n=>incoming.indexOf(n)>=0);
+  });
+  if(found){
+    found.aliases=found.aliases||[];found.tags=found.tags||[];
+    if(name.toLowerCase()!==found.name.toLowerCase()&&isDescriptiveHandle(found.name)&&!isDescriptiveHandle(name)){
+      if(found.aliases.indexOf(found.name)<0)found.aliases.push(found.name);
+      found.name=name;
+    }
+    const oldBody=String(found.body||'').trim(),newBody=String(data.body||'').trim();
+    if(newBody){
+      if(!oldBody)found.body=newBody;
+      else if(newBody.indexOf(oldBody)>=0)found.body=newBody;                     // new supersedes
+      else if(oldBody.indexOf(newBody)<0)found.body=oldBody+'\n\n'+newBody;       // genuinely new
+      // else: already covered — leave it alone so re-runs don't bloat the entry
+    }
+    if(data.type)found.type=data.type;
+    if(data.hidden===true)found.hidden=true;
+    if(data.secret&&String(data.secret).trim())found.secret=String(data.secret).trim();
+    (data.aliases||[]).forEach(function(a){if(a&&found.aliases.indexOf(a)<0&&a.toLowerCase()!==found.name.toLowerCase())found.aliases.push(a);});
+    (data.tags||[]).forEach(function(t){if(t&&found.tags.indexOf(t)<0)found.tags.push(t);});
+    saveLoreEntry(found);
+    return{updated:true,entry:found};
+  }
+  const entry=Object.assign(blankLoreEntry(data.type),{
+    type:data.type||'lore',name:name,aliases:data.aliases||[],tags:data.tags||[],
+    body:data.body||'',secret:data.secret||'',hidden:data.hidden===true,createdBy:'llm'
+  });
+  saveLoreEntry(entry);
+  return{updated:false,entry:entry};
+}
+
+// ─── Intake prompt ────────────────────────────────────────
+// A filing clerk, not a GM: no narration, no invented plot, no commentary.
+function loreIntakePrompt(existingNames){
+  const lines=[
+    'You are an archivist for a superhero comic-book RPG universe. The user has given you freeform notes about their world.',
+    'Your ONLY job is to file the facts in those notes into wiki entries. Do NOT narrate, do NOT address the user, do NOT write commentary, and do NOT invent plot developments. Record only what the notes state or clearly imply.',
+    'Be thorough: capture every person, place, team, significant object, and incident described. Keep distinct things in SEPARATE entries — never lump several subjects into one entry. Put each fact in the entry it belongs to.',
+    '',
+    'Entry types — pick the best fit for each:',
+    '- "character": any individual person — heroes, villains, supporting cast, civilians.',
+    '- "location": cities, neighborhoods, bases, headquarters, landmarks, other dimensions.',
+    '- "organization": teams, agencies, corporations, criminal syndicates, cults.',
+    '- "item": artifacts, signature equipment, vehicles, macguffins.',
+    '- "event": incidents that happened — origins, disasters, battles, crimes.',
+    '- "lore": background concepts, history, rules of the setting, power sources.',
+    '- "plot": ongoing threads, unresolved mysteries, schemes in motion.',
+    '',
+    'Return ONLY a JSON array. No prose before or after it. Each element:',
+    '{"type":"character","name":"Doctor Malice","aliases":["Elias Kane"],"tags":["villain","gotham"],"body":"What is known about them.","secret":"GM-only twist, optional.","hidden":false}',
+    '',
+    '"name" is the common name — short, under 100 characters, never a sentence.',
+    '"aliases" holds other names the same subject goes by (real name, codename, nicknames). This is how entries get matched later, so include them.',
+    '"body" is plain prose. No markdown headers, no bullet syntax, no code fences.',
+    'Set "hidden": true only when the notes mark something as a secret the players should not see. Use "secret" for a GM-only detail attached to an otherwise public entry.'
+  ];
+  if(existingNames&&existingNames.length){
+    lines.push('','Already in the wiki. To ADD to one of these, reuse its EXACT name — that updates the entry instead of creating a duplicate:');
+    lines.push(existingNames.slice(0,200).map(n=>'- '+n).join('\n'));
+  }
+  return lines.join('\n');
+}
+
+// ─── Wiki page ────────────────────────────────────────────
+let _wikiEditMode=false,_wikiType='',_wikiQuery='',_wikiShowHidden=false,_wikiOpenId=null,_wikiBusy=false,_wikiStatus='',_wikiIntakeText='';
+function toggleWikiEdit(){_wikiEditMode=!_wikiEditMode;renderWiki();}
+function wikiVisible(){
+  const q=_wikiQuery.toLowerCase();
+  return listLore().filter(function(e){
+    if(e.hidden&&!_wikiShowHidden)return false;
+    if(_wikiType&&e.type!==_wikiType)return false;
+    if(q){
+      const hay=([e.name].concat(e.aliases||[],e.tags||[]).join(' ')+' '+(e.body||'')).toLowerCase();
+      if(hay.indexOf(q)<0)return false;
+    }
+    return true;
+  }).sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
+}
+function renderWiki(){
+  const el=document.getElementById('wiki-content');if(!el)return;
+  if(!currentUniverse()){el.innerHTML=universeBarHTML()+`<div class="card tac"><div class="pg-title" style="font-size:18px">No universe yet</div><div class="pg-sub">The wiki belongs to a universe. Create one first.</div></div>`;return;}
+  const all=listLore();
+  let h=universeBarHTML()+`<div class="${_wikiEditMode?'':'no-edit'}">`;
+  h+=`<div style="display:flex;justify-content:space-between;align-items:start;gap:8px;flex-wrap:wrap;margin-bottom:4px"><div><div class="pg-title">Wiki</div><div class="pg-sub">Shared across every hero in this universe</div></div>${editToggleBtn(_wikiEditMode,'toggleWikiEdit')}</div>`;
+  if(!_wikiEditMode)h+=noEditBanner();
+
+  // Intake — the headline feature, so it leads the page
+  h+=`<div class="card edit-only" style="border-color:var(--gold)">`;
+  h+=`<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px"><div class="label" style="margin:0">Add in plain language</div><button class="btn btn-secondary btn-xs" onclick="openAISetup()" title="Choose and configure the AI backend">${llmReady()?'⚙ '+esc(llmBackendLabel()):'⚙ AI Setup'}</button></div>`;
+  h+=`<div style="font-size:11px;color:var(--muted);margin-bottom:6px">Describe anything about your universe — people, places, teams, artifacts, incidents. It gets filed into entries below. This never touches your hero sheet or the story.</div>`;
+  h+=`<textarea id="wiki-intake" rows="4" oninput="_wikiIntakeText=this.value" placeholder="e.g. Doctor Malice, real name Elias Kane, runs the Ninth Circle out of a converted cathedral in Harrow Bay. He blames Ironclad for the lab accident that scarred him.">${esc(_wikiIntakeText)}</textarea>`;
+  h+=`<div style="display:flex;gap:6px;align-items:center;margin-top:6px"><button class="btn btn-primary btn-sm" onclick="runWikiIntake()" ${_wikiBusy?'disabled':''}>${_wikiBusy?'Reading…':'Add to Wiki'}</button><button class="btn btn-secondary btn-sm" onclick="openLoreEditor(null)">+ Manual Entry</button><span style="flex:1"></span><span style="font-size:11px;color:var(--muted)">${esc(_wikiStatus)}</span></div>`;
+  h+=`</div>`;
+
+  // Browse controls
+  h+=`<input id="wiki-search" type="search" placeholder="Search names, aliases, tags, text…" value="${esc(_wikiQuery)}" oninput="_wikiQuery=this.value;renderWiki();_refocus('wiki-search')" style="margin-bottom:6px">`;
+  h+=`<div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:8px">`;
+  h+=`<button class="btn btn-xs ${_wikiType?'btn-secondary':'btn-primary'}" onclick="_wikiType='';renderWiki()" style="font-size:10px;padding:3px 7px">All (${all.filter(e=>e.hidden?_wikiShowHidden:true).length})</button>`;
+  LORE_TYPES.forEach(function(t){
+    const n=all.filter(e=>e.type===t.id&&(e.hidden?_wikiShowHidden:true)).length;
+    if(!n&&_wikiType!==t.id)return;
+    h+=`<button class="btn btn-xs ${_wikiType===t.id?'btn-primary':'btn-secondary'}" onclick="_wikiType='${t.id}';renderWiki()" style="font-size:10px;padding:3px 7px">${t.ico} ${t.label} (${n})</button>`;
+  });
+  if(all.some(e=>e.hidden)||_wikiShowHidden)h+=`<button class="btn btn-xs ${_wikiShowHidden?'btn-gold':'btn-secondary'}" onclick="_wikiShowHidden=!_wikiShowHidden;renderWiki()" style="font-size:10px;padding:3px 7px" title="Reveal GM-only entries">${_wikiShowHidden?'\u{1F513} Hiding shown':'\u{1F512} Show hidden'}</button>`;
+  h+=`</div>`;
+
+  const v=wikiVisible();
+  if(!v.length){
+    h+=`<div class="card tac"><div class="fw-700" style="margin-bottom:4px">${all.length?'Nothing matches that.':'The wiki is empty.'}</div><div style="font-size:12px;color:var(--muted)">${all.length?'Try a different search or type filter.':'Type some notes about your world above and let the AI file them, or add an entry by hand.'}</div></div>`;
+  }else{
+    v.forEach(function(e){
+      const td=loreTypeDef(e.type);
+      h+=`<div class="card-sm" style="cursor:pointer${e.hidden?';border-color:var(--gold)':''}" onclick="openLoreEditor('${e.id}')">`;
+      h+=`<div style="display:flex;justify-content:space-between;align-items:start;gap:8px"><div style="flex:1;min-width:0">`;
+      h+=`<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap"><span class="tag" style="background:var(--surface3);color:var(--muted);border:1px solid var(--border);font-size:9px">${td.ico} ${td.label}</span>`;
+      if(e.hidden)h+=`<span class="tag" style="background:rgba(212,160,32,.15);color:var(--gold);border:1px solid var(--gold);font-size:9px" title="GM only — hidden from players">\u{1F512} hidden</span>`;
+      else if(_wikiShowHidden&&e.secret&&e.secret.trim())h+=`<span class="tag" style="background:rgba(212,160,32,.15);color:var(--gold);border:1px solid var(--gold);font-size:9px" title="Public entry with a GM-only secret">\u{1F512} secret</span>`;
+      if(e.createdBy==='llm')h+=`<span class="tag" style="background:var(--surface3);color:var(--blue);border:1px solid var(--border);font-size:9px" title="Filed by the AI from your notes">AI</span>`;
+      if(e.npcId)h+=`<span class="tag" style="background:var(--surface3);color:var(--purple);border:1px solid var(--border);font-size:9px" title="Linked to an NPC on the roster">\u2299 NPC</span>`;
+      h+=`</div>`;
+      h+=`<div class="fw-700" style="margin-top:3px">${esc(e.name)}</div>`;
+      if(e.aliases&&e.aliases.length)h+=`<div style="font-size:11px;color:var(--muted)">aka ${esc(e.aliases.join(', '))}</div>`;
+      if(e.body)h+=`<div style="font-size:12px;color:var(--muted);margin-top:3px">${esc(e.body.slice(0,170))}${e.body.length>170?'…':''}</div>`;
+      if(_wikiShowHidden&&!e.hidden&&e.secret&&e.secret.trim())h+=`<div style="font-size:11px;color:var(--gold);margin-top:3px">\u{1F512} ${esc(e.secret.trim().slice(0,140))}${e.secret.trim().length>140?'…':''}</div>`;
+      if(e.tags&&e.tags.length)h+=`<div style="font-size:10px;color:var(--muted);margin-top:3px">${e.tags.map(t=>'#'+esc(t)).join('  ')}</div>`;
+      h+=`</div><div class="edit-only" style="display:flex;flex-direction:column;gap:4px" onclick="event.stopPropagation()">`;
+      h+=`<button class="btn btn-secondary btn-xs" onclick="openLoreEditor('${e.id}')">Edit</button>`;
+      h+=`<button class="btn btn-danger btn-xs" onclick="delLore('${e.id}')">X</button>`;
+      h+=`</div></div></div>`;
+    });
+  }
+
+  // Theme swatches — the Wiki replaced the Theme button in the mobile nav, so
+  // the swatches move here. Hidden on desktop, where the sidebar still has them.
+  h+=`<div class="wiki-theme-strip"><div class="label mb-1" style="text-align:center">Theme</div><div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">`;
+  [['','Classic Comics','#0a0e1a,#e63946'],['dark','Dark & Gritty','#0c0c0c,#d4a020'],['cosmic','Cosmic','#0a0020,#ff2d78'],['street','Street Level','#111510,#e8a020'],['golden','Golden Age','#1a140e,#cc3333']].forEach(function(t){
+    const on=(localStorage.getItem('dc_theme')||'')===t[0];
+    h+=`<button class="theme-swatch${on?' active':''}" data-theme="${t[0]}" title="${esc(t[1])}" onclick="setTheme('${t[0]}')" style="width:32px;height:32px;background:linear-gradient(135deg,${t[2]})"></button>`;
+  });
+  h+=`</div></div>`;
+
+  h+=`</div>`;
+  el.innerHTML=h;
+}
+// Two-way links found by scanning text for other entries' names and aliases.
+// Word-boundary matched so "Kane" doesn't light up inside "Kanetown", and
+// short names are skipped because they produce nothing but false positives.
+function _loreMentions(text,entry){
+  const hay=String(text||'');
+  if(!hay)return[];
+  return listLore().filter(function(o){
+    if(o.id===entry.id)return false;
+    return [o.name].concat(o.aliases||[]).some(function(n){
+      n=String(n||'').trim();
+      if(n.length<4)return false;
+      return new RegExp('\\b'+n.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\b','i').test(hay);
+    });
+  });
+}
+function loreRelated(entry){
+  const out=_loreMentions((entry.body||'')+'\n'+(entry.secret||''),entry);
+  const outIds=out.map(o=>o.id);
+  const inc=listLore().filter(function(o){
+    if(o.id===entry.id||outIds.indexOf(o.id)>=0)return false;
+    if(o.hidden&&!_wikiShowHidden)return false;
+    return _loreMentions((o.body||'')+'\n'+(o.secret||''),o).some(m=>m.id===entry.id);
+  });
+  return{out:out.filter(o=>!o.hidden||_wikiShowHidden),in:inc};
+}
+
+function delLore(id){
+  const e=listLore().find(x=>x.id===id);if(!e)return;
+  if(!confirm('Delete "'+e.name+'"? This removes it for every hero in this universe.'))return;
+  deleteLoreEntry(id);renderWiki();
+}
+
+async function runWikiIntake(){
+  const ta=document.getElementById('wiki-intake');
+  const text=(ta?ta.value:'').trim();
+  if(!text||_wikiBusy)return;
+  if(!currentUniverse()){alert('Create a universe first.');return;}
+  if(!llmReady()){_wikiStatus='';openAISetup();return;}
+  _wikiIntakeText=text;_wikiBusy=true;_wikiStatus='';renderWiki();
+  try{
+    const existing=listLore().map(e=>e.name);
+    const reply=await llmChat({system:loreIntakePrompt(existing),user:text,jsonMode:true,maxTokens:8192,temperature:0.2});
+    const datas=parseLoreBlocks(reply);
+    console.log('[wiki] parsed '+datas.length+' entries from '+(reply||'').length+' chars',datas.length?'':reply);
+    let created=0,updated=0;
+    datas.forEach(function(d){const r=upsertLore(d);if(!r)return;if(r.updated)updated++;else created++;});
+    if(!datas.length){
+      _wikiStatus='Nothing filed — try naming specific people, places or teams.';
+    }else{
+      _wikiIntakeText='';
+      _wikiStatus=created+' added, '+updated+' updated.';
+      flashSaved();
+    }
+  }catch(err){
+    console.error(err);
+    _wikiStatus=err.message;
+  }
+  _wikiBusy=false;renderWiki();
+}
+
+function openLoreEditor(id){
+  _wikiOpenId=id;
+  if(!_wikiEditMode&&id===null)return;
+  document.getElementById('lore-modal').classList.add('open');
+  renderLoreEditor();
+}
+function closeLoreEditor(){document.getElementById('lore-modal').classList.remove('open');_wikiOpenId=null;renderWiki();}
+function renderLoreEditor(){
+  const e=_wikiOpenId?listLore().find(x=>x.id===_wikiOpenId):blankLoreEntry(_wikiType||'character');
+  if(!e){closeLoreEditor();return;}
+  window._loreDraft=e;
+  const ro=_wikiEditMode?'':'readonly',dis=_wikiEditMode?'':'disabled';
+  // Modal body sits outside the page wrapper, so it carries its own no-edit
+  // class — otherwise .edit-only controls stay live while the sheet is locked.
+  let h=`<div class="${_wikiEditMode?'':'no-edit'}"><div class="pg-title" style="font-size:20px;margin-bottom:10px">${_wikiOpenId?'Edit Entry':'New Entry'}</div>`;
+  h+=`<div class="form-group"><label>Type</label><select id="lore-type" ${dis}>${LORE_TYPES.map(t=>`<option value="${t.id}" ${e.type===t.id?'selected':''}>${t.ico} ${t.label}</option>`).join('')}</select></div>`;
+  h+=`<div class="form-group"><label>Name</label><input id="lore-name" value="${esc(e.name)}" ${ro} placeholder="Doctor Malice"></div>`;
+  h+=`<div class="form-group"><label>Aliases <span style="font-weight:400;text-transform:none;color:var(--muted)">(comma-separated — these are how the AI matches updates)</span></label><input id="lore-aliases" value="${esc((e.aliases||[]).join(', '))}" ${ro} placeholder="Elias Kane, The Surgeon"></div>`;
+  h+=`<div class="form-group"><label>Tags</label><input id="lore-tags" value="${esc((e.tags||[]).join(', '))}" ${ro} placeholder="villain, harrow bay"></div>`;
+  h+=`<div class="form-group"><label>Body</label><textarea id="lore-body" rows="7" ${ro} placeholder="What's known about this.">${esc(e.body)}</textarea></div>`;
+  h+=`<div class="form-group"><label>Secret <span style="font-weight:400;text-transform:none;color:var(--muted)">(GM only — the body above stays public)</span></label><textarea id="lore-secret" rows="3" ${ro} placeholder="The twist the players don't know yet.">${esc(e.secret||'')}</textarea></div>`;
+  h+=`<label class="edit-only" style="display:flex;gap:8px;align-items:flex-start;font-size:12px;margin-bottom:10px"><input type="checkbox" id="lore-hidden" ${e.hidden?'checked':''} style="width:auto;margin-top:2px"><span>Hide the whole entry — it won't appear in the wiki unless "Show hidden" is on.</span></label>`;
+
+  // NPC link — lore and stats stay in their own homes, joined by id
+  if(e.type==='character'){
+    const roster=(currentUniverse()?.roster||[]).filter(n=>!n.fromHero);
+    const linked=e.npcId?roster.find(n=>n.id===e.npcId):null;
+    h+=`<div class="card-sm" style="border-color:var(--purple)"><div class="label mb-1">Roster Link</div>`;
+    if(linked){
+      h+=`<div style="font-size:12px;margin-bottom:6px">Linked to <span class="fw-700">${esc(linked.name)}</span> on the NPC roster. Stats live there; lore lives here.</div>`;
+      h+=`<div class="edit-only" style="display:flex;gap:4px;flex-wrap:wrap"><button class="btn btn-gold btn-xs" onclick="gotoLinkedNPC('${e.npcId}')">Open in NPC Builder</button><button class="btn btn-secondary btn-xs" onclick="setLoreNPC('')">Unlink</button></div>`;
+    }else{
+      h+=`<div style="font-size:11px;color:var(--muted);margin-bottom:6px">Link this entry to an NPC to give it stats, powers and skills — without copying the lore over.</div>`;
+      h+=`<div class="edit-only" style="display:flex;gap:4px;flex-wrap:wrap"><select id="lore-npc" style="flex:1;font-size:12px"><option value="">— Link existing NPC —</option>${roster.map(n=>`<option value="${n.id}">${esc(n.name)}</option>`).join('')}</select><button class="btn btn-secondary btn-xs" onclick="setLoreNPC(document.getElementById('lore-npc').value)">Link</button><button class="btn btn-gold btn-xs" onclick="createNPCFromLore()">Create NPC</button></div>`;
+    }
+    h+=`</div>`;
+  }
+
+  // Related — derived from name/alias mentions, so navigation works without
+  // asking the user (or the model) to write any link syntax.
+  if(_wikiOpenId){
+    const rel=loreRelated(e);
+    if(rel.out.length||rel.in.length){
+      h+=`<div class="card-sm"><div class="label mb-1">Related</div>`;
+      if(rel.out.length)h+=`<div style="font-size:10px;color:var(--muted);margin-bottom:3px">Mentioned here</div><div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px">${rel.out.map(r=>`<button class="btn btn-secondary btn-xs" onclick="openLoreEditor('${r.id}')">${loreTypeDef(r.type).ico} ${esc(r.name)}</button>`).join('')}</div>`;
+      if(rel.in.length)h+=`<div style="font-size:10px;color:var(--muted);margin-bottom:3px">Mentions this</div><div style="display:flex;flex-wrap:wrap;gap:4px">${rel.in.map(r=>`<button class="btn btn-secondary btn-xs" onclick="openLoreEditor('${r.id}')">${loreTypeDef(r.type).ico} ${esc(r.name)}</button>`).join('')}</div>`;
+      h+=`</div>`;
+    }
+  }
+
+  h+=`<div style="display:flex;gap:8px;margin-top:12px"><button class="btn btn-secondary" style="flex:1" onclick="closeLoreEditor()">${_wikiEditMode?'Cancel':'Close'}</button>`;
+  if(_wikiEditMode){
+    if(_wikiOpenId)h+=`<button class="btn btn-danger" onclick="if(confirm('Delete this entry?')){deleteLoreEntry('${_wikiOpenId}');closeLoreEditor();}">Delete</button>`;
+    h+=`<button class="btn btn-primary" style="flex:1" onclick="saveLoreFromEditor()">Save</button>`;
+  }
+  h+=`</div></div>`;
+  document.getElementById('lore-modal-body').innerHTML=h;
+}
+function _loreReadEditor(){
+  const g=id=>document.getElementById(id),split=v=>String(v||'').split(',').map(s=>s.trim()).filter(Boolean);
+  const e=window._loreDraft||blankLoreEntry();
+  e.type=g('lore-type')?.value||e.type;
+  e.name=(g('lore-name')?.value||'').trim();
+  e.aliases=split(g('lore-aliases')?.value);
+  e.tags=split(g('lore-tags')?.value);
+  e.body=g('lore-body')?.value||'';
+  e.secret=g('lore-secret')?.value||'';
+  e.hidden=!!(g('lore-hidden')&&g('lore-hidden').checked);
+  return e;
+}
+function saveLoreFromEditor(){
+  const e=_loreReadEditor();
+  if(!e.name){alert('Name required');return;}
+  saveLoreEntry(e);
+  _wikiOpenId=e.id;
+  flashSaved();closeLoreEditor();
+}
+function setLoreNPC(npcId){
+  const e=_loreReadEditor();
+  e.npcId=npcId||null;
+  saveLoreEntry(e);_wikiOpenId=e.id;renderLoreEditor();
+}
+// Spin a roster NPC out of a lore entry: name and blurb carry over, stats are
+// built in the NPC Builder. The two stay joined by id, not duplicated.
+function createNPCFromLore(){
+  const e=_loreReadEditor();
+  if(!e.name){alert('Give the entry a name first.');return;}
+  const npc=ensureId({type:'rogue',name:e.name,desc:(e.body||'').slice(0,200),aspects:[],skills:{},
+    forms:[{name:'Main Form',powerSets:[],gear:[]}],activeForm:0,stunts:[],
+    stress:Array(4).fill(false),consequences:{mild:'',moderate:'',severe:''}});
+  S.npcs.push(npc);save();
+  e.npcId=npc.id;saveLoreEntry(e);_wikiOpenId=e.id;
+  closeLoreEditor();
+  showTab('npcs');_npcTab='rogue';openFullNPCBuilder(S.npcs.indexOf(npc));
+}
+function gotoLinkedNPC(npcId){
+  const i=S.npcs.findIndex(n=>n.id===npcId);
+  if(i<0){alert('That NPC is no longer on the roster.');return;}
+  closeLoreEditor();showTab('npcs');_npcTab=S.npcs[i].type||'rogue';openFullNPCBuilder(i);
+}
+
 document.addEventListener('click',function(e){if(e.target&&e.target.classList&&e.target.classList.contains('modal-overlay')&&!e.target.classList.contains('locked'))e.target.classList.remove('open');});
 document.addEventListener('keydown',function(e){if(e.key==='Escape')document.querySelectorAll('.modal-overlay.open').forEach(function(m){if(!m.classList.contains('locked'))m.classList.remove('open');});});
-(function boot(){loadUniverses();if(U.universes.length===0){openUniverseSetup(true);return;}let a=null;try{a=localStorage.getItem('dc_active_slot');}catch(e){}if(a!==null&&a!=='')loadSlot(parseInt(a));renderHero();if(currentSlot===null)openSlotModal();})();
+(function boot(){
+  loadUniverses();
+  if(U.universes.length===0){openUniverseSetup(true);return;}
+  migrateSlotsToSaves();
+  loadSaves();
+  if(!saveIndexHealthy())rebuildSaveIndex();
+  if(SV.activeId&&getSaveData(SV.activeId))loadSave(SV.activeId);
+  else{
+    const first=listSaves().sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0))[0];
+    if(first)loadSave(first.id);
+  }
+  renderHero();
+  if(currentSaveId===null)openSlotModal();
+})();
 </script>
 </body>
 </html>

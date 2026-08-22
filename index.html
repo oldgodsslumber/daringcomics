@@ -3704,9 +3704,25 @@ function pdIconSearch(q){var inp=document.getElementById('pw-icon-search');var q
 // ═══════════════════════════════════════════════════════════
 // Settings live outside the save slot and outside the universe — they're a
 // property of THIS DEVICE, not of the game. Never export them with a slot.
-var LLM_DEFAULTS={backend:'gemini',geminiKey:'',geminiModel:'gemini-2.0-flash',localUrl:'http://localhost:5000/v1',localModel:'',localKey:''};
+var LLM_DEFAULTS={backend:'gemini',geminiKey:'',geminiModel:'gemini-3.7-flash',localUrl:'http://localhost:5000/v1',localModel:'',localKey:''};
+// Suggestions for the model field (it stays free-text). Every id here was
+// pinged against the live API on 2026-08-21 and answered. gemini-2.5-pro and
+// gemini-2.5-flash-lite are deliberately absent: they return 404 "no longer
+// available to new users", so they work only on keys that used them before.
+var LLM_MODEL_SUGGESTIONS=[
+  {id:'gemini-3.7-flash',label:'newest, best coding/agents (default)'},
+  {id:'gemini-3.6-flash',label:'previous default'},
+  {id:'gemini-3.5-flash',label:'balanced'},
+  {id:'gemini-3.5-flash-lite',label:'faster / cheaper'},
+  {id:'gemini-3.1-pro-preview',label:'deepest reasoning (preview)'},
+  {id:'gemini-2.5-flash',label:'older, still available'}
+];
 var _llmCfg=null;
-function llmConfig(){if(_llmCfg)return _llmCfg;try{_llmCfg=Object.assign({},LLM_DEFAULTS,JSON.parse(localStorage.getItem('dc_llm'))||{});}catch(e){_llmCfg=Object.assign({},LLM_DEFAULTS);}return _llmCfg;}
+// Model ids Google has removed — each returns a hard 404 NOT_FOUND (pinged
+// live 2026-08-21). gemini-2.0-flash was this app's default, so most saved
+// configs point at a dead model; remap on read or the AI tab just errors.
+var LLM_RETIRED_MODELS=['gemini-2.0-flash','gemini-2.0-flash-lite','gemini-1.5-flash','gemini-1.5-pro','gemini-pro','gemini-3-pro-preview','gemma-3-27b-it','gemma-3-12b-it','gemma-4-e4b-it','gemma-4-e2b-it'];
+function llmConfig(){if(_llmCfg)return _llmCfg;try{_llmCfg=Object.assign({},LLM_DEFAULTS,JSON.parse(localStorage.getItem('dc_llm'))||{});}catch(e){_llmCfg=Object.assign({},LLM_DEFAULTS);}if(LLM_RETIRED_MODELS.indexOf(_llmCfg.geminiModel)>=0)_llmCfg.geminiModel=LLM_DEFAULTS.geminiModel;return _llmCfg;}
 function saveLLMConfig(patch){const c=Object.assign(llmConfig(),patch||{});try{localStorage.setItem('dc_llm',JSON.stringify(c));}catch(e){}_llmCfg=c;return c;}
 function llmReady(){const c=llmConfig();return c.backend==='gemini'?!!c.geminiKey.trim():!!c.localUrl.trim();}
 function llmBackendLabel(){const c=llmConfig();return c.backend==='gemini'?('Gemini · '+c.geminiModel):('Local · '+(c.localModel||'default model'));}
@@ -3727,6 +3743,11 @@ async function llmGemini(c,opts){
     generationConfig:{temperature:opts.temperature==null?0.2:opts.temperature,maxOutputTokens:opts.maxTokens||8192}
   };
   if(opts.jsonMode)body.generationConfig.responseMimeType='application/json';
+  // Gemini 3.x thinks by default and that thinking spends the same output
+  // budget, which can truncate a large lore-intake reply. Extraction needs
+  // no visible reasoning. thinkingLevel is the 3.x knob — gemini-3.5-flash-lite
+  // rejects thinkingBudget with INVALID_ARGUMENT. Verified live 2026-08-21.
+  if(opts.jsonMode&&/^gemini-3/i.test(c.geminiModel))body.generationConfig.thinkingConfig={thinkingLevel:'low'};
   const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
   const data=await r.json().catch(function(){return null;});
   if(!r.ok){
@@ -3776,7 +3797,7 @@ function renderAISetup(){
   h+=`<button class="btn btn-${c.backend==='local'?'primary':'secondary'} btn-sm" style="flex:1" onclick="saveLLMConfig({backend:'local'});renderAISetup()">Local / Custom</button></div>`;
   if(c.backend==='gemini'){
     h+=`<div class="form-group"><label>API Key</label><input type="password" id="ai-gk" value="${esc(c.geminiKey)}" placeholder="AIza..." autocomplete="off"></div>`;
-    h+=`<div class="form-group"><label>Model</label><input id="ai-gm" value="${esc(c.geminiModel)}" placeholder="gemini-2.0-flash"></div>`;
+    h+=`<div class="form-group"><label>Model</label><input id="ai-gm" value="${esc(c.geminiModel)}" list="ai-gm-options" placeholder="gemini-3.7-flash"><datalist id="ai-gm-options">${LLM_MODEL_SUGGESTIONS.map(m=>`<option value="${esc(m.id)}">${esc(m.label)}</option>`).join('')}</datalist></div>`;
     h+=`<div style="font-size:11px;color:var(--muted);margin-bottom:10px">Get a free key at <span style="color:var(--blue)">aistudio.google.com/apikey</span>. The free tier is plenty for filing notes.</div>`;
   }else{
     h+=`<div class="form-group"><label>Base URL</label><input id="ai-lu" value="${esc(c.localUrl)}" placeholder="http://localhost:5000/v1"></div>`;

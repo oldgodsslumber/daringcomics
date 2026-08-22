@@ -17,9 +17,11 @@ manager. Until then the Firebase SDK is never fetched.
 
 ## 1. Firebase setup
 
-Copy `firebase-config.example.js` to **`firebase-config.js`** and fill in your
-project's values. That file is gitignored and loaded on demand — see the note at
-the end of this section for why it is not committed. Then:
+`firebase-config.js` is committed and points at the `daringcomics-98cea`
+project, so a clone of this repo is already wired up. Running your own project
+instead? Copy `firebase-config.example.js` over it and fill in your values — see
+the note at the end of this section for why it is committed rather than hidden.
+Either way:
 
 1. **Realtime Database → Create Database**, then paste the rules in §2. Do not
    leave it in test mode.
@@ -49,37 +51,46 @@ Register a web app under **Project settings → Your apps → Web (`</>`)**, cop
 field is not in the snippet Firebase shows you until the Realtime Database
 exists — add it by hand from the database page.
 
-### Why the config is not in the repo
+### Why the config is committed
 
-`firebase-config.js` is gitignored. An earlier version of this app had the config
-inline in `index.html` and it was committed to the public repo, which tripped
-secret scanning. The reasoning at the time — "Firebase web keys are identifiers,
-not secrets" — is the official Firebase line but it is too glib:
+`firebase-config.js` is in the repo. It was briefly gitignored, which only
+succeeded in breaking the deployed copy: GitHub Pages served an `index.html`
+that asked for a file that was never pushed, so **🌐 Play With Your Table**
+reported "not set up yet" on the live site while working fine on localhost.
+
+There is no server here to hide a config behind. A static app has to ship these
+values to every visitor's browser or it cannot reach the database at all, so
+withholding them from the repo protects nothing that a devtools Network tab
+would not hand over anyway. **Secrecy is not the control; restriction is.**
+
+That said, the caution behind the original decision was not wrong, and it is
+what makes committing this safe rather than sloppy:
 
 - The key is an **`AIzaSy…` Google API key, not a Firebase-only credential.**
-  Unless you restrict it, it can call *any* API enabled on the project. This app
-  talks to Gemini, so enabling the Generative Language API on the same project
-  would turn a public key into someone else's billable quota.
-- Secret scanners flag the pattern regardless of how it is meant to be used, so
-  committing one means alerts and, eventually, an automatic disable.
+  Unrestricted, it can call *any* API enabled on the project. This app talks to
+  Gemini, so enabling the Generative Language API on the same project would turn
+  a public key into someone else's billable quota.
+- Secret scanners flag the pattern regardless of intent, so expect an alert on
+  push. It is noise here, but treat it as a prompt to re-check the restrictions
+  below rather than something to dismiss.
 
-**If you host this publicly** — GitHub Pages or anywhere else — the config has to
-reach the browser somehow, and there is no server to hide it behind. Secrecy is
-not the control there; **restriction** is:
+**The restrictions are not optional.** Before this config reaches any public
+host, in the Google Cloud console:
 
-1. Google Cloud console → **APIs & Services → Credentials** → your browser key.
-2. **Application restrictions:** HTTP referrers, listing only your own domains.
+1. **APIs & Services → Credentials** → your browser key.
+2. **Application restrictions:** HTTP referrers, listing only your own domains
+   (`oldgodsslumber.github.io/*` and `localhost` for local testing).
 3. **API restrictions:** only the APIs this app uses (Identity Toolkit for
-   Google sign-in, Firebase Realtime Database). Do **not** leave it unrestricted,
-   and do not add the Generative Language API to this key.
+   Google sign-in, Firebase Realtime Database). Do **not** leave it
+   unrestricted, and do not add the Generative Language API to this key.
 4. Consider **App Check** to stop unenrolled clients using the project at all.
 
-With those restrictions in place a deployed key is genuinely low-risk, and you
-can copy `firebase-config.js` into your deploy output on purpose. What you should
-not do is commit an *unrestricted* one, which is what happened here.
+Together with the rules in §2 — which are the thing actually protecting your
+data — a restricted, committed key is genuinely low-risk. An *unrestricted* one
+is not, whether it is committed or not.
 
-If a key has been public even briefly, rotate it. Rewriting git history does not
-help — it was fetchable, and scanners have already read it.
+If a key has been public while unrestricted, rotate it. Rewriting git history
+does not help — it was fetchable, and scanners have already read it.
 
 Google sign-in needs a real origin — opening `index.html` from `file://` will not
 work for multiplayer. The offline app is unaffected.

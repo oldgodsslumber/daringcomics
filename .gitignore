@@ -1,5 +1,6 @@
-# Firebase web config — kept out of the repo so an API key is never committed.
-# Copy firebase-config.example.js to firebase-config.js and fill it in.
-firebase-config.js
+# firebase-config.js IS committed — see MULTIPLAYER.md §1. A public web app has
+# to ship its Firebase config to every visitor, so hiding it buys nothing; the
+# controls are the API-key restrictions and the Realtime Database rules.
+# Keep that key restricted (HTTP referrers + API allowlist) at all times.
 
 node_modules/

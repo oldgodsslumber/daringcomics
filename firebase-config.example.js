@@ -1,5 +1,7 @@
 // Copy this file to `firebase-config.js` and fill in your project's values.
-// firebase-config.js is gitignored so a key is never committed by accident.
+// The committed firebase-config.js points at the maintainer's project; replace
+// it with your own if you are running a fork. It is a separate file precisely
+// so that swapping projects is a one-file change.
 //
 // Get these from the Firebase console:
 //   Project settings → Your apps → Web (</>)

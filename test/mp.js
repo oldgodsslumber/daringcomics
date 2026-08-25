@@ -7,7 +7,8 @@ const ROOT = path.join(__dirname, '..');
 const { JSDOM } = require('jsdom');
 const { makeBackend, makeFirebase } = require('./fakefb');
 
-const HTML = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+const { loadAppHTML } = require('./loadapp');
+const HTML = loadAppHTML();
 const MPJS = fs.readFileSync(path.join(ROOT, 'dc-mp.js'), 'utf8');
 const APPJS = fs.readFileSync(path.join(ROOT, 'dc-app-mp.js'), 'utf8');
 

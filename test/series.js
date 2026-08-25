@@ -4,7 +4,8 @@ const fs = require('fs');
 const path = require('path');
 const ROOT = path.join(__dirname, '..');
 const { JSDOM } = require('jsdom');
-const HTML = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+const { loadAppHTML } = require('./loadapp');
+const HTML = loadAppHTML();
 
 const fails = [], ok = [];
 function mk(seed) {

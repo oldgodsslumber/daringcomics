@@ -3,7 +3,8 @@ const path = require('path');
 const ROOT = path.join(__dirname, '..');
 const { JSDOM } = require('jsdom');
 
-const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+const { loadAppHTML } = require('./loadapp');
+const html = loadAppHTML();
 const dom = new JSDOM(html, { runScripts: 'dangerously', pretendToBeVisual: true, url: 'http://localhost/' });
 const w = dom.window;
 w.fetch = w.fetch || (() => Promise.reject(new Error('network disabled in tests')));

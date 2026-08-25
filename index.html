@@ -1744,13 +1744,28 @@ function savePD(){
   else if(target==='creation')renderCreationStep();
 }
 function renderPB(){
-  const q=_pbSearch.toLowerCase(),sf=_pbSkill;
-  let filtered=POWERS.filter(p=>{if(q&&!p.name.toLowerCase().includes(q)&&!p.desc.toLowerCase().includes(q))return false;if(sf&&!p.skill.toLowerCase().includes(sf.toLowerCase()))return false;return true;});
+  const sf=_pbSkill;
   const filters=['All','Accuracy','Fight','Weapons','Athletics','Physique','Will','Arcanum','Magic/Mental/Power','None'];
-  let h=`<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div class="pg-title" style="font-size:20px">Powers</div><button class="btn btn-secondary btn-xs" onclick="closePB()">Close</button></div><input id="pb-search" placeholder="Search..." value="${esc(_pbSearch)}" oninput="_pbSearch=this.value;renderPB();_refocus('pb-search')" style="margin-bottom:8px"><div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px">${filters.map(f=>`<button class="btn btn-xs ${(f==='All'&&!sf)||sf===f?'btn-primary':'btn-secondary'}" onclick="_pbSkill='${f==='All'?'':f}';renderPB()">${f}</button>`).join('')}</div><div style="max-height:50vh;overflow-y:auto">`;
+  let h=`<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div class="pg-title" style="font-size:20px">Powers</div><button class="btn btn-secondary btn-xs" onclick="closePB()">Close</button></div><input id="pb-search" placeholder="Search..." value="${esc(_pbSearch)}" oninput="_pbSearch=this.value;renderPBList()" style="margin-bottom:8px"><div id="pb-filters" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px">${filters.map(f=>`<button class="btn btn-xs ${(f==='All'&&!sf)||sf===f?'btn-primary':'btn-secondary'}" data-pbf="${esc(f)}" onclick="setPBSkill('${f==='All'?'':f}')">${f}</button>`).join('')}</div><div id="pb-results" style="max-height:50vh;overflow-y:auto"></div></div>`;
+  document.getElementById('power-modal-body').innerHTML=h;
+  renderPBList();
+}
+// Only the results list is re-rendered while typing — rebuilding the whole
+// modal replaced the <input> mid-keystroke, which dropped focus and ate letters.
+function renderPBList(){
+  const box=document.getElementById('pb-results');if(!box)return;
+  const q=_pbSearch.toLowerCase(),sf=_pbSkill;
+  const filtered=POWERS.filter(p=>{if(q&&!p.name.toLowerCase().includes(q)&&!p.desc.toLowerCase().includes(q))return false;if(sf&&!p.skill.toLowerCase().includes(sf.toLowerCase()))return false;return true;});
+  let h='';
   filtered.forEach(p=>{h+=`<div class="power-card" onclick="showPD('${p.id}')"><div style="display:flex;justify-content:space-between"><div class="pw-name">${p.name}</div><div class="pw-cost">${p.cost}</div></div><div class="pw-desc">${p.desc}</div><div class="pw-skill">${p.skill}</div></div>`;});
-  if(!filtered.length)h+='<div class="tac text-muted" style="padding:20px">No matches</div>';
-  h+='</div></div>';document.getElementById('power-modal-body').innerHTML=h;
+  if(!filtered.length)h='<div class="tac text-muted" style="padding:20px">No matches</div>';
+  box.innerHTML=h;
+}
+function setPBSkill(f){
+  _pbSkill=f;
+  const wrap=document.getElementById('pb-filters');
+  if(wrap)wrap.querySelectorAll('button[data-pbf]').forEach(b=>{const v=b.dataset.pbf==='All'?'':b.dataset.pbf;b.className='btn btn-xs '+(v===f?'btn-primary':'btn-secondary');});
+  renderPBList();
 }
 function showPD(id){
   const p=POWERS.find(pw=>pw.id===id);if(!p)return;

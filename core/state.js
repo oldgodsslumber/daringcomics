@@ -394,10 +394,14 @@ function refreshUniverseUI(){try{renderHero();}catch(e){}try{if(document.getElem
 function universeBarHTML(){const u=currentUniverse();const nm=u?u.name:'No universe';return `<div class="uni-bar" onclick="openUniverseManager()" title="Your game world — tap to manage universes"><span class="uni-ico">\u{1F30C}</span><span class="uni-name">${esc(nm)}</span><span class="uni-caret">▾</span></div>`;}
 function universeChooserHTML(){loadUniverses();const act=U.activeUniverseId;return `<div class="card-sm" style="display:flex;align-items:center;gap:8px;margin-top:8px"><span style="font-size:11px;color:var(--muted);white-space:nowrap">New heroes join</span><select style="flex:1" onchange="U.activeUniverseId=this.value;saveUniverses();renderSaveModal()">${U.universes.map(u=>`<option value="${u.id}" ${u.id===act?'selected':''}>${esc(u.name)}</option>`).join('')}<\/select><button class="btn btn-secondary btn-xs" onclick="openUniverseManager()">Manage<\/button><\/div>`;}
 function closeUniverseModal(){const m=document.getElementById('universe-modal');if(m)m.classList.remove('open','locked');}
-function openUniverseSetup(required,editId){
+function openUniverseSetup(required,editId,repaint){
   _uniRequired=!!required;
   const ed=editId?getUniverse(editId):null;
-  const cur=(ed&&ed.series)||{};
+  // A new universe's picks live on the draft until it is created — highlight
+  // from there, or a picked box shows no selection (only the hover outline on
+  // the box last tapped, so one box looked lit across both sections).
+  if(!ed&&!repaint)_uniDraft={tone:'',level:''};
+  const cur=ed?(ed.series||{}):_uniDraft;
   let h=`<div class="card"><div class="pg-title" style="font-size:22px">${ed?'Universe Settings':(required?'Name Your Universe':'New Universe')}</div>`;
   h+=`<div style="font-size:12px;color:var(--muted);margin:6px 0 12px">A universe is your shared game world (like "Marvel"). Every hero, NPC, villain and wiki entry in it is shared. Its tone and power level apply to every hero here.</div>`;
   h+=`<div class="form-group"><label>Universe Name</label><input id="uni-name" value="${esc(ed?ed.name:'')}" placeholder="e.g. Marvel, My City, Earth-27" onkeydown="if(event.key==='Enter')submitUniverseSetup('${editId||''}')"><\/div>`;
@@ -425,7 +429,7 @@ function _uniPick(field,val,editId){
   if(editId){const u=getUniverse(editId);if(u){u.series=u.series||{};u.series[field]=val;saveUniverses();}}
   else _uniDraft[field]=val;
   const nm=(document.getElementById('uni-name')||{}).value||'';
-  openUniverseSetup(_uniRequired,editId);
+  openUniverseSetup(_uniRequired,editId,true);
   const i=document.getElementById('uni-name');if(i)i.value=nm;
 }
 function submitUniverseSetup(editId){

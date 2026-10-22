@@ -1181,10 +1181,14 @@ function refreshUniverseUI(){try{renderHero();}catch(e){}try{if(document.getElem
 function universeBarHTML(){const u=currentUniverse();const nm=u?u.name:'No universe';return `<div class="uni-bar" onclick="openUniverseManager()" title="Your game world — tap to manage universes"><span class="uni-ico">\u{1F30C}</span><span class="uni-name">${esc(nm)}</span><span class="uni-caret">▾</span></div>`;}
 function universeChooserHTML(){loadUniverses();const act=U.activeUniverseId;return `<div class="card-sm" style="display:flex;align-items:center;gap:8px;margin-top:8px"><span style="font-size:11px;color:var(--muted);white-space:nowrap">New heroes join</span><select style="flex:1" onchange="U.activeUniverseId=this.value;saveUniverses();renderSaveModal()">${U.universes.map(u=>`<option value="${u.id}" ${u.id===act?'selected':''}>${esc(u.name)}</option>`).join('')}<\/select><button class="btn btn-secondary btn-xs" onclick="openUniverseManager()">Manage<\/button><\/div>`;}
 function closeUniverseModal(){const m=document.getElementById('universe-modal');if(m)m.classList.remove('open','locked');}
-function openUniverseSetup(required,editId){
+function openUniverseSetup(required,editId,repaint){
   _uniRequired=!!required;
   const ed=editId?getUniverse(editId):null;
-  const cur=(ed&&ed.series)||{};
+  // A new universe's picks live on the draft until it is created — highlight
+  // from there, or a picked box shows no selection (only the hover outline on
+  // the box last tapped, so one box looked lit across both sections).
+  if(!ed&&!repaint)_uniDraft={tone:'',level:''};
+  const cur=ed?(ed.series||{}):_uniDraft;
   let h=`<div class="card"><div class="pg-title" style="font-size:22px">${ed?'Universe Settings':(required?'Name Your Universe':'New Universe')}</div>`;
   h+=`<div style="font-size:12px;color:var(--muted);margin:6px 0 12px">A universe is your shared game world (like "Marvel"). Every hero, NPC, villain and wiki entry in it is shared. Its tone and power level apply to every hero here.</div>`;
   h+=`<div class="form-group"><label>Universe Name</label><input id="uni-name" value="${esc(ed?ed.name:'')}" placeholder="e.g. Marvel, My City, Earth-27" onkeydown="if(event.key==='Enter')submitUniverseSetup('${editId||''}')"><\/div>`;
@@ -1212,7 +1216,7 @@ function _uniPick(field,val,editId){
   if(editId){const u=getUniverse(editId);if(u){u.series=u.series||{};u.series[field]=val;saveUniverses();}}
   else _uniDraft[field]=val;
   const nm=(document.getElementById('uni-name')||{}).value||'';
-  openUniverseSetup(_uniRequired,editId);
+  openUniverseSetup(_uniRequired,editId,true);
   const i=document.getElementById('uni-name');if(i)i.value=nm;
 }
 function submitUniverseSetup(editId){
@@ -2261,7 +2265,7 @@ function sheetBodyHTML(ch,opts){
     if(_printForms.length>1)powHtml+=`<div class="form-hdr">◆ ${e(form.name||'Form')}</div>`;
     (form.powerSets||[]).forEach(ps=>{
       powHtml+=`<div class="ps-card"><div class="ps-name">${e(ps.name||'Power Set')}</div><div class="ps-asp">${e(ps.aspect)}</div>`;
-      (ps.powers||[]).forEach(pw=>{const pd=POWERS.find(p=>p.id===pw.powerId);powHtml+=`<div class="pw-item">${pw.icon?'<img src="https://api.iconify.design/'+encodeURIComponent(pw.icon)+'.svg" width="24" height="24" style="vertical-align:middle;margin-right:5px">':''}<span class="pw-n">${e(pw.customName||pd?.name||pw.powerId)}</span>${pw.level>1?' <span class="pw-lv">Lv'+pw.level+'</span>':''} <span class="pw-c">(${pw.totalCost} HP)</span>${pd?.desc?`<div class="pw-desc">${e(pd.desc)}</div>`:''}${pd?.levelDesc&&pd.levelDesc[pw.level]?`<div class="pw-lvd">${e(pd.levelDesc[pw.level])}</div>`:''}${pw.selectedSE.length?'<div class="pw-tags">'+pw.selectedSE.map(s=>{const def=[...(pd?.se||[]),...GENERAL_SE].find(x=>x.name===s);return'<span class="tg tg-se">'+e(s)+'</span>'+(def?' <span class="tg-desc">'+e(def.desc)+'</span>':'');}).join('<br>')+'</div>':''}${pw.selectedLim.length?'<div class="pw-tags">'+pw.selectedLim.map(l=>{const def=[...(pd?.lim||[]),...GENERAL_LIMITS].find(x=>x.name===l);return'<span class="tg tg-lm">'+e(l)+'</span>'+(def?' <span class="tg-desc">'+e(def.desc)+'</span>':'');}).join('<br>')+'</div>':''}${pw.flavor?'<div class="pw-flavor">'+e(pw.flavor)+'</div>':''}</div>`;});
+      (ps.powers||[]).forEach(pw=>{const pd=POWERS.find(p=>p.id===pw.powerId);powHtml+=`<div class="pw-item">${pw.icon?'<img src="'+pdIconUrl(pw.icon,true)+'" width="24" height="24" style="vertical-align:middle;margin-right:5px">':''}<span class="pw-n">${e(pw.customName||pd?.name||pw.powerId)}</span>${pw.level>1?' <span class="pw-lv">Lv'+pw.level+'</span>':''} <span class="pw-c">(${pw.totalCost} HP)</span>${pd?.desc?`<div class="pw-desc">${e(pd.desc)}</div>`:''}${pd?.levelDesc&&pd.levelDesc[pw.level]?`<div class="pw-lvd">${e(pd.levelDesc[pw.level])}</div>`:''}${pw.selectedSE.length?'<div class="pw-tags">'+pw.selectedSE.map(s=>{const def=[...(pd?.se||[]),...GENERAL_SE].find(x=>x.name===s);return'<span class="tg tg-se">'+e(s)+'</span>'+(def?' <span class="tg-desc">'+e(def.desc)+'</span>':'');}).join('<br>')+'</div>':''}${pw.selectedLim.length?'<div class="pw-tags">'+pw.selectedLim.map(l=>{const def=[...(pd?.lim||[]),...GENERAL_LIMITS].find(x=>x.name===l);return'<span class="tg tg-lm">'+e(l)+'</span>'+(def?' <span class="tg-desc">'+e(def.desc)+'</span>':'');}).join('<br>')+'</div>':''}${pw.flavor?'<div class="pw-flavor">'+e(pw.flavor)+'</div>':''}</div>`;});
       powHtml+='</div>';
     });
     if(form.gear&&form.gear.length){
@@ -2592,7 +2596,7 @@ function prMapHTML(id,half){
     let cls='mc';if(c.isVoid)cls+=' mc-void';else if(i===cur)cls+=' mc-cur';
     let ico='';
     if(c.icon)ico=isGiSlug(c.icon)
-      ?`<img class="mc-i" src="${pdIconUrl(c.icon.indexOf(':')>=0?c.icon:'game-icons:'+c.icon)}">`
+      ?`<img class="mc-i" src="${pdIconUrl(c.icon.indexOf(':')>=0?c.icon:'game-icons:'+c.icon,true)}">`
       :`<span style="font-size:19pt;line-height:1">${prE(c.icon)}</span>`;
     g+=`<div class="${cls}">${ico}${c.name?`<span class="mc-n">${prE(c.name)}</span>`:''}</div>`;}
   g+='</div>';
@@ -3533,7 +3537,7 @@ var _miScope=null,_miIdx=null,_miVal='',_miDefault='',_miTimer=null;
 function giId(v){return v.indexOf(':')>=0?v:'game-icons:'+v;}
 function mapIconPreview(){var el=document.getElementById('mi-preview');if(!el)return;el.innerHTML=_miVal?'<span class="pw-icon" style="width:26px;height:26px;color:var(--accent);-webkit-mask-image:url(\''+pdIconUrl(giId(_miVal))+'\');mask-image:url(\''+pdIconUrl(giId(_miVal))+'\')"></span>':'<span style="font-size:9px;color:var(--muted);text-align:center;line-height:1.1">no icon</span>';}
 function mapIconResults(icons){var res=document.getElementById('mi-results');if(!res)return;if(!icons||!icons.length){res.innerHTML='<div style="font-size:11px;color:var(--muted);padding:4px">No icons found — try another word (building, tower, skull, factory).</div>';return;}res.innerHTML=icons.map(function(id){var u=pdIconUrl(id);return '<button type="button" class="ic-opt'+(id===_miVal?' sel':'')+'" data-icon="'+esc(id)+'" onclick="selectMapIcon(\''+esc(id)+'\')" title="'+esc(id.replace('game-icons:',''))+'"><span class="pw-icon" style="width:24px;height:24px;-webkit-mask-image:url(\''+u+'\');mask-image:url(\''+u+'\')"></span></button>';}).join('');}
-function mapIconSearch(q){var inp=document.getElementById('mi-search');var query=(typeof q==='string'?q:(inp?inp.value:''))||'';var res=document.getElementById('mi-results');var term=query.trim()||_miDefault||'building';clearTimeout(_miTimer);if(res&&!res.innerHTML)res.innerHTML='<div style="font-size:11px;color:var(--muted);padding:4px">Searching game-icons.net…</div>';_miTimer=setTimeout(function(){fetch('https://api.iconify.design/search?query='+encodeURIComponent(term)+'&prefix=game-icons&limit=48').then(function(r){return r.json();}).then(function(d){mapIconResults(d.icons||[]);}).catch(function(){if(res)res.innerHTML='<div style="font-size:11px;color:var(--muted);padding:4px">Couldn\'t reach game-icons.net. Check your connection and try again.</div>';});},250);}
+function mapIconSearch(q){var inp=document.getElementById('mi-search');var query=(typeof q==='string'?q:(inp?inp.value:''))||'';var res=document.getElementById('mi-results');var term=query.trim()||_miDefault||'building';clearTimeout(_miTimer);if(res&&!res.innerHTML)res.innerHTML='<div style="font-size:11px;color:var(--muted);padding:4px">Searching game-icons.net…</div>';_miTimer=setTimeout(function(){fetch('https://api.iconify.design/search?query='+encodeURIComponent(term)+'&prefix=game-icons&limit=48').then(function(r){return r.json();}).then(function(d){var ic=d.icons||[];return giLoad(ic).then(function(){mapIconResults(ic);});}).catch(function(){if(res)res.innerHTML='<div style="font-size:11px;color:var(--muted);padding:4px">Couldn\'t reach game-icons.net. Check your connection and try again.</div>';});},250);}
 function selectMapIcon(id){_miVal=(id===_miVal)?'':id;mapIconPreview();document.querySelectorAll('#mi-results .ic-opt').forEach(function(b){b.classList.toggle('sel',b.dataset.icon===_miVal);});mapIconCommit();}
 function mapIconCommit(){
   if(_miScope==='sz'){if(!window._mapZoom)return;window._mapZoom.subZone.cells[_miIdx].icon=_miVal;var r=S.regions[S.activeRegion];if(r)r.cells[window._mapZoom.cellIdx].subZone=window._mapZoom.subZone;}
@@ -3707,13 +3711,98 @@ function _saveFlashEl(){var el=document.getElementById('save-flash');if(!el){el=
 function flashSaved(){var el=_saveFlashEl();el.textContent='Saved ✓';el.style.background='';el.style.color='';clearTimeout(_saveFlashT);el.classList.add('show');_saveFlashT=setTimeout(function(){el.classList.remove('show');},900);}
 // A failed write used to still flash "Saved ✓" — the flash now tells the truth.
 function flashSaveError(msg){var el=_saveFlashEl();el.textContent='⚠ '+(msg||'Not saved');el.style.background='var(--red)';el.style.color='#fff';clearTimeout(_saveFlashT);el.classList.add('show');_saveFlashT=setTimeout(function(){el.classList.remove('show');},2600);}
-function pdIconUrl(id){return 'https://api.iconify.design/'+encodeURIComponent(id)+'.svg';}
+// Icons arrive in bulk, not one request each. Iconify's public API answers ~50
+// quick requests and then 429s the rest, and a mask-image whose fetch fails
+// paints nothing — so a 48-result search page (re-run on every keystroke) left
+// most picker buttons blank. Now each batch of ids is one JSON request, and
+// icons are served from an in-memory cache as data: URIs. An id not yet loaded
+// renders as an empty placeholder tagged "#gi=<id>", swapped in place once its
+// batch lands.
+// _giFly holds one promise per id that is queued or in flight, so a re-render
+// mid-fetch (the sheet re-renders on every save) joins that request instead of
+// queueing a duplicate — duplicates are what pushed us back into the 429s.
+var _giSvg={},_giMiss={},_giFly={},_giQueue=[],_giTimer=null;
+var _GI_API='https://api.iconify.design/';
+var _GI_PEND='data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%2F%3E#gi=';
+// Per-icon URLs must be prefix/name.svg — Iconify 404s the prefix:name.svg
+// form (it used to accept it, which is why old cached icons still showed).
+function _giRemote(id){var p=_giSplit(id);return _GI_API+encodeURIComponent(p[0])+'/'+encodeURIComponent(p[1])+'.svg';}
+function _giSplit(id){var i=id.indexOf(':');return i<0?['game-icons',id]:[id.slice(0,i),id.slice(i+1)];}
+// Inline styles quote url('…'); encodeURIComponent leaves ' alone, so encode it too.
+function _giData(body,w,h){return 'data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="'+w+'" height="'+h+'" viewBox="0 0 '+w+' '+h+'">'+body+'</svg>').replace(/'/g,'%27');}
+// direct: for markup leaving this document (the print window), where a
+// placeholder would never be swapped — fall back to the per-icon URL instead.
+function pdIconUrl(id,direct){
+  if(_giSvg[id])return _giSvg[id];
+  if(direct||_giMiss[id])return _giRemote(id);
+  giLoad([id]);
+  return _GI_PEND+encodeURIComponent(id);
+}
+// Queue ids for the next bulk fetch; resolves once they are loaded (or failed).
+function giLoad(ids){
+  var ps=[];
+  (ids||[]).forEach(function(id){
+    if(!id||_giSvg[id]||_giMiss[id])return;
+    if(!_giFly[id]){_giFly[id]=new Promise(function(res){_giQueue.push({id:id,res:res,tries:0});});_giSchedule(0);}
+    ps.push(_giFly[id]);
+  });
+  return Promise.all(ps).then(function(){});
+}
+function _giSchedule(ms){clearTimeout(_giTimer);_giTimer=setTimeout(_giFlush,ms);}
+function _giFlush(){
+  var jobs=_giQueue;_giQueue=[];if(!jobs.length)return;
+  var byPfx={};jobs.forEach(function(j){var p=_giSplit(j.id);(byPfx[p[0]]=byPfx[p[0]]||[]).push(j);});
+  var reqs=[];
+  Object.keys(byPfx).forEach(function(pfx){var js=byPfx[pfx];
+    for(var i=0;i<js.length;i+=80)reqs.push(_giFetch(pfx,js.slice(i,i+80)));});
+  Promise.all(reqs).then(function(failed){
+    _giPatch();
+    // Retries count per id: three strikes and the id is released (left blank)
+    // so a later render can ask for it again, rather than a global counter
+    // that once exhausted stopped every future failure from retrying.
+    var again=[];
+    [].concat.apply([],failed).forEach(function(j){
+      if(++j.tries<3)again.push(j);else{delete _giFly[j.id];j.res();}
+    });
+    if(again.length){
+      var wait=1500*Math.max.apply(null,again.map(function(j){return j.tries;}));
+      setTimeout(function(){_giQueue=_giQueue.concat(again);_giSchedule(0);},wait);
+    }
+  });
+}
+// Settles the jobs it loads; resolves to the jobs that should be retried
+// (network failure or rate limit).
+function _giFetch(pfx,jobs){
+  var names=jobs.map(function(j){return _giSplit(j.id)[1];});
+  return fetch(_GI_API+encodeURIComponent(pfx)+'.json?icons='+names.map(encodeURIComponent).join(','))
+    .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
+    .then(function(d){
+      var icons=(d&&d.icons)||{},aliases=(d&&d.aliases)||{};
+      jobs.forEach(function(j,k){var n=names[k];
+        var ic=icons[n],al=aliases[n];if(!ic&&al)ic=icons[al.parent];
+        if(!ic)_giMiss[j.id]=1;
+        else{var w=(al&&al.width)||ic.width||d.width||16,h=(al&&al.height)||ic.height||d.height||16;
+          _giSvg[j.id]=_giData(ic.body,w,h);}
+        delete _giFly[j.id];j.res();
+      });
+      return [];
+    })
+    .catch(function(){return jobs;});
+}
+// Swap loaded icons into any placeholders already on the page.
+function _giPatch(){
+  if(typeof document==='undefined')return;
+  var re=/data:image\/svg\+xml,[^'")]*?#gi=([^'")\s]+)/g;
+  function sub(s){return s.replace(re,function(m,enc){var id=decodeURIComponent(enc);return _giSvg[id]||(_giMiss[id]?_giRemote(id):m);});}
+  document.querySelectorAll('[style*="#gi="]').forEach(function(el){var s=el.getAttribute('style'),n=sub(s);if(n!==s)el.setAttribute('style',n);});
+  document.querySelectorAll('img[src*="#gi="]').forEach(function(el){var s=el.getAttribute('src'),n=sub(s);if(n!==s)el.setAttribute('src',n);});
+}
 function powerIco(pw,size){size=size||18;if(!pw||!pw.icon)return'';var u=pdIconUrl(pw.icon);return '<span class="pw-icon" style="width:'+size+'px;height:'+size+'px;-webkit-mask-image:url(\''+u+'\');mask-image:url(\''+u+'\')"></span> ';}
 var _pdIcon='',_pdIconTimer=null;
 function pdIconPreview(){var el=document.getElementById('pw-icon-preview');if(!el)return;el.innerHTML=_pdIcon?'<span class="pw-icon" style="width:26px;height:26px;color:var(--accent);-webkit-mask-image:url(\''+pdIconUrl(_pdIcon)+'\');mask-image:url(\''+pdIconUrl(_pdIcon)+'\')"></span>':'<span style="font-size:9px;color:var(--muted);text-align:center;line-height:1.1">no icon</span>';}
 function selectPdIcon(id){_pdIcon=(id===_pdIcon)?'':id;pdIconPreview();document.querySelectorAll('#pw-icon-results .ic-opt').forEach(function(b){b.classList.toggle('sel',b.dataset.icon===_pdIcon);});}
 function renderPdIcons(icons){var res=document.getElementById('pw-icon-results');if(!res)return;if(!icons||!icons.length){res.innerHTML='<div style="font-size:11px;color:var(--muted);padding:4px">No icons found — try another word (fire, claw, star, shield).</div>';return;}res.innerHTML=icons.map(function(id){var u=pdIconUrl(id);return '<button type="button" class="ic-opt'+(id===_pdIcon?' sel':'')+'" data-icon="'+esc(id)+'" onclick="selectPdIcon(\''+esc(id)+'\')" title="'+esc(id.replace('game-icons:',''))+'"><span class="pw-icon" style="width:24px;height:24px;-webkit-mask-image:url(\''+u+'\');mask-image:url(\''+u+'\')"></span></button>';}).join('');}
-function pdIconSearch(q){var inp=document.getElementById('pw-icon-search');var query=(typeof q==='string'?q:(inp?inp.value:''))||'';var res=document.getElementById('pw-icon-results');var pw=POWERS.find(function(p){return p.id===window._pdId;});var term=query.trim()||(pw?pw.name:'power');clearTimeout(_pdIconTimer);if(res&&!res.innerHTML)res.innerHTML='<div style="font-size:11px;color:var(--muted);padding:4px">Searching game-icons.net…</div>';_pdIconTimer=setTimeout(function(){fetch('https://api.iconify.design/search?query='+encodeURIComponent(term)+'&prefix=game-icons&limit=48').then(function(r){return r.json();}).then(function(d){renderPdIcons(d.icons||[]);}).catch(function(){if(res)res.innerHTML='<div style="font-size:11px;color:var(--muted);padding:4px">Couldn\'t reach game-icons.net. Check your connection and try again.</div>';});},250);}
+function pdIconSearch(q){var inp=document.getElementById('pw-icon-search');var query=(typeof q==='string'?q:(inp?inp.value:''))||'';var res=document.getElementById('pw-icon-results');var pw=POWERS.find(function(p){return p.id===window._pdId;});var term=query.trim()||(pw?pw.name:'power');clearTimeout(_pdIconTimer);if(res&&!res.innerHTML)res.innerHTML='<div style="font-size:11px;color:var(--muted);padding:4px">Searching game-icons.net…</div>';_pdIconTimer=setTimeout(function(){fetch('https://api.iconify.design/search?query='+encodeURIComponent(term)+'&prefix=game-icons&limit=48').then(function(r){return r.json();}).then(function(d){var ic=d.icons||[];return giLoad(ic).then(function(){renderPdIcons(ic);});}).catch(function(){if(res)res.innerHTML='<div style="font-size:11px;color:var(--muted);padding:4px">Couldn\'t reach game-icons.net. Check your connection and try again.</div>';});},250);}
 // ═══════════════════════════════════════════════════════════
 // LLM (Gemini + any OpenAI-compatible local endpoint)
 // ═══════════════════════════════════════════════════════════
